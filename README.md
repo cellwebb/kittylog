@@ -242,6 +242,8 @@ Environment variables always take final precedence over both files.
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+For information about AI agent integrations, see [AGENTS.md](AGENTS.md).
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
