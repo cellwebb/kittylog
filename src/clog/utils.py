@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logging(
-    log_level: int | str = Logging.DEFAULT_LEVEL,
+    log_level: int | str | None = Logging.DEFAULT_LEVEL,
     quiet: bool = False,
     force: bool = False,
     suppress_noisy: bool = False,
@@ -28,6 +28,10 @@ def setup_logging(
         force: If True, force reconfiguration of logging
         suppress_noisy: If True, suppress noisy third-party loggers
     """
+    # Handle None or sentinel values by defaulting to WARNING
+    if log_level is None or (hasattr(log_level, 'name') and log_level.name == 'UNSET'):
+        log_level = logging.WARNING
+    
     if isinstance(log_level, str):
         # Handle invalid log levels by defaulting to WARNING
         log_level_upper = log_level.upper()
