@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @click.group(invoke_without_command=True)
 @click.option("--version", is_flag=True, help="Show the version of the Changelog Updater tool")
 @click.pass_context
-def main(ctx, version):
+def cli(ctx, version):
     """Changelog Updater - Generate changelog entries from git tags with AI."""
     if version:
         click.echo(f"changelog-updater version: {__version__}")
@@ -35,8 +35,8 @@ def main(ctx, version):
 
 
 # Add subcommands
-main.add_command(config_cli)
-main.add_command(init_cli)
+cli.add_command(config_cli)
+cli.add_command(init_cli)
 
 
 @click.command(context_settings={"ignore_unknown_options": True})
@@ -94,8 +94,8 @@ def update(file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run
 
 
 # Add the update command
-main.add_command(update)
+cli.add_command(update)
 
 
 if __name__ == "__main__":
-    main()
+    cli()
