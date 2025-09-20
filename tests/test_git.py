@@ -13,6 +13,7 @@ from clog.git import (
     get_latest_tag,
     get_tag_date,
     get_tags_since_last_changelog,
+    is_current_commit_tagged,
     run_git_command,
 )
 
@@ -180,6 +181,27 @@ class TestRunGitCommand:
         # This should not raise an exception due to raise_on_error=False
         result = run_git_command(["invalid-command"])
         assert result == ""
+
+
+class TestIsCurrentCommitTagged:
+    """Test is_current_commit_tagged function."""
+
+    def test_is_current_commit_tagged_false(self, git_repo_with_tags):
+        """Test that current commit is not tagged in a repo with existing tags."""
+        # In our test repo, HEAD should not have a tag pointing to it
+        result = is_current_commit_tagged()
+        assert result is False
+
+    def test_is_current_commit_tagged_true(self, git_repo):
+        """Test that current commit is tagged when we create a tag on HEAD."""
+        repo = git_repo
+        # Create a tag on the current commit
+        current_commit = repo.head.commit
+        repo.create_tag("test-tag", current_commit)
+        
+        # Now the current commit should be tagged
+        result = is_current_commit_tagged()
+        assert result is True
 
 
 class TestGitErrorHandling:

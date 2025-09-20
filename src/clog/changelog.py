@@ -95,11 +95,14 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
         Formatted changelog entry as a string
     """
     # Clean up the tag name for display
-    display_tag = tag.lstrip("v")
+    if tag is None:
+        display_tag = "Unreleased"
+    else:
+        display_tag = tag.lstrip("v")
 
     # Format the date
     date_str = ""
-    if tag_date:
+    if tag_date and tag is not None:
         date_str = f" - {tag_date.strftime('%Y-%m-%d')}"
 
     # Start with the version header

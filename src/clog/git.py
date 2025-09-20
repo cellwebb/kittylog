@@ -68,6 +68,25 @@ def get_latest_tag() -> str | None:
     tags = get_all_tags()
     return tags[-1] if tags else None
 
+def is_current_commit_tagged() -> bool:
+    """Check if the current commit (HEAD) has a tag pointing to it.
+
+    Returns:
+        True if HEAD is tagged, False otherwise.
+    """
+    try:
+        repo = get_repo()
+        current_commit = repo.head.commit.hexsha
+        
+        # Check if any tag points to the current commit
+        for tag in repo.tags:
+            if tag.commit.hexsha == current_commit:
+                return True
+        return False
+    except Exception as e:
+        logger.error(f"Failed to check if current commit is tagged: {str(e)}")
+        return False
+
 
 def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[dict]:
     """Get commits between two tags or from a tag to HEAD.

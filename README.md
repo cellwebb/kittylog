@@ -8,6 +8,8 @@
 
 - **AI-Powered Changelog Generation:** Automatically generates clear, comprehensive changelog entries using large language models.
 - **Git Tag Integration:** Uses git tags to automatically detect version changes and generate appropriate changelog sections.
+- **Unreleased Changes Support:** Automatically tracks changes since the last git tag in an "Unreleased" section.
+- **Dogfooding:** This project uses `clog` to maintain its own `CHANGELOG.md` file!
 - **Smart Change Analysis:** Analyzes commit messages, file changes, and code patterns to categorize changes appropriately.
 - **Multi-Provider & Model Support:** Works with various AI providers (Anthropic, Cerebras, Groq, OpenAI, Ollama) and models.
 - **Keep a Changelog Format:** Follows the [Keep a Changelog](https://keepachangelog.com/) standard format with proper categorization.

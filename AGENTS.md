@@ -2,6 +2,10 @@
 
 This repository integrates with multiple AI providers through the [aisuite](https://github.com/mikep/aisuite) library to generate changelog entries from git commit history.
 
+> **Note**: We dogfood on this project! The `CHANGELOG.md` file in this repository is always updated via `clog` itself, demonstrating the tool's capabilities in a real-world scenario.
+>
+> **Development Note**: This project uses `uv` for Python package management. When running commands locally, use `uv run` prefix (e.g., `uv run clog --dry-run`)
+
 ## Supported AI Providers
 
 The clog tool works with any provider supported by aisuite. Currently, the following providers are included as dependencies:
@@ -41,6 +45,20 @@ The clog tool uses AI agents in a structured workflow:
 4. **Content Processing**: Clean and format the AI response according to Keep a Changelog standards
 
 Each provider brings different strengths to the changelog generation process, allowing users to choose based on their priorities (cost, speed, quality, privacy).
+
+## Unreleased Changes Support
+
+The clog tool automatically detects when the current git state doesn't match a tag and creates an "Unreleased" section in the changelog with changes since the latest tag. This allows you to keep your changelog up-to-date with ongoing development work.
+
+When running `clog` without specific tag options:
+
+1. New tags since the last changelog update are processed as usual
+2. If the current commit is not tagged, an "Unreleased" section is automatically created
+3. Changes since the last tag (or all changes if no tags exist) are included in this section
+
+This feature makes it easier to track ongoing development work before officially releasing with a git tag.
+
+> **Dogfooding Note**: This very `CHANGELOG.md` file is maintained using `clog` itself, so you can see this unreleased changes functionality in action!
 
 ## Configuration
 
