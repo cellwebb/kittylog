@@ -1,3 +1,4 @@
+
 """Pytest configuration and fixtures for clog tests."""
 
 import os
@@ -6,6 +7,13 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from git import Repo
+
+# Ensure we're in a valid directory at the start
+try:
+    os.getcwd()
+except Exception:
+    os.chdir(str(Path.home()))
 from git import Repo
 
 
@@ -25,31 +33,34 @@ def git_repo(temp_dir):
     repo.config_writer().set_value("user", "name", "Test User").release()
     repo.config_writer().set_value("user", "email", "test@example.com").release()
 
+    # Store original directory
+    try:
+        original_cwd = os.getcwd()
+    except Exception:
+        original_cwd = str(Path.home())
+    
+    # Change to the repo directory for git operations
+    os.chdir(str(temp_dir))
+    
     # Create initial commit
-    test_file = temp_dir / "README.md"
+    test_file = Path("README.md")
     test_file.write_text("# Test Project\n")
-    # Add file using relative path to avoid git path issues
+    # Add file using relative path
     repo.index.add(["README.md"])
     repo.index.commit("Initial commit")
 
-    # Change to the repo directory
-    original_cwd = os.getcwd()
-    os.chdir(str(temp_dir))
-
     yield repo
 
-    # Restore original directory
+    # Restore original directory or change to a safe one
     try:
         os.chdir(original_cwd)
     except Exception:
-        # If the directory no longer exists, just stay where we are
-        pass
+        os.chdir(str(Path.home()))
     
     # Additional safety: make sure we're in a valid directory
     try:
         os.getcwd()
     except Exception:
-        # If somehow we're in an invalid directory, change to a safe one
         os.chdir(str(Path.home()))
 
 

@@ -336,19 +336,24 @@ class TestMultiTagIntegration:
     def test_multiple_tags_auto_detection(self, mock_client_class, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
         # Store original directory for cleanup
-        original_cwd = os.getcwd()
+        from pathlib import Path
+        
+        try:
+            original_cwd = os.getcwd()
+        except Exception:
+            # If current directory is invalid, use home directory as fallback
+            original_cwd = str(Path.home())
+        
         result = None
         
         try:
             # Create a git repo with multiple tags
             from git import Repo
+            from pathlib import Path
 
             repo = Repo.init(temp_dir)
             repo.config_writer().set_value("user", "name", "Test User").release()
             repo.config_writer().set_value("user", "email", "test@example.com").release()
-            
-            # Change to the repo directory for git operations
-            os.chdir(temp_dir)
 
             # Create commits and tags
             for i in range(5):
@@ -383,6 +388,29 @@ class TestMultiTagIntegration:
             docs_dir = temp_dir / "docs"
             docs_dir.mkdir()
 
+            # Setup AI mock to return different content for each tag
+            mock_client = Mock()
+
+            def mock_create(**kwargs):
+                mock_response = Mock()
+                mock_choice = Mock()
+                mock_message = Mock()
+
+                # Return different content based on what files are in the prompt
+                # The AI module will be called twice - once for each new tag
+                call_count = mock_client.chat.completions.create.call_count + 1
+                if call_count == 1:
+                    mock_message.content = "### Added\n- File 2\n- File 3"
+                else:
+                    mock_message.content = "### Added\n- File 4"
+
+                mock_choice.message = mock_message
+                mock_response.choices = [mock_choice]
+                return mock_response
+
+            mock_client.chat.completions.create.side_effect = mock_create
+            mock_client_class.return_value = mock_client
+
             runner = CliRunner()
             # Change to temp_dir for this test
             os.chdir(temp_dir)
@@ -395,24 +423,14 @@ class TestMultiTagIntegration:
                 ],
             )
         finally:
-            # Restore original directory if possible
+            # Restore original directory if possible, otherwise go to home
             try:
                 os.chdir(original_cwd)
             except Exception:
-                pass
+                os.chdir(str(Path.home()))
         
         assert result is not None
         assert result.exit_code == 0
-
-        # Create existing changelog with first tag
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text("""# Changelog
-
-## [0.1.0] - 2024-01-01
-
-### Added
-- Initial file
-""")
 
         # Setup AI mock to return different content for each tag
         mock_client = Mock()
