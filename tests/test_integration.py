@@ -189,9 +189,10 @@ class TestConfigIntegration:
         fake_home = temp_dir / "home"
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", lambda: fake_home)
-        
+
         # Also mock the init command's path for testing
         from clog.init_cli import init
+
         init._mock_env_path = fake_home / ".clog.env"
 
         runner = CliRunner()
@@ -322,7 +323,7 @@ class TestErrorHandlingIntegration:
                 os.chdir(original_cwd)
             except Exception:
                 pass
-        
+
         assert result is not None
         # Should handle gracefully, might succeed with empty commit list
         # or fail with appropriate error message
@@ -337,19 +338,20 @@ class TestMultiTagIntegration:
         """Test auto-detection and processing of multiple new tags."""
         # Store original directory for cleanup
         from pathlib import Path
-        
+
         try:
             original_cwd = os.getcwd()
         except Exception:
             # If current directory is invalid, use home directory as fallback
             original_cwd = str(Path.home())
-        
+
         result = None
-        
+
         try:
             # Create a git repo with multiple tags
-            from git import Repo
             from pathlib import Path
+
+            from git import Repo
 
             repo = Repo.init(temp_dir)
             repo.config_writer().set_value("user", "name", "Test User").release()
@@ -369,7 +371,7 @@ class TestMultiTagIntegration:
 
                 if i in [1, 3, 4]:  # Create tags for commits 1, 3, 4
                     repo.create_tag(f"v0.{i}.0", commit)
-            
+
             # Create existing changelog with first tag
             changelog_file = temp_dir / "CHANGELOG.md"
             changelog_file.write_text("""# Changelog
@@ -379,11 +381,11 @@ class TestMultiTagIntegration:
 ### Added
 - Initial file
 """)
-            
+
             # Create config
             config_file = temp_dir / ".clog.env"
             config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
-            
+
             # Create docs directory
             docs_dir = temp_dir / "docs"
             docs_dir.mkdir()
@@ -428,7 +430,7 @@ class TestMultiTagIntegration:
                 os.chdir(original_cwd)
             except Exception:
                 os.chdir(str(Path.home()))
-        
+
         assert result is not None
         assert result.exit_code == 0
 

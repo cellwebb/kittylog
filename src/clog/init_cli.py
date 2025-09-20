@@ -16,7 +16,7 @@ def init() -> None:
     clog_env_path = CLOG_ENV_PATH
 
     # Allow monkeypatching for tests
-    if hasattr(init, '_mock_env_path'):
+    if hasattr(init, "_mock_env_path"):
         clog_env_path = init._mock_env_path
 
     click.echo("Welcome to clog initialization!\n")

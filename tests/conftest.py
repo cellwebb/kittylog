@@ -1,4 +1,3 @@
-
 """Pytest configuration and fixtures for clog tests."""
 
 import os
@@ -14,7 +13,6 @@ try:
     os.getcwd()
 except Exception:
     os.chdir(str(Path.home()))
-from git import Repo
 
 
 @pytest.fixture
@@ -38,10 +36,10 @@ def git_repo(temp_dir):
         original_cwd = os.getcwd()
     except Exception:
         original_cwd = str(Path.home())
-    
+
     # Change to the repo directory for git operations
     os.chdir(str(temp_dir))
-    
+
     # Create initial commit
     test_file = Path("README.md")
     test_file.write_text("# Test Project\n")
@@ -56,7 +54,7 @@ def git_repo(temp_dir):
         os.chdir(original_cwd)
     except Exception:
         os.chdir(str(Path.home()))
-    
+
     # Additional safety: make sure we're in a valid directory
     try:
         os.getcwd()

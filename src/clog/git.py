@@ -52,7 +52,7 @@ def get_all_tags() -> list[str]:
         except (ValueError, TypeError):
             # Fall back to chronological sorting
             tags.sort(key=lambda t: t.commit.committed_date)
-        
+
         tag_names = [tag.name for tag in tags]
         logger.debug(f"All tags: {tag_names}")
         print(f"DEBUG: All tags: {tag_names}")

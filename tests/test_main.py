@@ -88,9 +88,7 @@ class TestMainBusinessLogic:
     @patch("clog.main.update_changelog")
     @patch("click.confirm")
     @patch("clog.main.get_all_tags")
-    def test_main_logic_dry_run(
-        self, mock_get_all_tags, mock_confirm, mock_update, temp_dir
-    ):
+    def test_main_logic_dry_run(self, mock_get_all_tags, mock_confirm, mock_update, temp_dir):
         """Test dry run mode."""
         mock_update.return_value = "Updated changelog content"
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]

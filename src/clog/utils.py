@@ -29,9 +29,9 @@ def setup_logging(
         suppress_noisy: If True, suppress noisy third-party loggers
     """
     # Handle None or sentinel values by defaulting to WARNING
-    if log_level is None or (hasattr(log_level, 'name') and log_level.name == 'UNSET'):
+    if log_level is None or (hasattr(log_level, "name") and log_level.name == "UNSET"):
         log_level = logging.WARNING
-    
+
     if isinstance(log_level, str):
         # Handle invalid log levels by defaulting to WARNING
         log_level_upper = log_level.upper()
@@ -213,9 +213,6 @@ def format_commit_for_display(commit: dict, max_message_length: int | None = Non
         formatted = f"* {short_hash}: {message} ({author})"
         if date:
             formatted += f" [Date: {date.strftime('%Y-%m-%d')}]"
-
-
-
 
     # Add files if present
     if files:
