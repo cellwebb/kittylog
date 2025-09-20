@@ -117,6 +117,9 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
             entry += f"- {first_line}\n"
         entry += "\n"
 
+    # Clean up excessive newlines at the end of the entry
+    entry = entry.rstrip() + "\n\n"
+
     return entry
 
 
@@ -209,6 +212,12 @@ def update_changelog(
 
     # Clean up any excessive blank lines
     updated_content = re.sub(r"\n{3,}", "\n\n", updated_content)
+
+    # Remove empty [Unreleased] sections
+    updated_content = re.sub(r"##\s*\[Unreleased\]\s*\n\s*(?=##\s*\[)", "", updated_content, flags=re.IGNORECASE)
+
+    # Ensure there's a space before each version section (after the first one)
+    updated_content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", updated_content)
 
     return updated_content
 
