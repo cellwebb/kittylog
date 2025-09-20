@@ -289,7 +289,7 @@ class TestErrorHandlingIntegration:
         assert result is not None
         assert result.exit_code == 1
 
-            assert result.exit_code == 1
+        assert result.exit_code == 1
 
     def test_invalid_tag_error(self, git_repo_with_tags, temp_dir):
         """Test error with invalid git tags."""
@@ -337,6 +337,7 @@ class TestMultiTagIntegration:
         """Test auto-detection and processing of multiple new tags."""
         # Store original directory for cleanup
         original_cwd = os.getcwd()
+        result = None
         
         try:
             # Create a git repo with multiple tags
@@ -363,12 +364,45 @@ class TestMultiTagIntegration:
 
                 if i in [1, 3, 4]:  # Create tags for commits 1, 3, 4
                     repo.create_tag(f"v0.{i}.0", commit)
+            
+            # Create existing changelog with first tag
+            changelog_file = temp_dir / "CHANGELOG.md"
+            changelog_file.write_text("""# Changelog
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial file
+""")
+            
+            # Create config
+            config_file = temp_dir / ".clog.env"
+            config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            
+            # Create docs directory
+            docs_dir = temp_dir / "docs"
+            docs_dir.mkdir()
+
+            runner = CliRunner()
+            # Change to temp_dir for this test
+            os.chdir(temp_dir)
+
+            result = runner.invoke(
+                main,
+                [
+                    "update",
+                    "--yes",
+                ],
+            )
         finally:
             # Restore original directory if possible
             try:
                 os.chdir(original_cwd)
             except Exception:
                 pass
+        
+        assert result is not None
+        assert result.exit_code == 0
 
         # Create existing changelog with first tag
         changelog_file = temp_dir / "CHANGELOG.md"
