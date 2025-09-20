@@ -82,13 +82,14 @@ def main_business_logic(
         try:
             for tag in new_tags:
                 logger.info(f"Processing tag {tag} (from {current_from_tag or 'beginning'})")
+                logger.info(f"About to process tag {tag}")
 
                 if not quiet:
                     console.print(f"[bold blue]Processing {tag}...[/bold blue]")
 
                 # Update changelog for this tag
                 changelog_content = update_changelog(
-                    file_path=changelog_file,
+                    existing_content=changelog_content,
                     from_tag=current_from_tag,
                     to_tag=tag,
                     model=model,

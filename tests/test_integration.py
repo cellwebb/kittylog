@@ -150,7 +150,7 @@ All notable changes to this project will be documented in this file.
             mock_client_class.return_value = mock_client
 
             # Create config
-            config_file = temp_dir / ".clog.env"
+            config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
             config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
             runner = CliRunner()
@@ -189,6 +189,10 @@ class TestConfigIntegration:
         fake_home = temp_dir / "home"
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", lambda: fake_home)
+        
+        # Also mock the init command's path for testing
+        from clog.init_cli import init
+        init._mock_env_path = fake_home / ".clog.env"
 
         runner = CliRunner()
 
@@ -249,51 +253,77 @@ class TestErrorHandlingIntegration:
 
     def test_missing_api_key_error(self, git_repo_with_tags, temp_dir):
         """Test error when API key is missing."""
-        # Create config without API key
-        config_file = temp_dir / ".clog.env"
+        # Create config without API key in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
 
-        with patch("clog.ai.ai.Client") as mock_client_class:
-            # Simulate authentication error
-            mock_client_class.side_effect = Exception("authentication failed")
+            with patch("clog.ai.ai.Client") as mock_client_class:
+                # Simulate authentication error
+                mock_client_class.side_effect = Exception("authentication failed")
+
+                result = runner.invoke(
+                    main,
+                    [
+                        "update",
+                        "--from-tag",
+                        "v0.1.0",
+                        "--to-tag",
+                        "v0.2.0",
+                        "--quiet",
+                    ],
+                )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
+        assert result.exit_code == 1
+
+            assert result.exit_code == 1
+
+    def test_invalid_tag_error(self, git_repo_with_tags, temp_dir):
+        """Test error with invalid git tags."""
+        # Create config in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
+        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+
+        runner = CliRunner()
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
 
             result = runner.invoke(
                 main,
                 [
                     "update",
                     "--from-tag",
-                    "v0.1.0",
+                    "invalid-tag",
                     "--to-tag",
-                    "v0.2.0",
+                    "another-invalid-tag",
                     "--quiet",
                 ],
             )
-
-            assert result.exit_code == 1
-
-    def test_invalid_tag_error(self, git_repo_with_tags, temp_dir):
-        """Test error with invalid git tags."""
-        config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
-
-        runner = CliRunner()
-        os.chdir(temp_dir)
-
-        result = runner.invoke(
-            main,
-            [
-                "update",
-                "--from-tag",
-                "invalid-tag",
-                "--to-tag",
-                "another-invalid-tag",
-                "--quiet",
-            ],
-        )
-
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        
+        assert result is not None
         # Should handle gracefully, might succeed with empty commit list
         # or fail with appropriate error message
         assert result.exit_code in [0, 1]
@@ -305,23 +335,40 @@ class TestMultiTagIntegration:
     @patch("clog.ai.ai.Client")
     def test_multiple_tags_auto_detection(self, mock_client_class, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
-        # Create a git repo with multiple tags
-        from git import Repo
+        # Store original directory for cleanup
+        original_cwd = os.getcwd()
+        
+        try:
+            # Create a git repo with multiple tags
+            from git import Repo
 
-        repo = Repo.init(temp_dir)
-        repo.config_writer().set_value("user", "name", "Test User").release()
-        repo.config_writer().set_value("user", "email", "test@example.com").release()
+            repo = Repo.init(temp_dir)
+            repo.config_writer().set_value("user", "name", "Test User").release()
+            repo.config_writer().set_value("user", "email", "test@example.com").release()
+            
+            # Change to the repo directory for git operations
+            os.chdir(temp_dir)
 
-        # Create commits and tags
-        for i in range(5):
-            test_file = temp_dir / f"file{i}.py"
-            test_file.write_text(f"# File {i}\nprint('hello {i}')")
-            # Add file using relative path to avoid git path issues
-            repo.index.add([f"file{i}.py"])
-            commit = repo.index.commit(f"Add file {i}")
+            # Create commits and tags
+            for i in range(5):
+                test_file = temp_dir / f"file{i}.py"
+                test_file.write_text(f"# File {i}\nprint('hello {i}')")
+                # Add file using relative path to avoid git path issues
+                try:
+                    repo.index.add([f"file{i}.py"])
+                except FileNotFoundError:
+                    # If we can't add with relative path, try absolute path
+                    repo.index.add([str(test_file)])
+                commit = repo.index.commit(f"Add file {i}")
 
-            if i in [1, 3, 4]:  # Create tags for commits 1, 3, 4
-                repo.create_tag(f"v0.{i}.0", commit)
+                if i in [1, 3, 4]:  # Create tags for commits 1, 3, 4
+                    repo.create_tag(f"v0.{i}.0", commit)
+        finally:
+            # Restore original directory if possible
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
 
         # Create existing changelog with first tag
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -357,7 +404,7 @@ class TestMultiTagIntegration:
 
         # Create config
         config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nCLOG_LOG_LEVEL=DEBUG\n")
 
         runner = CliRunner()
         os.chdir(temp_dir)
@@ -368,7 +415,6 @@ class TestMultiTagIntegration:
             [
                 "update",
                 "--yes",
-                "--quiet",
             ],
         )
 
@@ -398,30 +444,42 @@ class TestCLIOptionsIntegration:
         mock_client.chat.completions.create.return_value = mock_response
         mock_client_class.return_value = mock_client
 
-        # Create config
-        config_file = temp_dir / ".clog.env"
+        # Create config in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
-        config_file = temp_dir / ".clog.env"
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
 
-        result = runner.invoke(
-            main,
-            [
-                "update",
-                "--from-tag",
-                "v0.1.0",
-                "--to-tag",
-                "v0.2.0",
-                "--hint",
-                "Focus on breaking changes",
-                "--yes",
-                "--quiet",
-            ],
-        )
+            result = runner.invoke(
+                main,
+                [
+                    "update",
+                    "--from-tag",
+                    "v0.1.0",
+                    "--to-tag",
+                    "v0.2.0",
+                    "--hint",
+                    "Focus on breaking changes",
+                    "--yes",
+                    "--quiet",
+                ],
+            )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
 
         assert result.exit_code == 0
 
@@ -448,27 +506,39 @@ class TestCLIOptionsIntegration:
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Config has one model
-        config_file = temp_dir / ".clog.env"
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
 
-        # But CLI specifies different model
-        result = runner.invoke(
-            main,
-            [
-                "update",
-                "--from-tag",
-                "v0.1.0",
-                "--to-tag",
-                "v0.2.0",
-                "--model",
-                "openai:gpt-4",
-                "--yes",
-                "--quiet",
-            ],
-        )
+            # But CLI specifies different model
+            result = runner.invoke(
+                main,
+                [
+                    "update",
+                    "--from-tag",
+                    "v0.1.0",
+                    "--to-tag",
+                    "v0.2.0",
+                    "--model",
+                    "openai:gpt-4",
+                    "--yes",
+                    "--quiet",
+                ],
+            )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
 
         assert result.exit_code == 0
 
@@ -494,34 +564,46 @@ class TestFilePathIntegration:
         mock_client.chat.completions.create.return_value = mock_response
         mock_client_class.return_value = mock_client
 
-        # Create config
-        config_file = temp_dir / ".clog.env"
+        # Create config in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
-        config_file = temp_dir / ".clog.env"
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
         config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         # Create docs directory
-        docs_dir = temp_dir / "docs"
+        docs_dir = Path(git_repo_with_tags.working_dir) / "docs"
         docs_dir.mkdir()
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
 
-        result = runner.invoke(
-            main,
-            [
-                "update",
-                "--file",
-                "docs/CHANGES.md",
-                "--from-tag",
-                "v0.1.0",
-                "--to-tag",
-                "v0.2.0",
-                "--yes",
-                "--quiet",
-            ],
-        )
+            result = runner.invoke(
+                main,
+                [
+                    "update",
+                    "--file",
+                    "docs/CHANGES.md",
+                    "--from-tag",
+                    "v0.1.0",
+                    "--to-tag",
+                    "v0.2.0",
+                    "--yes",
+                    "--quiet",
+                ],
+            )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
 
         assert result.exit_code == 0
 
@@ -546,30 +628,42 @@ class TestFilePathIntegration:
             mock_client.chat.completions.create.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            config_file = temp_dir / ".clog.env"
+            config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
             config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
             # Create subdirectory
-            subdir = temp_dir / "project"
+            subdir = Path(git_repo_with_tags.working_dir) / "project"
             subdir.mkdir()
 
             runner = CliRunner()
-            os.chdir(temp_dir)
+            # Store original cwd for cleanup
+            original_cwd = os.getcwd()
+            result = None
+            try:
+                # Change to the git repo directory, not temp_dir
+                os.chdir(git_repo_with_tags.working_dir)
 
-            result = runner.invoke(
-                main,
-                [
-                    "update",
-                    "--file",
-                    "project/CHANGELOG.md",
-                    "--from-tag",
-                    "v0.1.0",
-                    "--to-tag",
-                    "v0.2.0",
-                    "--yes",
-                    "--quiet",
-                ],
-            )
+                result = runner.invoke(
+                    main,
+                    [
+                        "update",
+                        "--file",
+                        "project/CHANGELOG.md",
+                        "--from-tag",
+                        "v0.1.0",
+                        "--to-tag",
+                        "v0.2.0",
+                        "--yes",
+                        "--quiet",
+                    ],
+                )
+            finally:
+                # Always restore original directory
+                try:
+                    os.chdir(original_cwd)
+                except Exception:
+                    pass
+            assert result is not None
 
             assert result.exit_code == 0
 

@@ -121,10 +121,11 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
 
 
 def update_changelog(
-    file_path: str,
-    from_tag: str | None,
-    to_tag: str,
-    model: str,
+    file_path: str | None = None,
+    existing_content: str | None = None,
+    from_tag: str | None = None,
+    to_tag: str = "",
+    model: str = "",
     hint: str = "",
     show_prompt: bool = False,
     quiet: bool = False,
@@ -132,7 +133,8 @@ def update_changelog(
     """Update changelog with entries for new tags.
 
     Args:
-        file_path: Path to the changelog file
+        file_path: Path to the changelog file (used when existing_content is None)
+        existing_content: Existing changelog content (takes precedence over file reading)
         from_tag: Starting tag (exclusive)
         to_tag: Ending tag (inclusive)
         model: AI model to use for generation
@@ -145,8 +147,9 @@ def update_changelog(
     """
     logger.info(f"Updating changelog from {from_tag or 'beginning'} to {to_tag}")
 
-    # Read existing changelog
-    existing_content = read_changelog(file_path)
+    # Read existing changelog if content wasn't provided
+    if existing_content is None:
+        existing_content = read_changelog(file_path)
 
     # If file is empty or very short, create header
     if len(existing_content.strip()) < 50:

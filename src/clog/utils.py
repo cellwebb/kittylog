@@ -197,22 +197,21 @@ def format_commit_for_display(commit: dict, max_message_length: int | None = Non
     formatted = f"* {short_hash}: {message} ({author})"
     if date:
         formatted += f" [Date: {date.strftime('%Y-%m-%d')}]"
+
     first_line = formatted.split("\n")[0]
-    if max_message_length and len(first_line) > 80:
+    # Only truncate if the line exceeds 80 characters by a significant margin
+    if max_message_length and len(first_line) > 85:
         # Calculate how much we need to truncate the message
         excess = len(first_line) - 80
         if len(message) > excess + 3:  # Only truncate if we can add '...'
             message = message[: -(excess + 3)] + "..."
+        # Use the truncated message for the final formatted string
         formatted = f"* {short_hash}: {message} ({author})"
         if date:
             formatted += f" [Date: {date.strftime('%Y-%m-%d')}]"
 
-    # Format the commit display
-    formatted = f"* {short_hash}: {message} ({author})"
 
-    # Add date if present
-    if date:
-        formatted += f" [Date: {date.strftime('%Y-%m-%d')}]"
+
 
     # Add files if present
     if files:

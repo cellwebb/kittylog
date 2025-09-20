@@ -86,16 +86,13 @@ class TestMainBusinessLogic:
         mock_write.assert_called_once()
 
     @patch("clog.main.update_changelog")
-    @patch("clog.main.preview_changelog_entry")
     @patch("click.confirm")
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_commits_between_tags")
     def test_main_logic_dry_run(
-        self, mock_get_commits, mock_get_all_tags, mock_confirm, mock_preview, mock_update, temp_dir
+        self, mock_get_all_tags, mock_confirm, mock_update, temp_dir
     ):
         """Test dry run mode."""
         mock_update.return_value = "Updated changelog content"
-        mock_preview.return_value = "Preview of changes"
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
 
         with patch("clog.main.write_changelog") as mock_write:

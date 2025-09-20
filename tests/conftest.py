@@ -39,7 +39,18 @@ def git_repo(temp_dir):
     yield repo
 
     # Restore original directory
-    os.chdir(original_cwd)
+    try:
+        os.chdir(original_cwd)
+    except Exception:
+        # If the directory no longer exists, just stay where we are
+        pass
+    
+    # Additional safety: make sure we're in a valid directory
+    try:
+        os.getcwd()
+    except Exception:
+        # If somehow we're in an invalid directory, change to a safe one
+        os.chdir(str(Path.home()))
 
 
 @pytest.fixture
@@ -268,4 +279,8 @@ def isolated_config_test(temp_dir, monkeypatch):
         "cwd": temp_dir,
     }
 
-    os.chdir(original_cwd)
+    try:
+        os.chdir(original_cwd)
+    except Exception:
+        # If the directory no longer exists, just stay where we are
+        pass

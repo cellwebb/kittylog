@@ -52,8 +52,12 @@ def get_all_tags() -> list[str]:
         except (ValueError, TypeError):
             # Fall back to chronological sorting
             tags.sort(key=lambda t: t.commit.committed_date)
+        
+        tag_names = [tag.name for tag in tags]
+        logger.debug(f"All tags: {tag_names}")
+        print(f"DEBUG: All tags: {tag_names}")
 
-        return [tag.name for tag in tags]
+        return tag_names
     except Exception as e:
         logger.error(f"Failed to get tags: {str(e)}")
         raise GitError(f"Failed to get tags: {str(e)}") from e
@@ -197,7 +201,11 @@ def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md") -> tuple
         new_tags = all_tags[last_tag_index + 1 :]
 
         logger.info(f"Last changelog tag: {last_changelog_tag}")
+        logger.info(f"All tags: {all_tags}")
         logger.info(f"New tags found: {new_tags}")
+        print(f"DEBUG: Last changelog tag: {last_changelog_tag}")
+        print(f"DEBUG: All tags: {all_tags}")
+        print(f"DEBUG: New tags found: {new_tags}")
 
         return last_changelog_tag, new_tags
 
