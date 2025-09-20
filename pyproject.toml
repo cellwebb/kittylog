@@ -1,0 +1,168 @@
+[build-system]
+requires = ["hatchling", "packaging>=23.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clog"
+dynamic = ["version"]
+description = "AI-powered changelog updater that uses git tags to update CHANGELOG.md files"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["changelog", "git", "tags", "automation", "versioning", "github", "pull-request"]
+authors = [
+  { name = "cellwebb", email = "cellwebb@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11", 
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    # AI components - base providers
+    "aisuite",
+    "anthropic",
+    "cerebras_cloud_sdk",
+    "groq", 
+    "ollama",
+    "openai",
+    "tiktoken",
+    
+    # Core functionality
+    "pydantic",
+    "python-dotenv",
+    "docstring_parser",  # needed by aisuite but not in their deps
+    
+    # CLI and formatting
+    "click",
+    "halo",
+    "questionary",
+    "rich",
+    
+    # Code formatting
+    "black",
+    "isort",
+    
+    # Git operations
+    "GitPython",
+]
+
+[project.scripts]
+clog = "clog.cli:cli"
+
+[project.optional-dependencies]
+dev = [
+    # Version management
+    "bump-my-version",
+    
+    # Testing
+    "pytest",
+    "pytest-cov",
+    "codecov",
+    
+    # Linting and formatting
+    "ruff",
+    
+    # Release tools
+    "build",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://github.com/cellwebb/clog"
+Documentation = "https://github.com/cellwebb/clog#readme"
+Repository = "https://github.com/cellwebb/clog.git"
+Issues = "https://github.com/cellwebb/clog/issues"
+Changelog = "https://github.com/cellwebb/clog/blob/main/CHANGELOG.md"
+Source = "https://github.com/cellwebb/clog"
+
+[tool.black]
+line-length = 120
+target-version = ["py310", "py311", "py312", "py313"]
+
+[tool.coverage.run]
+source_pkgs = ["clog"]
+branch = true
+parallel = true
+omit = [
+  "src/clog/__version__.py",
+  "src/clog/main.py",
+]
+
+[tool.coverage.paths]
+clog = ["src/clog", "*/clog/src/clog"]
+tests = ["tests", "*/clog/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "def __repr__",
+  "raise NotImplementedError",
+  "pass",
+  "raise ImportError",
+  "except ImportError"
+]
+
+[tool.hatch.version]
+path = "src/clog/__version__.py"
+
+[tool.hatch.build]
+only-packages = true
+skip-excluded = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clog"]
+include-files = []
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "tests/",
+    "*.tests",
+    "*.tests.*",
+]
+include = [
+    "src/clog/",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+]

@@ -1,0 +1,1 @@
+"""Changelog Updater tests package."""
