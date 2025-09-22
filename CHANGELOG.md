@@ -9,6 +9,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- Add support for tracking and displaying unreleased changes since the last git tag
+- Introduce automatic 'Unreleased' section generation when the current commit is not tagged
+- Add comprehensive documentation for AI agent integration, including configuration examples and provider support
+- Include contribution guidelines with instructions for AI provider integration and code quality standards
+- Implement automated semantic versioning preparation and dependency management enhancements
+
+### Changed
+
+- Improve changelog formatting by removing empty sections and trailing newlines
+- Refactor core logic to process both tagged releases and unreleased changes seamlessly
+- Update prompt logic to better handle versions without tags
+- Enhance console output to clearly indicate when unreleased changes are being processed
+- Reorder and consolidate import statements across core modules and tests for improved readability
+- Rename main Click group function from `main` to `cli` for clarity
+- Update `update_changelog` function to accept an `existing_content` parameter for better content handling
+
+### Removed
+
+- Remove manual commit categorization in favor of LLM-driven analysis
+- Remove unused preview functionality and redundant test setup steps
+- Remove unnecessary blank lines and improve code structure in various source files
+
+### Fixed
+
+- Fix test stability issues related to git working directory context
+- Fix parameter alignment in function signatures for better consistency
+### Added
+
 - Add support for tracking and displaying unreleased changes in changelog generation
   - Automatically detect changes since the last git tag
   - Include an 'Unreleased' section when the current commit is not tagged
@@ -39,7 +67,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 - Remove unused preview functionality and redundant test setup steps
-
 
 ## [0.1.1] - 2025-09-20
 

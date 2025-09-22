@@ -7,6 +7,7 @@ import pytest
 
 from clog.changelog import (
     create_changelog_header,
+    find_end_of_unreleased_section,
     find_insertion_point,
     find_unreleased_section,
     format_changelog_entry,
@@ -84,6 +85,60 @@ class TestFindUnreleasedSection:
 """
         result = find_unreleased_section(content)
         assert result is None
+
+
+class TestFindEndOfUnreleasedSection:
+    """Test find_end_of_unreleased_section function."""
+
+    def test_find_end_of_unreleased_section_with_next_version(self):
+        """Test finding end when there's a next version section."""
+        lines = [
+            "# Changelog",
+            "",
+            "## [Unreleased]",
+            "",
+            "### Added",
+            "- Feature 1",
+            "- Feature 2",
+            "",
+            "## [1.0.0] - 2024-01-01",
+            "",
+            "### Added",
+            "- Initial release",
+        ]
+        result = find_end_of_unreleased_section(lines, 2)  # Unreleased starts at line 2
+        assert result == 8  # Should point to the next version section
+
+    def test_find_end_of_unreleased_section_without_next_version(self):
+        """Test finding end when there's no next version section."""
+        lines = [
+            "# Changelog",
+            "",
+            "## [Unreleased]",
+            "",
+            "### Added",
+            "- Feature 1",
+            "",
+        ]
+        result = find_end_of_unreleased_section(lines, 2)  # Unreleased starts at line 2
+        assert result == 7  # Should point to end of file (len(lines))
+
+    def test_find_end_of_unreleased_section_with_custom_section(self):
+        """Test finding end when there's a custom section after unreleased."""
+        lines = [
+            "# Changelog",
+            "",
+            "## [Unreleased]",
+            "",
+            "### Added",
+            "- Feature 1",
+            "",
+            "## [Security Policy]",
+            "",
+            "- Details about security",
+        ]
+        result = find_end_of_unreleased_section(lines, 2)  # Unreleased starts at line 2
+        assert result == 7  # Should point to the custom section
 
 
 class TestFindInsertionPoint:
@@ -248,6 +303,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature"
 
+    @patch("clog.changelog.get_commits_between_tags")
+    @patch("clog.changelog.generate_changelog_entry")
+    def test_update_changelog_append_unreleased(self, mock_generate, mock_get_commits, temp_dir, sample_commits):
+        """Test that unreleased changes are appended by default."""
+        mock_get_commits.return_value = sample_commits
+        mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
+
+        # Create existing changelog with unreleased content
+        changelog_file = temp_dir / "CHANGELOG.md"
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+### Changed
+- Existing change
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial release
+"""
+        changelog_file.write_text(existing_content)
+
+        # Update with unreleased changes in append mode (default)
+        result = update_changelog(
+            existing_content=existing_content,
+            from_tag="v0.1.0",
+            to_tag=None,  # Unreleased changes
+            model="test:model",
+            quiet=True,
+            replace_unreleased=False,  # Append mode
+        )
+
+        # Should have both existing and new content in unreleased section
+        assert result.count("## [Unreleased]") == 1
+        assert "Existing change" in result
+        assert "New feature" in result
+        assert "Bug fix" in result
+
+    @patch("clog.changelog.get_commits_between_tags")
+    @patch("clog.changelog.generate_changelog_entry")
+    def test_update_changelog_replace_unreleased(self, mock_generate, mock_get_commits, temp_dir, sample_commits):
+        """Test that unreleased changes replace existing content when replace_unreleased=True."""
+        mock_get_commits.return_value = sample_commits
+        mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
+
+        # Create existing changelog with unreleased content
+        changelog_file = temp_dir / "CHANGELOG.md"
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+### Changed
+- Existing change
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial release
+"""
+        changelog_file.write_text(existing_content)
+
+        # Update with unreleased changes in replace mode
+        result = update_changelog(
+            existing_content=existing_content,
+            from_tag="v0.1.0",
+            to_tag=None,  # Unreleased changes
+            model="test:model",
+            quiet=True,
+            replace_unreleased=True,  # Replace mode
+        )
+
+        # Should have only new content in unreleased section (existing content removed)
+        assert result.count("## [Unreleased]") == 1
+        assert "Existing change" not in result
+        assert "New feature" in result
+        assert "Bug fix" in result
         # Non-existent file
         changelog_file = temp_dir / "NEW_CHANGELOG.md"
 
@@ -338,13 +470,16 @@ class TestChangelogIntegration:
 - Session timeout issues"""
         mock_get_date.return_value = datetime(2024, 1, 20)
 
-        # Create initial changelog
+        # Create initial changelog WITH content in Unreleased section
         changelog_file = temp_dir / "CHANGELOG.md"
         initial_content = """# Changelog
 
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+### Added
+- Placeholder for unreleased changes
 
 ## [0.1.0] - 2024-01-01
 

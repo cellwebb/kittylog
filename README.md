@@ -148,6 +148,23 @@ clog --dry-run
 
 You should see an AI-generated changelog preview.
 
+### Command Line Options
+
+The `clog update` command supports several options:
+
+- `-d, --dry-run`: Preview changes without modifying the changelog file
+- `-y, --yes`: Skip confirmation prompts
+- `-f, --file`: Specify a different changelog file path (default: CHANGELOG.md)
+- `-s, --from-tag`: Specify the starting tag for changelog generation
+- `-t, --to-tag`: Specify the ending tag for changelog generation
+- `-p, --show-prompt`: Display the prompt sent to the AI model
+- `-h, --hint`: Provide additional context to guide the AI model
+- `-m, --model`: Override the configured AI model
+- `-q, --quiet`: Suppress non-error output messages
+- `-v, --verbose`: Increase output verbosity to INFO
+- `--log-level`: Set a specific logging level
+- `--replace-unreleased`: Replace existing unreleased content instead of appending to it
+
 ### 4. Upgrade
 
 To upgrade `clog` to the latest version, run:
@@ -185,6 +202,22 @@ Once installed and configured, using `clog` is straightforward:
 - Use different changelog file: `clog -f CHANGES.md`
 - Show the AI prompt: `clog --show-prompt`
 
+### Unreleased Changes
+
+When you have commits that haven't been tagged yet, clog will automatically include them in
+an "Unreleased" section at the top of your changelog. This is useful for tracking ongoing
+changes between official releases.
+
+By default, clog will append new unreleased changes to any existing unreleased section. If you
+want to replace the existing unreleased content entirely (useful when you've made significant
+changes and want a fresh AI-generated summary), use the `--replace-unreleased` option:
+
+```bash
+clog --replace-unreleased
+```
+
+This will replace everything in your current unreleased section with a new AI-generated summary
+based on all commits since your last tag.
 
 ### Advanced Usage Examples
 

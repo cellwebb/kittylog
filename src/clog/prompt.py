@@ -112,7 +112,7 @@ def _build_user_prompt(
         version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
     if from_tag:
         # Handle case where from_tag might be None
-        from_tag_display = from_tag.lstrip('v') if from_tag is not None else 'beginning'
+        from_tag_display = from_tag.lstrip("v") if from_tag is not None else "beginning"
         version_context += f" (changes since {from_tag_display})"
     version_context += ".\n\n"
 

@@ -41,6 +41,26 @@ def find_unreleased_section(content: str) -> int | None:
     return None
 
 
+def find_end_of_unreleased_section(lines: list[str], unreleased_start: int) -> int:
+    """Find the end position of the [Unreleased] section content."""
+    # Look for the next section header after the unreleased section
+    # This could be either another version section or the end of file
+    for i in range(unreleased_start + 1, len(lines)):
+        # Check if this is a version section header
+        if re.match(r"##\s*\[v?\d+\.\d+\.\d+", lines[i], re.IGNORECASE):
+            return i
+
+        # Check if this is a section header with bracketed content like [Unreleased] or [version]
+        # but not just any markdown heading
+        if re.match(r"##\s*\[.*\]", lines[i], re.IGNORECASE):
+            # Additional check - make sure it's not the unreleased section we're looking for
+            if not re.match(r"##\s*\[unreleased\]", lines[i], re.IGNORECASE):
+                return i
+
+    # If no next section found, return the end of file
+    return len(lines)
+
+
 def find_insertion_point(content: str) -> int:
     """Find where to insert new changelog entries.
 
@@ -105,20 +125,35 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
     if tag_date and tag is not None:
         date_str = f" - {tag_date.strftime('%Y-%m-%d')}"
 
-    # Start with the version header
-    entry = f"## [{display_tag}]{date_str}\n\n"
-
-    # Add the AI-generated content
-    if ai_content.strip():
-        entry += ai_content.strip() + "\n\n"
+    # For unreleased changes, we include the header UNLESS we're appending to an existing section
+    if tag is None:
+        # For unreleased changes, we still want the header when creating a new section
+        entry = "## [Unreleased]\n\n"
+        if ai_content.strip():
+            entry += ai_content.strip() + "\n\n"
+        else:
+            # Fallback: create a simple list from commit messages
+            entry += "### Changed\n\n"
+            for commit in commits:
+                # Get first line of commit message
+                first_line = commit["message"].split("\n")[0].strip()
+                entry += f"- {first_line}\n"
+            entry += "\n"
     else:
-        # Fallback: create a simple list from commit messages
-        entry += "### Changed\n\n"
-        for commit in commits:
-            # Get first line of commit message
-            first_line = commit["message"].split("\n")[0].strip()
-            entry += f"- {first_line}\n"
-        entry += "\n"
+        # For regular tags, include the header
+        entry = f"## [{display_tag}]{date_str}\n\n"
+
+        # Add the AI-generated content
+        if ai_content.strip():
+            entry += ai_content.strip() + "\n\n"
+        else:
+            # Fallback: create a simple list from commit messages
+            entry += "### Changed\n\n"
+            for commit in commits:
+                # Get first line of commit message
+                first_line = commit["message"].split("\n")[0].strip()
+                entry += f"- {first_line}\n"
+            entry += "\n"
 
     # Clean up excessive newlines at the end of the entry
     entry = entry.rstrip() + "\n\n"
@@ -127,7 +162,7 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
 
 
 def update_changelog(
-    file_path: str | None = None,
+    file_path: str | None = "CHANGELOG.md",
     existing_content: str | None = None,
     from_tag: str | None = None,
     to_tag: str | None = None,
@@ -135,6 +170,7 @@ def update_changelog(
     hint: str = "",
     show_prompt: bool = False,
     quiet: bool = False,
+    replace_unreleased: bool = False,
 ) -> str:
     """Update changelog with entries for new tags.
 
@@ -155,7 +191,9 @@ def update_changelog(
 
     # Read existing changelog if content wasn't provided
     if existing_content is None:
-        existing_content = read_changelog(file_path)
+        # Default to CHANGELOG.md if no file path provided
+        changelog_path = file_path or "CHANGELOG.md"
+        existing_content = read_changelog(changelog_path)
 
     # If file is empty or very short, create header
     if len(existing_content.strip()) < 50:
@@ -171,9 +209,11 @@ def update_changelog(
     logger.info(f"Found {len(commits)} commits between {from_tag or 'beginning'} and {to_tag}")
 
     # Generate AI content for this version
+    # For unreleased changes, use "Unreleased" as the tag name
+    tag_name = to_tag or "Unreleased"
     ai_content = generate_changelog_entry(
         commits=commits,
-        tag=to_tag,
+        tag=tag_name,
         from_tag=from_tag,
         model=model,
         hint=hint,
@@ -181,34 +221,73 @@ def update_changelog(
         quiet=quiet,
     )
 
-    # Get tag date
-    tag_date = get_tag_date(to_tag)
+    # Get tag date (None for unreleased changes)
+    tag_date = get_tag_date(to_tag) if to_tag else None
 
     # Format the new entry
-    new_entry = format_changelog_entry(to_tag, commits, ai_content, tag_date)
+    new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date)
 
     # Find where to insert the new entry
     lines = existing_content.split("\n")
 
-    # Look for [Unreleased] section to insert after
-    unreleased_line = find_unreleased_section(existing_content)
-    if unreleased_line is not None:
-        # Insert after the [Unreleased] section
-        # Find the end of the unreleased section (next ## heading or end of file)
-        insert_line = unreleased_line + 1
-        for i in range(unreleased_line + 1, len(lines)):
-            if lines[i].strip().startswith("##"):
-                insert_line = i
-                break
+    # Special handling for unreleased changes when an unreleased section already exists
+    if to_tag is None and find_unreleased_section(existing_content) is not None:
+        # For unreleased changes with existing section, we don't want the header
+        # Extract just the content part (skip the ## [Unreleased] header line)
+        entry_lines = new_entry.strip().split("\n")
+        if entry_lines and entry_lines[0].strip().startswith("## [Unreleased]"):
+            content_to_append = "\n".join(entry_lines[1:])  # Skip the header line
         else:
-            # No next section found, insert at end
-            insert_line = len(lines)
+            content_to_append = new_entry.strip()
+
+        if replace_unreleased:
+            # Replace mode: Remove existing content and insert new content
+
+            # Find the start and end of the existing unreleased section
+            unreleased_line = find_unreleased_section(existing_content)
+            if unreleased_line is not None:
+                end_line = find_end_of_unreleased_section(lines, unreleased_line)
+
+                # In replace mode, we want to replace all content between the Unreleased header
+                # and the next section header, but we need to be careful about removing
+                # only the content and keeping appropriate structure
+
+                # Find the first content line (skip empty lines after the header)
+                start_content_line = unreleased_line + 1
+                while start_content_line < len(lines) and not lines[start_content_line].strip():
+                    start_content_line += 1
+            else:
+                # This shouldn't happen in replace mode, but handle gracefully
+                end_line = len(lines)
+                start_content_line = end_line
+
+            # Replace the content between the Unreleased header and the next section
+            # Keep the header line and replace everything after it until the next section
+            lines = lines[:start_content_line] + content_to_append.split("\n") + lines[end_line:]
+        else:
+            # Append mode: Insert just the AI content at the end of the existing unreleased section
+            insert_line = None
+
+            # Find the end of the existing unreleased section (next ## heading or end of file)
+            unreleased_line = find_unreleased_section(existing_content)
+            if unreleased_line is not None:
+                for i in range(unreleased_line + 1, len(lines)):
+                    if lines[i].strip().startswith("##"):
+                        insert_line = i
+                        break
+
+            # If no next section found, insert at end
+            if insert_line is None:
+                insert_line = len(lines)
+
+            # Insert the AI content (without header) at the end of existing unreleased section
+            lines.insert(insert_line, content_to_append.rstrip())
     else:
-        # No [Unreleased] section, find the best insertion point
+        # Standard insertion logic
         insert_line = find_insertion_point(existing_content)
 
-    # Insert the new entry
-    lines.insert(insert_line, new_entry.rstrip())
+        # Insert the new entry
+        lines.insert(insert_line, new_entry.rstrip())
 
     # Join back together
     updated_content = "\n".join(lines)
@@ -216,8 +295,9 @@ def update_changelog(
     # Clean up any excessive blank lines
     updated_content = re.sub(r"\n{3,}", "\n\n", updated_content)
 
-    # Remove empty [Unreleased] sections
-    updated_content = re.sub(r"##\s*\[Unreleased\]\s*\n\s*(?=##\s*\[)", "", updated_content, flags=re.IGNORECASE)
+    # Remove empty [Unreleased] sections (only when there's no content between header and next section)
+    # This regex looks for ## [Unreleased] followed by only whitespace until the next ## section
+    updated_content = re.sub(r"##\s*\[Unreleased\]\s*\n(\s*\n)*(?=##\s*\[)", "", updated_content, flags=re.IGNORECASE)
 
     # Ensure there's a space before each version section (after the first one)
     updated_content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", updated_content)

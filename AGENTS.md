@@ -60,6 +60,16 @@ This feature makes it easier to track ongoing development work before officially
 
 > **Dogfooding Note**: This very `CHANGELOG.md` file is maintained using `clog` itself, so you can see this unreleased changes functionality in action!
 
+By default, clog will append new unreleased changes to any existing unreleased section. If you
+want to replace the existing unreleased content entirely, use the `--replace-unreleased` option:
+
+```bash
+clog --replace-unreleased
+```
+
+This is particularly useful when you want a completely fresh summary of your unreleased changes
+rather than adding to an existing list.
+
 ## Configuration
 
 AI providers are configured through the `CLOG_MODEL` environment variable or in `.clog.env` files:

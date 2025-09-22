@@ -39,6 +39,7 @@ def main_business_logic(
     require_confirmation: bool = True,
     quiet: bool = False,
     dry_run: bool = False,
+    replace_unreleased: bool = False,
 ) -> bool:
     """Main application logic for changelog-updater.
 
@@ -120,6 +121,7 @@ def main_business_logic(
                     hint=hint,
                     show_prompt=show_prompt,
                     quiet=quiet,
+                    replace_unreleased=replace_unreleased,
                 )
 
                 current_from_tag = tag
@@ -127,7 +129,7 @@ def main_business_logic(
             # Process unreleased changes if needed
             if has_unreleased_changes:
                 logger.info(f"Processing unreleased changes (from {current_from_tag or 'beginning'} to HEAD)")
-                
+
                 if not quiet:
                     console.print("[bold blue]Processing unreleased changes...[/bold blue]")
 
@@ -168,6 +170,7 @@ def main_business_logic(
                 hint=hint,
                 show_prompt=show_prompt,
                 quiet=quiet,
+                replace_unreleased=replace_unreleased,
             )
         except Exception as e:
             handle_error(e)

@@ -198,7 +198,7 @@ class TestIsCurrentCommitTagged:
         # Create a tag on the current commit
         current_commit = repo.head.commit
         repo.create_tag("test-tag", current_commit)
-        
+
         # Now the current commit should be tagged
         result = is_current_commit_tagged()
         assert result is True

@@ -35,6 +35,8 @@ Note that aisuite handles the abstraction layer, so in many cases adding a new p
 - All new features should include tests
 - Run the full test suite before submitting PRs
 - Use `pytest` for testing
+- Tests are isolated from global configuration files
+- Configuration-related tests mock the CLOG_ENV_PATH constant to prevent interference from existing global config files
 
 ## Pull Request Process
 

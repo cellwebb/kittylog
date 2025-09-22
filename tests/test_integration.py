@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from clog.cli import main
+from clog.cli import cli
 
 
 class TestEndToEndWorkflow:
@@ -45,7 +45,7 @@ class TestEndToEndWorkflow:
 
         # Run the CLI
         result = runner.invoke(
-            main,
+            cli,
             [
                 "update",
                 "--file",
@@ -113,7 +113,7 @@ All notable changes to this project will be documented in this file.
 
         # Run update
         result = runner.invoke(
-            main,
+            cli,
             [
                 "update",
                 "--from-tag",
@@ -158,7 +158,7 @@ All notable changes to this project will be documented in this file.
 
             # Run dry run
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--from-tag",
@@ -190,12 +190,35 @@ class TestConfigIntegration:
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-        # Also mock the init command's path for testing
-        from clog.init_cli import init
+        # Mock the init command's path for testing
+        import clog.init_cli
 
-        init._mock_env_path = fake_home / ".clog.env"
+        clog.init_cli.init._mock_env_path = fake_home / ".clog.env"
+
+        # Also mock environment variables to ensure they don't interfere
+        monkeypatch.delenv("CLOG_MODEL", raising=False)
+        monkeypatch.delenv("CHANGELOG_UPDATER_MODEL", raising=False)
+        monkeypatch.delenv("CLOG_TEMPERATURE", raising=False)
+        monkeypatch.delenv("CHANGELOG_UPDATER_TEMPERATURE", raising=False)
 
         runner = CliRunner()
+
+        # Clear any existing config
+        config_file = fake_home / ".clog.env"
+        if config_file.exists():
+            config_file.unlink()
+
+        # Mock dotenv_values to prevent loading global config file
+        def mock_dotenv_values(filepath):
+            # Return empty dict for any config file to prevent loading existing configs
+            return {}
+
+        monkeypatch.setattr("clog.config.dotenv_values", mock_dotenv_values)
+
+        # Also mock the CLOG_ENV_PATH in config_cli to point to our fake home
+        import clog.config_cli
+
+        monkeypatch.setattr(clog.config_cli, "CLOG_ENV_PATH", fake_home / ".clog.env")
 
         # Mock questionary for init
         with patch("clog.init_cli.questionary") as mock_questionary:
@@ -204,7 +227,7 @@ class TestConfigIntegration:
             mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
 
             # Run init
-            result = runner.invoke(main, ["init"])
+            result = runner.invoke(cli, ["init"])
             assert result.exit_code == 0
             assert "Welcome to clog initialization" in result.output
 
@@ -213,22 +236,27 @@ class TestConfigIntegration:
         assert config_file.exists()
 
         # Test config show
-        result = runner.invoke(main, ["config", "show"])
+        result = runner.invoke(cli, ["config", "show"])
         assert result.exit_code == 0
         assert "CLOG_MODEL" in result.output
 
+        # Check the content of the config file directly
+        with open(config_file) as f:
+            config_content = f.read()
+        assert "anthropic:claude-3-5-haiku-latest" in config_content
+
         # Test config get
-        result = runner.invoke(main, ["config", "get", "CLOG_MODEL"])
+        result = runner.invoke(cli, ["config", "get", "CLOG_MODEL"])
         assert result.exit_code == 0
         assert "anthropic:claude-3-5-haiku-latest" in result.output
 
         # Test config set
-        result = runner.invoke(main, ["config", "set", "CHANGELOG_UPDATER_TEMPERATURE", "0.5"])
+        result = runner.invoke(cli, ["config", "set", "CHANGELOG_UPDATER_TEMPERATURE", "0.5"])
         assert result.exit_code == 0
         assert "Set CHANGELOG_UPDATER_TEMPERATURE" in result.output
 
         # Verify the setting
-        result = runner.invoke(main, ["config", "get", "CHANGELOG_UPDATER_TEMPERATURE"])
+        result = runner.invoke(cli, ["config", "get", "CHANGELOG_UPDATER_TEMPERATURE"])
         assert result.exit_code == 0
         assert "0.5" in result.output
 
@@ -242,7 +270,7 @@ class TestErrorHandlingIntegration:
         os.chdir(temp_dir)  # temp_dir is not a git repo
 
         result = runner.invoke(
-            main,
+            cli,
             [
                 "update",
                 "--quiet",
@@ -271,7 +299,7 @@ class TestErrorHandlingIntegration:
                 mock_client_class.side_effect = Exception("authentication failed")
 
                 result = runner.invoke(
-                    main,
+                    cli,
                     [
                         "update",
                         "--from-tag",
@@ -307,7 +335,7 @@ class TestErrorHandlingIntegration:
             os.chdir(git_repo_with_tags.working_dir)
 
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--from-tag",
@@ -418,7 +446,7 @@ class TestMultiTagIntegration:
             os.chdir(temp_dir)
 
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--yes",
@@ -465,7 +493,7 @@ class TestMultiTagIntegration:
 
         # Run auto-detection
         result = runner.invoke(
-            main,
+            cli,
             [
                 "update",
                 "--yes",
@@ -514,7 +542,7 @@ class TestCLIOptionsIntegration:
             os.chdir(git_repo_with_tags.working_dir)
 
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--from-tag",
@@ -573,7 +601,7 @@ class TestCLIOptionsIntegration:
 
             # But CLI specifies different model
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--from-tag",
@@ -638,7 +666,7 @@ class TestFilePathIntegration:
             os.chdir(git_repo_with_tags.working_dir)
 
             result = runner.invoke(
-                main,
+                cli,
                 [
                     "update",
                     "--file",
@@ -698,7 +726,7 @@ class TestFilePathIntegration:
                 os.chdir(git_repo_with_tags.working_dir)
 
                 result = runner.invoke(
-                    main,
+                    cli,
                     [
                         "update",
                         "--file",

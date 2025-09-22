@@ -55,7 +55,6 @@ def get_all_tags() -> list[str]:
 
         tag_names = [tag.name for tag in tags]
         logger.debug(f"All tags: {tag_names}")
-        print(f"DEBUG: All tags: {tag_names}")
 
         return tag_names
     except Exception as e:
@@ -68,6 +67,7 @@ def get_latest_tag() -> str | None:
     tags = get_all_tags()
     return tags[-1] if tags else None
 
+
 def is_current_commit_tagged() -> bool:
     """Check if the current commit (HEAD) has a tag pointing to it.
 
@@ -77,7 +77,7 @@ def is_current_commit_tagged() -> bool:
     try:
         repo = get_repo()
         current_commit = repo.head.commit.hexsha
-        
+
         # Check if any tag points to the current commit
         for tag in repo.tags:
             if tag.commit.hexsha == current_commit:
@@ -222,9 +222,6 @@ def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md") -> tuple
         logger.info(f"Last changelog tag: {last_changelog_tag}")
         logger.info(f"All tags: {all_tags}")
         logger.info(f"New tags found: {new_tags}")
-        print(f"DEBUG: Last changelog tag: {last_changelog_tag}")
-        print(f"DEBUG: All tags: {all_tags}")
-        print(f"DEBUG: New tags found: {new_tags}")
 
         return last_changelog_tag, new_tags
 

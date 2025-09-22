@@ -59,8 +59,15 @@ cli.add_command(init_cli)
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
+@click.option(
+    "--replace-unreleased",
+    is_flag=True,
+    help="Replace existing unreleased content instead of appending to it",
+)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def update(file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, args):
+def update(
+    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, replace_unreleased, args
+):
     """Update changelog with AI-generated content."""
     try:
         effective_log_level = log_level or config["log_level"]
@@ -81,6 +88,7 @@ def update(file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
+            replace_unreleased=replace_unreleased,
         )
 
         if not success:

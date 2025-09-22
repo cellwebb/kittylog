@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from clog.cli import main, update
+from clog.cli import cli, update
 
 
 class TestMainCLI:
@@ -13,7 +13,7 @@ class TestMainCLI:
     def test_main_help(self):
         """Test main command help."""
         runner = CliRunner()
-        result = runner.invoke(main, ["--help"])
+        result = runner.invoke(cli, ["--help"])
 
         assert result.exit_code == 0
         assert "Changelog Updater" in result.output
@@ -24,7 +24,7 @@ class TestMainCLI:
     def test_main_version(self):
         """Test main command version."""
         runner = CliRunner()
-        result = runner.invoke(main, ["--version"])
+        result = runner.invoke(cli, ["--version"])
 
         assert result.exit_code == 0
         assert "changelog-updater" in result.output
@@ -167,7 +167,7 @@ class TestConfigCommand:
     def test_config_help(self):
         """Test config command help."""
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "--help"])
+        result = runner.invoke(cli, ["config", "--help"])
 
         assert result.exit_code == 0
         assert "config" in result.output
@@ -182,7 +182,7 @@ class TestConfigCommand:
         mock_path.exists.return_value = False
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "show"])
+        result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
         assert "No $HOME/.clog.env found" in result.output
@@ -200,7 +200,7 @@ class TestConfigCommand:
         )
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "show"])
+        result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
         assert "CLOG_MODEL=anthropic:claude-3-5-haiku-latest" in result.output
@@ -213,7 +213,7 @@ class TestConfigCommand:
         mock_path.touch = Mock()
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "set", "TEST_KEY", "test_value"])
+        result = runner.invoke(cli, ["config", "set", "TEST_KEY", "test_value"])
 
         assert result.exit_code == 0
         mock_path.touch.assert_called_once_with(exist_ok=True)
@@ -228,7 +228,7 @@ class TestConfigCommand:
         mock_getenv.return_value = "test_value"
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "get", "TEST_KEY"])
+        result = runner.invoke(cli, ["config", "get", "TEST_KEY"])
 
         assert result.exit_code == 0
         assert "test_value" in result.output
@@ -241,7 +241,7 @@ class TestConfigCommand:
         mock_getenv.return_value = None
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "get", "NONEXISTENT"])
+        result = runner.invoke(cli, ["config", "get", "NONEXISTENT"])
 
         assert result.exit_code == 0
         assert "NONEXISTENT not set" in result.output
@@ -252,7 +252,7 @@ class TestConfigCommand:
         mock_path.exists.return_value = False
 
         runner = CliRunner()
-        result = runner.invoke(main, ["config", "unset", "TEST_KEY"])
+        result = runner.invoke(cli, ["config", "unset", "TEST_KEY"])
 
         assert result.exit_code == 0
         assert "No $HOME/.clog.env found" in result.output
@@ -275,7 +275,7 @@ class TestInitCommand:
         mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
 
         runner = CliRunner()
-        result = runner.invoke(main, ["init"])
+        result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
         assert "Welcome to clog initialization" in result.output
@@ -297,7 +297,7 @@ class TestInitCommand:
         mock_questionary.password.return_value.ask.return_value = "sk-test123"
 
         runner = CliRunner()
-        result = runner.invoke(main, ["init"])
+        result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
         assert "$HOME/.clog.env already exists" in result.output
@@ -310,7 +310,7 @@ class TestInitCommand:
         mock_questionary.select.return_value.ask.return_value = None  # User cancelled
 
         runner = CliRunner()
-        result = runner.invoke(main, ["init"])
+        result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
         assert "cancelled" in result.output
@@ -328,7 +328,7 @@ class TestInitCommand:
         mock_questionary.password.return_value.ask.return_value = ""  # No API key
 
         runner = CliRunner()
-        result = runner.invoke(main, ["init"])
+        result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
         # Should only set model, not API key
