@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- Add support for tracking and managing unreleased changes in changelog generation
+- Introduce `--replace-unreleased` CLI option to replace existing unreleased content instead of appending
+- Document AI agent integration and configuration in AGENTS.md
+- Add contribution guidelines and AI provider integration instructions in CONTRIBUTING.md
+### Changed
+- Improve changelog formatting by removing empty sections and excessive newlines
+- Refactor core logic to seamlessly handle both tagged releases and unreleased changes
+- Replace manual commit categorization with LLM-driven analysis for more accurate and automated processing
+- Enhance console output to clearly indicate when unreleased changes are being processed
+- Rename main Click group function from `main` to `cli` for better clarity
+- Update `update_changelog` function to accept an `existing_content` parameter for more flexible content handling
+- Reorder and consolidate import statements across core modules and tests for improved code organization
+### Fixed
+- Resolve issue where unreleased sections would generate duplicate entries instead of properly merging new content
+- Fix type issues in changelog generation where None values were passed to functions expecting non-nullable types
+- Correct formatting problems when appending unreleased changes by ensuring content is inserted as individual lines
+- Improve test stability by addressing git working directory context and global configuration interference
+- Remove unused preview functionality and redundant test setup steps to reduce clutter and improve reliability
+### Removed
+- Remove manual commit categorization in favor of AI-driven classification
+- Remove unused preview functionality and redundant test setup steps
+### Added
 
 - Add support for tracking and displaying unreleased changes since the last git tag
 - Introduce automatic 'Unreleased' section generation when the current commit is not tagged
