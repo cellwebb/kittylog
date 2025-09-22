@@ -1,5 +1,6 @@
 """Tests for main business logic module."""
 
+from pathlib import Path
 from unittest.mock import patch
 
 from clog.errors import AIError, ChangelogError, GitError
@@ -54,13 +55,13 @@ class TestMainBusinessLogic:
 
     @patch("clog.main.get_all_tags")
     @patch("clog.main.get_tags_since_last_changelog")
-    def test_main_logic_no_new_tags(self, mock_get_tags_since_last_changelog, mock_get_all_tags, temp_dir):
+    def test_main_logic_no_new_tags(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test when no new tags are found."""
         mock_get_all_tags.return_value = ["v0.1.0"]
         mock_get_tags_since_last_changelog.return_value = ("v0.1.0", [])  # No new tags
 
         result = main_business_logic(
-            changelog_file=str(temp_dir / "CHANGELOG.md"),
+            changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
             from_tag=None,
             to_tag=None,
             model="anthropic:claude-3-5-haiku-latest",
@@ -216,7 +217,7 @@ class TestMainBusinessLogic:
     @patch("clog.main.update_changelog")
     @patch("clog.main.write_changelog")
     @patch("clog.main.get_all_tags")
-    def test_main_logic_changelog_error(self, mock_get_all_tags, mock_write, mock_update, mock_get_tags, temp_dir):
+    def test_main_logic_changelog_error(self, mock_get_all_tags, mock_write, mock_update, mock_get_tags, git_repo):
         """Test handling of changelog errors."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_tags.return_value = ("v0.1.0", ["v0.2.0"])
@@ -224,7 +225,7 @@ class TestMainBusinessLogic:
         mock_write.side_effect = ChangelogError("Permission denied")
 
         result = main_business_logic(
-            changelog_file=str(temp_dir / "CHANGELOG.md"),
+            changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
@@ -365,7 +366,7 @@ class TestMainLogicEdgeCases:
             assert call_args["to_tag"] == "v0.2.0"
 
     @patch("clog.main.get_all_tags")
-    def test_empty_file_path(self, mock_get_all_tags):
+    def test_empty_file_path(self, mock_get_all_tags, git_repo):
         """Test with empty file path."""
         mock_get_all_tags.return_value = ["v0.1.0"]  # Need at least one tag
 
@@ -401,7 +402,7 @@ class TestMainLogicConfiguration:
     @patch("clog.main.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.get_previous_tag")
-    def test_config_precedence(self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, temp_dir):
+    def test_config_precedence(self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, git_repo):
         """Test that CLI arguments override config defaults."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_tags.return_value = ("v0.1.0", ["v0.2.0"])
@@ -416,7 +417,7 @@ class TestMainLogicConfiguration:
             },
         ):
             result = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
+                changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
                 model="openai:gpt-4",  # Should override config
                 require_confirmation=False,
                 quiet=True,
@@ -470,13 +471,13 @@ class TestMainLogicLogging:
 
     @patch("clog.main.get_all_tags")
     @patch("clog.main.get_tags_since_last_changelog")
-    def test_quiet_mode_suppresses_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, temp_dir):
+    def test_quiet_mode_suppresses_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that quiet mode suppresses non-error output."""
         mock_get_all_tags.return_value = ["v0.1.0"]
         mock_get_tags_since_last_changelog.return_value = ("v0.1.0", [])  # No new tags
 
         result = main_business_logic(
-            changelog_file=str(temp_dir / "CHANGELOG.md"),
+            changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
             require_confirmation=False,
@@ -488,13 +489,13 @@ class TestMainLogicLogging:
 
     @patch("clog.main.get_all_tags")
     @patch("clog.main.get_tags_since_last_changelog")
-    def test_verbose_mode_shows_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, temp_dir):
+    def test_verbose_mode_shows_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that verbose mode shows detailed output."""
         mock_get_all_tags.return_value = ["v0.1.0"]
         mock_get_tags_since_last_changelog.return_value = ("v0.1.0", [])  # No new tags
 
         result = main_business_logic(
-            changelog_file=str(temp_dir / "CHANGELOG.md"),
+            changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=False,
             require_confirmation=False,
