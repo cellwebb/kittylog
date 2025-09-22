@@ -90,6 +90,11 @@ class TestUpdateCommand:
         assert call_args["require_confirmation"] is False
         assert call_args["quiet"] is True
 
+        # Clean up created file
+        import os
+        if os.path.exists("CHANGES.md"):
+            os.unlink("CHANGES.md")
+
     @patch("clog.update_cli.main_business_logic")
     def test_update_short_options(self, mock_main_logic):
         """Test update command with short options."""
@@ -118,6 +123,11 @@ class TestUpdateCommand:
         assert call_args["hint"] == "Test hint"
         assert call_args["require_confirmation"] is False  # --yes flag sets this to False
         assert call_args["quiet"] is True
+
+        # Clean up created file
+        import os
+        if os.path.exists("CHANGES.md"):
+            os.unlink("CHANGES.md")
 
     @patch("clog.update_cli.main_business_logic")
     def test_update_failure_exit_code(self, mock_main_logic):
