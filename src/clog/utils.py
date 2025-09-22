@@ -1,6 +1,7 @@
 """Utility functions for changelog-updater."""
 
 import logging
+import os
 import re
 import subprocess
 
@@ -310,3 +311,48 @@ def normalize_tag(tag: str) -> str:
     if tag.startswith("v") or tag.startswith("V"):
         return tag[1:]
     return tag
+
+
+def find_changelog_file(directory: str = ".") -> str:
+    """Find the changelog file in the given directory.
+
+    Searches for changelog files in the following order of preference:
+    1. CHANGELOG.md
+    2. changelog.md
+    3. CHANGES.md
+    4. changes.md
+
+    Args:
+        directory: Directory to search in (default: current directory)
+
+    Returns:
+        Path to the found changelog file, or "CHANGELOG.md" as fallback
+
+    Raises:
+        None: Always returns a valid path, using "CHANGELOG.md" as fallback
+    """
+    changelog_filenames = ["CHANGELOG.md", "changelog.md", "CHANGES.md", "changes.md"]
+
+    for filename in changelog_filenames:
+        filepath = os.path.join(directory, filename)
+        if os.path.exists(filepath):
+            logger.debug(f"Found changelog file: {filepath}")
+            return filename
+
+    # Fallback to CHANGELOG.md if no existing file found
+    logger.debug("No existing changelog file found, using default: CHANGELOG.md")
+    return "CHANGELOG.md"
+
+
+def get_changelog_file_patterns() -> list[str]:
+    """Get the list of changelog file patterns for exclusion in git operations.
+
+    Returns:
+        List of pathspec patterns to exclude changelog files from git operations
+    """
+    return [
+        ":(exclude)CHANGELOG.md",
+        ":(exclude)changelog.md",
+        ":(exclude)CHANGES.md",
+        ":(exclude)changes.md"
+    ]

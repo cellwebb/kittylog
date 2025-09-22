@@ -55,6 +55,13 @@ def main_business_logic(
     Returns True on success, False on failure.
     """
     logger.debug(f"main_business_logic called with special_unreleased_mode={special_unreleased_mode}")
+
+    # Auto-detect changelog file if using default
+    if changelog_file == "CHANGELOG.md":
+        from clog.utils import find_changelog_file
+        changelog_file = find_changelog_file()
+        logger.debug(f"Auto-detected changelog file: {changelog_file}")
+
     try:
         # Validate we're in a git repository
         all_tags = get_all_tags()

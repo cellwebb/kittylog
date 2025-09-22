@@ -212,6 +212,12 @@ def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md") -> tuple
     Returns:
         Tuple of (last_tag_in_changelog, new_tags_list)
     """
+    # Auto-detect changelog file if using default
+    if changelog_file == "CHANGELOG.md":
+        from clog.utils import find_changelog_file
+        changelog_file = find_changelog_file()
+        logger.debug(f"Auto-detected changelog file: {changelog_file}")
+
     try:
         # Read the changelog file to find the last version mentioned
         last_changelog_tag = None
@@ -321,9 +327,10 @@ def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
         logger.debug(f"Getting git diff for range: {rev_range}")
 
         # Get the diff, excluding changelog files
-        diff_output = run_git_command(
-            ["diff", rev_range, "--", ".", ":(exclude)CHANGELOG.md", ":(exclude)changelog.md"]
-        )
+        from clog.utils import get_changelog_file_patterns
+        exclude_patterns = get_changelog_file_patterns()
+        diff_command = ["diff", rev_range, "--", "."] + exclude_patterns
+        diff_output = run_git_command(diff_command)
         return diff_output
 
     except Exception as e:

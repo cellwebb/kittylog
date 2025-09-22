@@ -71,7 +71,7 @@ class TestMainBusinessLogic:
         assert mock_write.call_count == 1
 
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     def test_main_logic_no_new_tags(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test when no new tags are found."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -202,7 +202,7 @@ class TestMainBusinessLogic:
         mock_confirm.assert_called_once()
         mock_write.assert_not_called()
 
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     @patch("clog.main.get_all_tags")
     def test_main_logic_git_error(self, mock_get_all_tags, mock_get_tags, temp_dir):
         """Test handling of Git errors."""
@@ -218,7 +218,7 @@ class TestMainBusinessLogic:
 
         assert result is False
 
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.get_all_tags")
     def test_main_logic_ai_error(self, mock_get_all_tags, mock_update, mock_get_tags, temp_dir):
@@ -236,7 +236,7 @@ class TestMainBusinessLogic:
 
         assert result is False
 
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.write_changelog")
     @patch("clog.main.get_all_tags")
@@ -326,7 +326,7 @@ class TestMainLogicMultipleTags:
         assert update_calls[3][1]["to_tag"] is None  # Unreleased
 
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.get_previous_tag")
     def test_multiple_tags_partial_failure(
@@ -356,7 +356,7 @@ class TestMainLogicEdgeCases:
 
     @patch("clog.main.get_latest_tag")
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     def test_only_from_tag_specified(self, mock_get_tags, mock_get_all_tags, mock_get_latest_tag, temp_dir):
         """Test when only from_tag is specified (to_tag=None means HEAD)."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -441,7 +441,7 @@ class TestMainLogicConfiguration:
     """Test main logic configuration handling."""
 
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.get_previous_tag")
     def test_config_precedence(self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, git_repo):
@@ -524,7 +524,7 @@ class TestMainLogicLogging:
     """Test logging behavior in main logic."""
 
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     def test_quiet_mode_suppresses_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that quiet mode suppresses non-error output."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -542,7 +542,7 @@ class TestMainLogicLogging:
         # We can't easily mock console.print calls, so we'll skip this assertion
 
     @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.git_operations.get_tags_since_last_changelog")
     def test_verbose_mode_shows_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that verbose mode shows detailed output."""
         mock_get_all_tags.return_value = ["v0.1.0"]

@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 def init_changelog(yes, file):
     """Initialize changelog if missing and offer to fill missing tag entries."""
+    # Auto-detect changelog file if using default
+    if file == "CHANGELOG.md":
+        from clog.utils import find_changelog_file
+        file = find_changelog_file()
+        logger.debug(f"Auto-detected changelog file: {file}")
+
     # Check if changelog exists
     changelog_path = Path(file)
     if not changelog_path.exists():
