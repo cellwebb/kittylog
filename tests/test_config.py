@@ -347,4 +347,3 @@ class TestConfigUtils:
         assert config["max_output_tokens"] == 2048
         assert config["max_retries"] == 5
         assert config["warning_limit_tokens"] == 32768
-

@@ -307,7 +307,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_update_changelog_intelligent_unreleased(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits):
+    def test_update_changelog_intelligent_unreleased(
+        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
+    ):
         """Test that unreleased changes are handled intelligently."""
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
@@ -348,7 +350,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_update_changelog_tagged_version(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits):
+    def test_update_changelog_tagged_version(
+        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
+    ):
         """Test that tagged versions are handled correctly."""
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"

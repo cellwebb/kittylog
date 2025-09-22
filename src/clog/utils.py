@@ -371,9 +371,4 @@ def get_changelog_file_patterns() -> list[str]:
     Returns:
         List of pathspec patterns to exclude changelog files from git operations
     """
-    return [
-        ":(exclude)CHANGELOG.md",
-        ":(exclude)changelog.md",
-        ":(exclude)CHANGES.md",
-        ":(exclude)changes.md"
-    ]
+    return [":(exclude)CHANGELOG.md", ":(exclude)changelog.md", ":(exclude)CHANGES.md", ":(exclude)changes.md"]

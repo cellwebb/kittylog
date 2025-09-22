@@ -292,6 +292,7 @@ def main_business_logic(
     # Auto-detect changelog file if using default
     if changelog_file == "CHANGELOG.md":
         from clog.utils import find_changelog_file
+
         changelog_file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {changelog_file}")
 
@@ -322,17 +323,13 @@ def main_business_logic(
     # Determine which workflow to use based on input parameters
     try:
         if special_unreleased_mode:
-            changelog_content = handle_unreleased_mode(
-                changelog_file, model, hint, show_prompt, quiet
-            )
+            changelog_content = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet)
         elif from_tag is None and to_tag is None:
             changelog_content = handle_auto_mode(
                 changelog_file, model, hint, show_prompt, quiet, update_all_entries, special_unreleased_mode
             )
         elif to_tag is not None and from_tag is None:
-            changelog_content = handle_single_tag_mode(
-                changelog_file, to_tag, model, hint, show_prompt, quiet
-            )
+            changelog_content = handle_single_tag_mode(changelog_file, to_tag, model, hint, show_prompt, quiet)
         else:
             changelog_content = handle_tag_range_mode(
                 changelog_file, from_tag, to_tag, model, hint, show_prompt, quiet, special_unreleased_mode

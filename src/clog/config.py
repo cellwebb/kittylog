@@ -4,12 +4,16 @@ Handles environment variable and .env file precedence for application settings.
 """
 
 import os
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, TypeVar
 
 from dotenv import dotenv_values
 
 from clog.constants import EnvDefaults, Logging
 from clog.errors import ConfigError
+
+T = TypeVar("T")
 
 
 def _safe_float(value: str | None, default: float) -> float:
@@ -30,6 +34,59 @@ def _safe_int(value: str | None, default: int) -> int:
         return int(value)
     except ValueError:
         return default
+
+
+def validate_env_var(
+    env_value: str | None,
+    converter: Callable[[str], T],
+    validator: Callable[[T], bool],
+    default: T,
+    config_key: str,
+    description: str = "",
+) -> T:
+    """Generic environment variable validation with consistent error handling.
+
+    Args:
+        env_value: Raw environment variable value (string or None)
+        converter: Function to convert string to target type (e.g., float, int)
+        validator: Function to validate converted value (returns True if valid)
+        default: Default value to use if conversion or validation fails
+        config_key: Configuration key name for error reporting
+        description: Human-readable description for error messages
+
+    Returns:
+        Validated value or default if validation fails
+    """
+    if env_value is None:
+        return default
+
+    try:
+        converted_value = converter(env_value)
+    except (ValueError, TypeError):
+        return default
+
+    if not validator(converted_value):
+        return default
+
+    return converted_value
+
+
+def validate_config_value(value: Any, validator: Callable[[Any], bool], config_key: str, description: str = "") -> None:
+    """Validate a configuration value and raise ConfigError if invalid.
+
+    Args:
+        value: Value to validate
+        validator: Function that returns True if value is valid
+        config_key: Configuration key name for error reporting
+        description: Human-readable description for error messages
+
+    Raises:
+        ConfigError: If validation fails
+    """
+    if value is not None and not validator(value):
+        raise ConfigError(
+            f"Invalid {config_key} value: {value}. {description}", config_key=config_key, config_value=value
+        )
 
 
 def load_config() -> dict[str, str | int | float | bool | None]:
@@ -92,64 +149,55 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     env_log_level = os.getenv("CLOG_LOG_LEVEL")
     env_warning_limit_tokens = os.getenv("CLOG_WARNING_LIMIT_TOKENS")
 
-    # Apply safe conversion to environment variables WITHOUT defaults
-    # For environment variables, we delay applying defaults so validate_config can catch invalid values
+    # Apply validated environment variables with defaults for invalid values
     config["model"] = env_model
     config["temperature"] = (
-        _safe_float(env_temperature, EnvDefaults.TEMPERATURE) if env_temperature is not None else None
-    )
-    config["max_output_tokens"] = (
-        _safe_int(env_max_output_tokens, EnvDefaults.MAX_OUTPUT_TOKENS) if env_max_output_tokens is not None else None
-    )
-    config["max_retries"] = _safe_int(env_max_retries, EnvDefaults.MAX_RETRIES) if env_max_retries is not None else None
-    config["log_level"] = env_log_level
-    config["warning_limit_tokens"] = (
-        _safe_int(env_warning_limit_tokens, EnvDefaults.WARNING_LIMIT_TOKENS)
-        if env_warning_limit_tokens is not None
+        validate_env_var(
+            env_temperature,
+            float,
+            lambda x: 0 <= x <= 2,
+            EnvDefaults.TEMPERATURE,
+            "temperature",
+            "Must be between 0 and 2",
+        )
+        if env_temperature is not None
         else None
     )
 
-    # Apply stricter validation only to INVALID environment variables
-    # For environment variables, we want to apply defaults for both syntactic and semantic errors
-    if env_temperature is not None:
-        # Try to convert environment variable
-        try:
-            converted_temp = float(env_temperature)
-        except ValueError:
-            converted_temp = None
-        # If conversion failed OR value is semantically invalid, apply default
-        if converted_temp is None or converted_temp < 0 or converted_temp > 2:
-            config["temperature"] = EnvDefaults.TEMPERATURE
+    config["max_output_tokens"] = (
+        validate_env_var(
+            env_max_output_tokens,
+            int,
+            lambda x: x > 0,
+            EnvDefaults.MAX_OUTPUT_TOKENS,
+            "max_output_tokens",
+            "Must be positive",
+        )
+        if env_max_output_tokens is not None
+        else None
+    )
 
-    # Max output tokens should be positive
-    if env_max_output_tokens is not None:
-        try:
-            converted_tokens = int(env_max_output_tokens)
-        except ValueError:
-            converted_tokens = None
-        # If conversion failed OR value is semantically invalid, apply default
-        if converted_tokens is None or converted_tokens <= 0:
-            config["max_output_tokens"] = EnvDefaults.MAX_OUTPUT_TOKENS
+    config["max_retries"] = (
+        validate_env_var(
+            env_max_retries, int, lambda x: x > 0, EnvDefaults.MAX_RETRIES, "max_retries", "Must be positive"
+        )
+        if env_max_retries is not None
+        else None
+    )
 
-    # Max retries should be positive
-    if env_max_retries is not None:
-        try:
-            converted_retries = int(env_max_retries)
-        except ValueError:
-            converted_retries = None
-        # If conversion failed OR value is semantically invalid, apply default
-        if converted_retries is None or converted_retries <= 0:
-            config["max_retries"] = EnvDefaults.MAX_RETRIES
-
-    # Warning limit tokens should be positive
-    if env_warning_limit_tokens is not None:
-        try:
-            converted_warning_tokens = int(env_warning_limit_tokens)
-        except ValueError:
-            converted_warning_tokens = None
-        # If conversion failed OR value is semantically invalid, apply default
-        if converted_warning_tokens is None or converted_warning_tokens <= 0:
-            config["warning_limit_tokens"] = EnvDefaults.WARNING_LIMIT_TOKENS
+    config["log_level"] = env_log_level
+    config["warning_limit_tokens"] = (
+        validate_env_var(
+            env_warning_limit_tokens,
+            int,
+            lambda x: x > 0,
+            EnvDefaults.WARNING_LIMIT_TOKENS,
+            "warning_limit_tokens",
+            "Must be positive",
+        )
+        if env_warning_limit_tokens is not None
+        else None
+    )
 
     # Apply file values as fallbacks (only if env vars weren't set or were None)
     # For file variables, convert them normally so validate_config can catch errors
@@ -180,7 +228,6 @@ def load_config() -> dict[str, str | int | float | bool | None]:
             or EnvDefaults.WARNING_LIMIT_TOKENS
         )
 
-
     return config
 
 
@@ -193,37 +240,15 @@ def validate_config(config: dict) -> None:
     Raises:
         ConfigError: If any configuration values are invalid
     """
-    # Validate temperature (should be between 0 and 2)
-    temp = config.get("temperature")
-    if temp is not None and (temp < 0 or temp > 2):
-        raise ConfigError(
-            f"Invalid temperature value: {temp}. Must be between 0 and 2.", config_key="temperature", config_value=temp
-        )
+    validate_config_value(config.get("temperature"), lambda x: 0 <= x <= 2, "temperature", "Must be between 0 and 2")
 
-    # Validate max_output_tokens (should be positive)
-    max_tokens = config.get("max_output_tokens")
-    if max_tokens is not None and max_tokens <= 0:
-        raise ConfigError(
-            f"Invalid max_output_tokens value: {max_tokens}. Must be positive.",
-            config_key="max_output_tokens",
-            config_value=max_tokens,
-        )
+    validate_config_value(config.get("max_output_tokens"), lambda x: x > 0, "max_output_tokens", "Must be positive")
 
-    # Validate max_retries (should be positive)
-    retries = config.get("max_retries")
-    if retries is not None and retries <= 0:
-        raise ConfigError(
-            f"Invalid max_retries value: {retries}. Must be positive.", config_key="max_retries", config_value=retries
-        )
+    validate_config_value(config.get("max_retries"), lambda x: x > 0, "max_retries", "Must be positive")
 
-    # Validate log_level (should be valid)
-    log_level = config.get("log_level")
-    if log_level is not None and log_level not in Logging.LEVELS:
-        raise ConfigError(
-            f"Invalid log_level value: {log_level}. Must be one of {Logging.LEVELS}.",
-            config_key="log_level",
-            config_value=log_level,
-        )
+    validate_config_value(
+        config.get("log_level"), lambda x: x in Logging.LEVELS, "log_level", f"Must be one of {Logging.LEVELS}"
+    )
 
 
 def apply_config_defaults(config: dict) -> dict:
@@ -237,25 +262,15 @@ def apply_config_defaults(config: dict) -> dict:
     """
     validated_config = config.copy()
 
-    # Validate temperature (should be between 0 and 2)
-    temp = config.get("temperature")
-    if temp is not None and (temp < 0 or temp > 2):
-        validated_config["temperature"] = EnvDefaults.TEMPERATURE
+    def apply_default_if_invalid(key: str, validator: Callable[[Any], bool], default: Any) -> None:
+        """Apply default value if the config value is invalid."""
+        value = config.get(key)
+        if value is not None and not validator(value):
+            validated_config[key] = default
 
-    # Validate max_output_tokens (should be positive)
-    max_tokens = config.get("max_output_tokens")
-    if max_tokens is not None and max_tokens <= 0:
-        validated_config["max_output_tokens"] = EnvDefaults.MAX_OUTPUT_TOKENS
-
-    # Validate max_retries (should be positive)
-    retries = config.get("max_retries")
-    if retries is not None and retries <= 0:
-        validated_config["max_retries"] = EnvDefaults.MAX_RETRIES
-
-    # Validate log_level (should be valid)
-    log_level = config.get("log_level")
-    if log_level is not None and log_level not in Logging.LEVELS:
-        validated_config["log_level"] = Logging.DEFAULT_LEVEL
-
+    apply_default_if_invalid("temperature", lambda x: 0 <= x <= 2, EnvDefaults.TEMPERATURE)
+    apply_default_if_invalid("max_output_tokens", lambda x: x > 0, EnvDefaults.MAX_OUTPUT_TOKENS)
+    apply_default_if_invalid("max_retries", lambda x: x > 0, EnvDefaults.MAX_RETRIES)
+    apply_default_if_invalid("log_level", lambda x: x in Logging.LEVELS, Logging.DEFAULT_LEVEL)
 
     return validated_config

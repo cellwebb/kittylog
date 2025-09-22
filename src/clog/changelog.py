@@ -282,10 +282,7 @@ def format_changelog_entry(
 
 
 def handle_unreleased_section(
-    lines: list[str],
-    new_entry: str,
-    existing_content: str,
-    current_commit_is_tagged: bool
+    lines: list[str], new_entry: str, existing_content: str, current_commit_is_tagged: bool
 ) -> list[str]:
     """Handle updating the unreleased section of the changelog with intelligent behavior."""
     from clog.git_operations import get_commits_between_tags, get_latest_tag

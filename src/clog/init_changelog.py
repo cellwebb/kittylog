@@ -19,6 +19,7 @@ def init_changelog(yes, file):
     # Auto-detect changelog file if using default
     if file == "CHANGELOG.md":
         from clog.utils import find_changelog_file
+
         file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {file}")
 

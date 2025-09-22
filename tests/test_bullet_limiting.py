@@ -13,7 +13,9 @@ class TestBulletLimiting:
     @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_bullet_limiting_per_section(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir):
+    def test_bullet_limiting_per_section(
+        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
+    ):
         """Test that bullet points are limited to 6 per section."""
         # Setup mocks
         mock_get_commits.return_value = [
@@ -149,7 +151,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_bullet_limiting_replace_mode(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir):
+    def test_bullet_limiting_replace_mode(
+        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
+    ):
         """Test that bullet points are limited to 6 per section in replace mode."""
         # Setup mocks
         mock_get_commits.return_value = [
