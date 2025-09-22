@@ -166,6 +166,7 @@ All notable changes to this project will be documented in this file.
                     "--to-tag",
                     "v0.2.0",
                     "--dry-run",
+                    "--yes",
                 ],
             )
 
@@ -274,6 +275,7 @@ class TestErrorHandlingIntegration:
             [
                 "update",
                 "--quiet",
+                "--yes",
             ],
         )
 
@@ -856,22 +858,21 @@ All notable changes to this project will be documented in this file.
         # Should have exactly 6 bullets (3 existing + 3 new from the 8 AI bullets)
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
-    @patch("clog.ai.ai.Client")
-    def test_unreleased_section_bullet_limiting_replace_mode(self, mock_client_class, git_repo_with_tags, temp_dir):
+    def test_unreleased_section_bullet_limiting_replace_mode(self, mock_api_calls, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when replacing existing unreleased section."""
-        mock_client = Mock()
-        mock_response = Mock()
-        mock_choice = Mock()
-        
+        print("DEBUG: Test started")
+
+        # Add some unreleased commits after the last tag
+        test_file = Path(git_repo_with_tags.working_dir) / "unreleased_feature.py"
+        test_file.write_text("# New unreleased feature\nprint('hello')\n")
+        git_repo_with_tags.index.add([str(test_file)])
+        git_repo_with_tags.index.commit("Add unreleased feature")
+
+        # Override the autouse mock with our test-specific content
         # Create AI content with more than 6 bullets in a section
         ai_content = "### Added\n- Feature 1\n- Feature 2\n- Feature 3\n- Feature 4\n- Feature 5\n- Feature 6\n- Feature 7\n- Feature 8"
-        mock_message = Mock()
-        mock_message.content = ai_content
-
-        mock_choice.message = mock_message
-        mock_response.choices = [mock_choice]
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_client_class.return_value = mock_client
+        mock_api_calls.chat.completions.create.return_value.choices[0].message.content = ai_content
+        print("DEBUG: Mock setup complete")
 
         # Create existing changelog with Unreleased section
         changelog_content = """# Changelog
@@ -909,12 +910,14 @@ All notable changes to this project will be documented in this file.
             result = runner.invoke(
                 cli,
                 [
-                    "update",
+                    "unreleased",
                     "--replace-unreleased",
                     "--yes",  # Skip confirmation
                     "--quiet",
                 ],
             )
+            print(f"DEBUG: CLI command executed, exit_code={result.exit_code}")
+            print(f"DEBUG: CLI output: {result.output}")
         finally:
             # Always restore original directory
             try:
@@ -927,7 +930,7 @@ All notable changes to this project will be documented in this file.
 
         # Check that unreleased section has been updated with bullet limiting
         updated_content = changelog_file.read_text()
-        
+
         # Verify existing content was replaced
         assert "Existing feature A" not in updated_content
         assert "Existing feature B" not in updated_content

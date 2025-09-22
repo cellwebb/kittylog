@@ -236,7 +236,8 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
 
     # For unreleased changes, we include the header UNLESS we're appending to an existing section
     if tag is None:
-        # For unreleased changes, we still want the header when creating a new section
+        # For unreleased changes, we want the header when creating a new section
+        # But we don't want it when replacing content in an existing section
         if include_unreleased_header:
             entry = "## [Unreleased]\n\n"
         else:
@@ -302,6 +303,8 @@ def update_changelog(
     Returns:
         The updated changelog content
     """
+    # Import git operations function early to avoid scoping issues
+    from clog.git_operations import is_current_commit_tagged
     logger.info(f"Updating changelog from {from_tag or 'beginning'} to {to_tag}")
 
     # Read existing changelog if content wasn't provided
@@ -342,10 +345,10 @@ def update_changelog(
     )
 
     # Post-process the AI content to ensure proper formatting
-    ai_content = postprocess_changelog_content(ai_content)
-
-    # DEBUG: Print the postprocessed AI content
-    # print(f"Postprocessed AI content: {repr(ai_content)}")
+    current_commit_is_tagged_value = is_current_commit_tagged()
+    logger.debug(f"AI content before postprocessing: {repr(ai_content)}")
+    ai_content = postprocess_changelog_content(ai_content, is_current_commit_tagged=(to_tag is not None and current_commit_is_tagged_value))
+    logger.debug(f"AI content after postprocessing: {repr(ai_content)}")
 
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None
@@ -366,7 +369,6 @@ def update_changelog(
     lines = existing_content.split("\n")
 
     # Check if current commit is tagged
-    from clog.git_operations import is_current_commit_tagged
     current_commit_is_tagged = is_current_commit_tagged()
 
     # If the current commit is tagged AND we're processing a specific version (not unreleased),
@@ -381,30 +383,40 @@ def update_changelog(
 
     # For unreleased changes, handle the unreleased section
     if to_tag is None:
+        logger.debug(f"Processing unreleased section, replace_unreleased={replace_unreleased}")
         # Find the unreleased section
         unreleased_line = find_unreleased_section(existing_content)
 
         if unreleased_line is not None:
             end_line = find_end_of_unreleased_section(lines, unreleased_line)
+            logger.debug(f"Found end_line: {end_line}")
 
             # Find where actual content starts in the existing section (skip empty lines after header)
             content_start_line = unreleased_line + 1
             while content_start_line < len(lines) and not lines[content_start_line].strip():
                 content_start_line += 1
+            logger.debug(f"Content starts at line: {content_start_line}")
 
             if replace_unreleased:
+                logger.debug("In replace mode - removing existing content and inserting new")
                 # Replace mode: Remove existing content and insert new content
                 # Replace the content between the Unreleased header and the next section
                 # Remove existing content
+                logger.debug(f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}")
                 del lines[content_start_line:end_line]
+                logger.debug(f"Lines after deletion: {lines}")
 
                 # Insert new content with bullet limiting
                 new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+                logger.debug(f"New entry lines before limiting: {new_entry_lines}")
                 limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+                logger.debug(f"Limited content lines: {limited_content_lines}")
 
                 for line in reversed(limited_content_lines):
                     lines.insert(content_start_line, line)
+                logger.debug(f"Lines after insertion: {lines}")
             else:
+                logger.debug("In append mode - preserving existing content and appending new")
                 # Append mode: Preserve existing content and append new AI content
                 # Apply bullet limiting to new content only (don't affect existing content)
                 new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
@@ -425,6 +437,7 @@ def update_changelog(
                 # Insert limited new content at the end of the existing unreleased section content
                 # The insertion point should be just before the next section (end_line)
                 insert_point = end_line
+                logger.debug(f"Inserting at position {insert_point}: {limited_new_entry_lines}")
                 for line in reversed(limited_new_entry_lines):
                     lines.insert(insert_point, line)
         else:

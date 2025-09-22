@@ -30,7 +30,7 @@ class TestEnsureNewlinesAroundSectionHeaders:
         # Check that blank lines are added around version headers
         assert result[3] == ""  # Blank line before first version header
         assert result[5] == ""  # Blank line after first version header
-        assert result[8] == ""  # Blank line after second version header
+        assert result[9] == ""  # Blank line before second version header
 
     def test_adds_newlines_around_category_headers(self):
         """Test that proper newlines are added around category section headers."""

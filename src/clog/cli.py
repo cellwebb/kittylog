@@ -208,7 +208,7 @@ def update_compat(
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
-def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_level):
+def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_level, from_tag, to_tag, show_prompt, preserve_existing, replace_unreleased, no_replace_unreleased, all):
     """Generate unreleased changelog entries from beginning to specified version or HEAD."""
     # Import here to avoid circular imports
     from clog.main import main_business_logic
@@ -221,19 +221,32 @@ def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_lev
         effective_log_level = "ERROR"
     setup_logging(effective_log_level)
 
+    # Handle conflicting flags
+    if replace_unreleased and no_replace_unreleased:
+        click.echo("Error: --replace-unreleased and --no-replace-unreleased cannot be used together")
+        sys.exit(2)
+
+    # Determine replace_unreleased value
+    if no_replace_unreleased:
+        replace_unreleased_value = False
+    elif replace_unreleased is not None:
+        replace_unreleased_value = replace_unreleased
+    else:
+        replace_unreleased_value = None
+
     # Handle the special unreleased mode
     success = main_business_logic(
         changelog_file=file,
-        from_tag=None,  # Start from beginning of history
-        to_tag=version,  # End at specified version (or None for HEAD)
+        from_tag=from_tag,
+        to_tag=to_tag,
         model=model,
         hint=hint,
-        show_prompt=False,
+        show_prompt=show_prompt,
         require_confirmation=not yes,
         quiet=quiet,
         dry_run=dry_run,
-        preserve_existing=False,
-        replace_unreleased=True,  # Always overwrite unreleased content
+        preserve_existing=preserve_existing,
+        replace_unreleased=replace_unreleased_value,
         special_unreleased_mode=True,
     )
 

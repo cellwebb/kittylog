@@ -30,22 +30,21 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
 
         # Check if this is a version section header (## [version])
         if re.match(r"^##\s*\[.*\]", stripped_line):
-            # Only add blank line before version header if previous line has actual content (not blank)
-            if processed_lines and processed_lines[-1].strip():
+            # Add blank line before version header if it's not the first line
+            if processed_lines:
                 processed_lines.append("")
             processed_lines.append(line)
-            # Always add blank line after version header, even at end of file
+            # Always add blank line after version header
             processed_lines.append("")
 
         # Check if this is a category section header (### Added/Changed/Fixed/etc.)
         elif re.match(r"^###\s+[A-Z][a-z]+", stripped_line):
-            # Only add blank line before category header if previous line has actual content (not blank)
+            # Add blank line before category header if there's content before it
             if processed_lines and processed_lines[-1].strip():
                 processed_lines.append("")
             processed_lines.append(line)
-            # Add blank line after category header if there's content after it
-            if i + 1 < len(lines):
-                processed_lines.append("")
+            # Add blank line after category header
+            processed_lines.append("")
         else:
             processed_lines.append(line)
 
@@ -54,7 +53,9 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
     # Remove excess trailing empty lines but ensure file ends with a single newline
     while processed_lines and not processed_lines[-1].strip() and len(processed_lines) > 1:
         processed_lines.pop()
-    if not (processed_lines and not processed_lines[-1].strip()):
+    if processed_lines and processed_lines[-1].strip():
+        processed_lines.append("")
+    elif not processed_lines:
         processed_lines.append("")
 
     return processed_lines
