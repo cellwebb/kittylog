@@ -233,12 +233,21 @@ def update_changelog(
     # Special handling for unreleased changes when an unreleased section already exists
     if to_tag is None and find_unreleased_section(existing_content) is not None:
         # For unreleased changes with existing section, we don't want the header
-        # Extract just the content part (skip the ## [Unreleased] header line)
+        # Extract just the content part (skip the ## [Unreleased] header line and any empty lines after it)
         entry_lines = new_entry.strip().split("\n")
-        if entry_lines and entry_lines[0].strip().startswith("## [Unreleased]"):
-            content_to_append = "\n".join(entry_lines[1:])  # Skip the header line
-        else:
-            content_to_append = new_entry.strip()
+        content_start_index = 0
+        
+        # Find where the actual content starts (skip header and empty lines)
+        for i, line in enumerate(entry_lines):
+            if line.strip().startswith("## [Unreleased]"):
+                continue
+            elif line.strip() == "":
+                continue
+            else:
+                content_start_index = i
+                break
+        
+        content_to_append = "\n".join(entry_lines[content_start_index:])
 
         if replace_unreleased:
             # Replace mode: Remove existing content and insert new content
@@ -283,8 +292,10 @@ def update_changelog(
             # Insert the AI content (without header) at the end of existing unreleased section
             # Split content into lines and insert them individually
             content_lines = content_to_append.rstrip().split('\n')
+            # Insert lines in reverse order to maintain correct order
             for line in reversed(content_lines):
-                lines.insert(insert_line, line)
+                if line.strip():  # Only insert non-empty lines
+                    lines.insert(insert_line, line)
     else:
         # Standard insertion logic
         insert_line = find_insertion_point(existing_content)
