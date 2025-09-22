@@ -323,8 +323,8 @@ def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
 
         logger.debug(f"Getting git diff for range: {rev_range}")
 
-        # Get the diff
-        diff_output = run_git_command(["diff", rev_range])
+        # Get the diff, excluding changelog files
+        diff_output = run_git_command(["diff", rev_range, "--", ".", ":(exclude)CHANGELOG.md", ":(exclude)changelog.md"])
         return diff_output
 
     except Exception as e:
