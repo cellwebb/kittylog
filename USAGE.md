@@ -11,7 +11,6 @@ Process git tags to generate changelog entries
 - `-d, --dry-run`: Preview changes without modifying the changelog file
 - `-y, --yes`: Skip confirmation prompts
 - `-a, --all`: Update all entries (not just missing ones)
-- `--preserve-existing`: Preserve existing changelog content instead of overwriting
 - `--replace-unreleased`: Replace unreleased content instead of appending
 - `--no-replace-unreleased`: Append to unreleased content instead of replacing
 - `-f, --file`: Path to changelog file (default: CHANGELOG.md)
@@ -34,7 +33,6 @@ Update changelog for a specific version or all missing tags
 - `-d, --dry-run`: Preview changes without modifying the changelog file
 - `-y, --yes`: Skip confirmation prompts
 - `-a, --all`: Update all entries (not just missing ones)
-- `--preserve-existing`: Preserve existing changelog content instead of overwriting
 - `--replace-unreleased`: Replace unreleased content instead of appending
 - `--no-replace-unreleased`: Append to unreleased content instead of replacing
 - `-f, --file`: Path to changelog file (default: CHANGELOG.md)
@@ -58,7 +56,6 @@ Generate unreleased changelog entries
 - `-d, --dry-run`: Preview changes without modifying the changelog file
 - `-y, --yes`: Skip confirmation prompts
 - `-a, --all`: Update all entries (not just missing ones)
-- `--preserve-existing`: Preserve existing changelog content instead of overwriting
 - `--replace-unreleased`: Replace unreleased content instead of appending
 - `--no-replace-unreleased`: Append to unreleased content instead of replacing
 - `-f, --file`: Path to changelog file (default: CHANGELOG.md)

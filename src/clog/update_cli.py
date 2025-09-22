@@ -23,7 +23,6 @@ config = load_config()
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--preserve-existing", is_flag=True, help="Preserve existing changelog content instead of overwriting")
 @click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
 @click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
@@ -52,7 +51,6 @@ def update_version(
     from_tag,
     to_tag,
     show_prompt,
-    preserve_existing,
     replace_unreleased,
     no_replace_unreleased,
     all,
@@ -109,7 +107,6 @@ def update_version(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
-                preserve_existing=preserve_existing,
                 replace_unreleased=replace_unreleased_value,
                 update_all_entries=True,  # Update command processes all entries by default
             )
@@ -151,7 +148,6 @@ def update_version(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
-            preserve_existing=preserve_existing,
             replace_unreleased=True,  # Always overwrite for specific versions
         )
 

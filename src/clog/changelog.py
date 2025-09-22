@@ -281,6 +281,142 @@ def format_changelog_entry(
     return entry
 
 
+def handle_unreleased_section(
+    lines: list[str],
+    new_entry: str,
+    existing_content: str,
+    replace_unreleased: bool,
+    current_commit_is_tagged: bool
+) -> list[str]:
+    """Handle updating the unreleased section of the changelog."""
+    logger.debug(f"Processing unreleased section, replace_unreleased={replace_unreleased}")
+    # Find the unreleased section
+    unreleased_line = find_unreleased_section(existing_content)
+
+    if unreleased_line is not None:
+        end_line = find_end_of_unreleased_section(lines, unreleased_line)
+        logger.debug(f"Found end_line: {end_line}")
+
+        # Find where actual content starts in the existing section (skip empty lines after header)
+        content_start_line = unreleased_line + 1
+        while content_start_line < len(lines) and not lines[content_start_line].strip():
+            content_start_line += 1
+        logger.debug(f"Content starts at line: {content_start_line}")
+
+        if replace_unreleased:
+            logger.debug("In replace mode - removing existing content and inserting new")
+            # Replace mode: Remove existing content and insert new content
+            # Replace the content between the Unreleased header and the next section
+            # Remove existing content
+            logger.debug(
+                f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}"
+            )
+            del lines[content_start_line:end_line]
+            logger.debug(f"Lines after deletion: {lines}")
+
+            # Insert new content with bullet limiting
+            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+            logger.debug(f"New entry lines before limiting: {new_entry_lines}")
+            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+            logger.debug(f"Limited content lines: {limited_content_lines}")
+
+            for line in reversed(limited_content_lines):
+                lines.insert(content_start_line, line)
+            logger.debug(f"Lines after insertion: {lines}")
+        else:
+            logger.debug("In append mode - preserving existing content and appending new")
+            # Append mode: Preserve existing content and append new AI content
+            # Apply bullet limiting to new content only (don't affect existing content)
+            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+
+            # Remove the ## [Unreleased] header from new content since we're appending to existing section
+            content_lines = []
+            for line in new_entry_lines:
+                if not re.match(r"##\s*\[unreleased\]", line, re.IGNORECASE):
+                    content_lines.append(line)
+
+            # Apply bullet limiting to new content
+            limited_new_entry_lines = limit_bullets_in_sections(content_lines)
+
+            # Insert limited new content at the end of the existing unreleased section content
+            # The insertion point should be just before the next section (end_line)
+            insert_point = end_line
+            logger.debug(f"Inserting at position {insert_point}: {limited_new_entry_lines}")
+            for line in reversed(limited_new_entry_lines):
+                lines.insert(insert_point, line)
+    else:
+        # No existing unreleased section - only create one if current commit is not tagged
+        if not current_commit_is_tagged:
+            insert_line = find_insertion_point(existing_content)
+
+            # Insert new content with bullet limiting
+            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+
+            # Add a blank line before inserting if needed
+            if insert_line > 0 and lines[insert_line - 1].strip():
+                lines.insert(insert_line, "")
+                insert_line += 1
+
+            for line in reversed(limited_content_lines):
+                lines.insert(insert_line, line)
+
+    return lines
+
+
+def handle_tagged_version(lines: list[str], new_entry: str, tag_name: str, existing_content: str) -> list[str]:
+    """Handle updating a tagged version section of the changelog."""
+    # For tagged versions, find and replace the existing version section
+    version = tag_name.lstrip("v")
+    version_start_line: int | None
+    version_end_line: int | None
+    version_start_line, version_end_line = find_version_section(existing_content, version)
+
+    if version_start_line is not None and version_end_line is not None:
+        # Remove existing content for this version
+        del lines[version_start_line:version_end_line]
+
+        # Insert new content with bullet limiting at the same position
+        entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
+        limited_entry_lines = limit_bullets_in_sections(entry_lines)
+
+        for line in reversed(limited_entry_lines):
+            lines.insert(version_start_line, line)
+    else:
+        # Version section not found, insert at appropriate position
+        insert_line = find_insertion_point(existing_content)
+
+        # Insert the new entry with bullet limiting
+        entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
+        limited_entry_lines = limit_bullets_in_sections(entry_lines)
+
+        for line in reversed(limited_entry_lines):
+            lines.insert(insert_line, line)
+
+    return lines
+
+
+def format_and_clean_content(content: str) -> str:
+    """Apply formatting and cleanup rules to changelog content."""
+    # Clean up any excessive blank lines and ensure proper spacing
+    content = re.sub(r"\n{3,}", "\n\n", content)
+
+    # Remove any "### Changelog" sections that might have been generated
+    content = re.sub(r"###\s+Changelog\s*\n", "", content, flags=re.MULTILINE)
+
+    # Ensure there's proper spacing between sections (two newlines between sections)
+    content = re.sub(r"(\S)\n(##\s*\[)", r"\1\n\n\2", content)
+
+    # Remove empty [Unreleased] sections (only when there's no content between header and next section)
+    # This regex looks for ## [Unreleased] followed by only whitespace until the next ## section
+    content = re.sub(r"##\s*\[Unreleased\]\s*\n(\s*\n)*(?=##\s*\[)", "", content, flags=re.IGNORECASE)
+
+    # Ensure there's a space before each version section (after the first one)
+    content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", content)
+
+    return content
+
+
 def update_changelog(
     file_path: str | None = "CHANGELOG.md",
     existing_content: str | None = None,
@@ -367,9 +503,6 @@ def update_changelog(
     include_header = not (to_tag is None and not replace_unreleased)
     new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date, include_header)
 
-    # DEBUG: Print the formatted new entry
-    # print(f"Formatted new entry: {repr(new_entry)}")
-
     # Log the AI content for debugging
     logger.debug(f"AI-generated content for {tag_name}: {ai_content}")
 
@@ -389,129 +522,15 @@ def update_changelog(
         if not has_unreleased:
             lines = remove_unreleased_sections(lines)
 
-    # For unreleased changes, handle the unreleased section
+    # Route to appropriate handler based on whether this is unreleased or tagged content
     if to_tag is None:
-        logger.debug(f"Processing unreleased section, replace_unreleased={replace_unreleased}")
-        # Find the unreleased section
-        unreleased_line = find_unreleased_section(existing_content)
-
-        if unreleased_line is not None:
-            end_line = find_end_of_unreleased_section(lines, unreleased_line)
-            logger.debug(f"Found end_line: {end_line}")
-
-            # Find where actual content starts in the existing section (skip empty lines after header)
-            content_start_line = unreleased_line + 1
-            while content_start_line < len(lines) and not lines[content_start_line].strip():
-                content_start_line += 1
-            logger.debug(f"Content starts at line: {content_start_line}")
-
-            if replace_unreleased:
-                logger.debug("In replace mode - removing existing content and inserting new")
-                # Replace mode: Remove existing content and insert new content
-                # Replace the content between the Unreleased header and the next section
-                # Remove existing content
-                logger.debug(
-                    f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}"
-                )
-                del lines[content_start_line:end_line]
-                logger.debug(f"Lines after deletion: {lines}")
-
-                # Insert new content with bullet limiting
-                new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-                logger.debug(f"New entry lines before limiting: {new_entry_lines}")
-                limited_content_lines = limit_bullets_in_sections(new_entry_lines)
-                logger.debug(f"Limited content lines: {limited_content_lines}")
-
-                for line in reversed(limited_content_lines):
-                    lines.insert(content_start_line, line)
-                logger.debug(f"Lines after insertion: {lines}")
-            else:
-                logger.debug("In append mode - preserving existing content and appending new")
-                # Append mode: Preserve existing content and append new AI content
-                # Apply bullet limiting to new content only (don't affect existing content)
-                new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-
-                # Remove the ## [Unreleased] header from new content since we're appending to existing section
-                content_lines = []
-                for line in new_entry_lines:
-                    if not re.match(r"##\s*\[unreleased\]", line, re.IGNORECASE):
-                        content_lines.append(line)
-
-                # Apply bullet limiting to new content
-                limited_new_entry_lines = limit_bullets_in_sections(content_lines)
-
-                # DEBUG: Print the state before insertion
-                # print(f"Before insertion - lines[content_start_line:end_line] = {lines[content_start_line:end_line]}")
-                # print(f"Inserting content at position {insert_point}: {limited_new_entry_lines}")
-
-                # Insert limited new content at the end of the existing unreleased section content
-                # The insertion point should be just before the next section (end_line)
-                insert_point = end_line
-                logger.debug(f"Inserting at position {insert_point}: {limited_new_entry_lines}")
-                for line in reversed(limited_new_entry_lines):
-                    lines.insert(insert_point, line)
-        else:
-            # No existing unreleased section - only create one if current commit is not tagged
-            if not current_commit_is_tagged:
-                insert_line = find_insertion_point(existing_content)
-
-                # Insert new content with bullet limiting
-                new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-                limited_content_lines = limit_bullets_in_sections(new_entry_lines)
-
-                # Add a blank line before inserting if needed
-                if insert_line > 0 and lines[insert_line - 1].strip():
-                    lines.insert(insert_line, "")
-                    insert_line += 1
-
-                for line in reversed(limited_content_lines):
-                    lines.insert(insert_line, line)
+        lines = handle_unreleased_section(lines, new_entry, existing_content, replace_unreleased, current_commit_is_tagged)
     else:
-        # For tagged versions, find and replace the existing version section
-        version = tag_name.lstrip("v")
-        version_start_line: int | None
-        version_end_line: int | None
-        version_start_line, version_end_line = find_version_section(existing_content, version)
+        lines = handle_tagged_version(lines, new_entry, tag_name, existing_content)
 
-        if version_start_line is not None and version_end_line is not None:
-            # Remove existing content for this version
-            del lines[version_start_line:version_end_line]
-
-            # Insert new content with bullet limiting at the same position
-            entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
-            limited_entry_lines = limit_bullets_in_sections(entry_lines)
-
-            for line in reversed(limited_entry_lines):
-                lines.insert(version_start_line, line)
-        else:
-            # Version section not found, insert at appropriate position
-            insert_line = find_insertion_point(existing_content)
-
-            # Insert the new entry with bullet limiting
-            entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
-            limited_entry_lines = limit_bullets_in_sections(entry_lines)
-
-            for line in reversed(limited_entry_lines):
-                lines.insert(insert_line, line)
-
-    # Join back together
+    # Join back together and apply formatting/cleanup
     updated_content = "\n".join(lines)
-
-    # Clean up any excessive blank lines and ensure proper spacing
-    updated_content = re.sub(r"\n{3,}", "\n\n", updated_content)
-
-    # Remove any "### Changelog" sections that might have been generated
-    updated_content = re.sub(r"###\s+Changelog\s*\n", "", updated_content, flags=re.MULTILINE)
-
-    # Ensure there's proper spacing between sections (two newlines between sections)
-    updated_content = re.sub(r"(\S)\n(##\s*\[)", r"\1\n\n\2", updated_content)
-
-    # Remove empty [Unreleased] sections (only when there's no content between header and next section)
-    # This regex looks for ## [Unreleased] followed by only whitespace until the next ## section
-    updated_content = re.sub(r"##\s*\[Unreleased\]\s*\n(\s*\n)*(?=##\s*\[)", "", updated_content, flags=re.IGNORECASE)
-
-    # Ensure there's a space before each version section (after the first one)
-    updated_content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", updated_content)
+    updated_content = format_and_clean_content(updated_content)
 
     return updated_content
 
