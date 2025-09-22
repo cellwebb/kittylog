@@ -328,7 +328,13 @@ def update_changelog(
     )
 
     # Post-process the AI content to ensure proper formatting
-    ai_content = postprocess_changelog_content(ai_content)
+    # For unreleased content, don't pass the tagged commit status
+    if to_tag is None:
+        ai_content = postprocess_changelog_content(ai_content)
+    else:
+        # For tagged releases, check if the current commit is tagged
+        from clog.git_operations import is_current_commit_tagged
+        ai_content = postprocess_changelog_content(ai_content, is_current_commit_tagged())
 
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None
