@@ -107,7 +107,7 @@ def main_business_logic(
         # Update changelog for unreleased changes only
         # In special unreleased mode, we should process regardless of whether current commit is tagged
         replace_unreleased_value = (
-            replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)
+            replace_unreleased if replace_unreleased is not None else bool(config.get("replace_unreleased", True))
         )
         logger.debug(f"Calling update_changelog with replace_unreleased_value: {replace_unreleased_value}")
         updated_content = update_changelog(
@@ -281,7 +281,11 @@ def main_business_logic(
                 quiet=quiet,
                 replace_unreleased=True
                 if special_unreleased_mode
-                else (replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)),
+                else (
+                    replace_unreleased
+                    if replace_unreleased is not None
+                    else bool(config.get("replace_unreleased", True))
+                ),
             )
         except Exception as e:
             handle_error(e)

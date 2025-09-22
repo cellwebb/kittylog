@@ -131,9 +131,6 @@ def is_current_commit_tagged() -> bool:
             if tag.commit.hexsha == current_commit:
                 return True
         return False
-    except Exception:
-        # If we can't determine if the commit is tagged, assume it's not
-        return False
     except Exception as e:
         logger.error(f"Failed to check if current commit is tagged: {str(e)}")
         return False

@@ -20,7 +20,7 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
     if not lines:
         return lines
 
-    processed_lines = []
+    processed_lines: list[str] = []
     i = 0
 
     while i < len(lines):

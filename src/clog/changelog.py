@@ -469,18 +469,20 @@ def update_changelog(
     else:
         # For tagged versions, find and replace the existing version section
         version = tag_name.lstrip("v")
-        start_line, end_line = find_version_section(existing_content, version)
+        version_start_line: int | None
+        version_end_line: int | None
+        version_start_line, version_end_line = find_version_section(existing_content, version)
 
-        if start_line is not None:
+        if version_start_line is not None and version_end_line is not None:
             # Remove existing content for this version
-            del lines[start_line:end_line]
+            del lines[version_start_line:version_end_line]
 
             # Insert new content with bullet limiting at the same position
             entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
             limited_entry_lines = limit_bullets_in_sections(entry_lines)
 
             for line in reversed(limited_entry_lines):
-                lines.insert(start_line, line)
+                lines.insert(version_start_line, line)
         else:
             # Version section not found, insert at appropriate position
             insert_line = find_insertion_point(existing_content)

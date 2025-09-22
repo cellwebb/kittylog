@@ -390,7 +390,7 @@ class TestMainLogicEdgeCases:
         mock_get_previous_tag.return_value = "v0.1.0"
         mock_read.return_value = "# Changelog"
 
-        with patch("clog.main.update_changelog") as mock_update, patch("clog.main.write_changelog") as mock_write:
+        with patch("clog.main.update_changelog") as mock_update, patch("clog.main.write_changelog"):
             mock_update.return_value = "Updated content"
 
             result = main_business_logic(
@@ -517,7 +517,7 @@ class TestMainLogicConfiguration:
         assert result is True
         # The implementation now always passes replace_unreleased=True for tagged versions
         call_args = mock_update.call_args[1]
-        assert call_args["replace_unreleased"] == True
+        assert call_args["replace_unreleased"]
 
 
 class TestMainLogicLogging:
