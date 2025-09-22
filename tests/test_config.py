@@ -22,6 +22,7 @@ class TestLoadConfig:
         assert config["max_retries"] == 3
         assert config["log_level"] == "WARNING"
         assert config["warning_limit_tokens"] == 16384
+        assert config["replace_unreleased"] is True  # Default to replace mode
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -88,14 +89,12 @@ CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
         user_env_file.write_text("""CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
 CHANGELOG_UPDATER_TEMPERATURE=0.3
 CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=1024
-CHANGELOG_UPDATER_REPLACE_UNRELEASED=true
 """)
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".clog.env"
         project_env_file.write_text("""CHANGELOG_UPDATER_MODEL=openai:gpt-4
 CHANGELOG_UPDATER_TEMPERATURE=0.5
-CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
 """)
 
         # Set environment variable (should override everything)
@@ -107,9 +106,10 @@ CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
         assert config["model"] == "groq:llama-4"
         # Project file overrides user file
         assert config["temperature"] == 0.5
-        assert config["replace_unreleased"] is False
         # User file provides value not overridden
         assert config["max_output_tokens"] == 1024
+        # Default replace_unreleased value
+        assert config["replace_unreleased"] is True
 
     def test_load_config_invalid_values(self, isolated_config_test, monkeypatch):
         """Test handling of invalid configuration values."""
@@ -125,7 +125,7 @@ CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
         assert config["temperature"] == 0.7  # default
         assert config["max_output_tokens"] == 1024  # default
         assert config["max_retries"] == 3  # default
-        assert config["replace_unreleased"] is False  # default
+        assert config["replace_unreleased"] is True  # default to replace mode
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -252,6 +252,7 @@ class TestConfigurationIntegration:
         user_env_file.write_text("""# User configuration
 CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
 CHANGELOG_UPDATER_TEMPERATURE=0.3
+CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
 ANTHROPIC_API_KEY=sk-ant-user123
 """)
 
@@ -271,6 +272,7 @@ CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=2048
         assert config["temperature"] == 0.7  # from project (overrides user)
         assert config["max_output_tokens"] == 2048  # from project
         assert config["max_retries"] == 3  # default
+        assert config["replace_unreleased"] is False  # from user config
 
         # Check API key is available
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"

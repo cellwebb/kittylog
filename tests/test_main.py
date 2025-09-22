@@ -31,7 +31,7 @@ class TestMainBusinessLogic:
             require_confirmation=False,
             show_prompt=False,
             quiet=True,
-            replace_unreleased=False,
+            
         )
 
         assert result is True
@@ -53,7 +53,7 @@ class TestMainBusinessLogic:
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
             require_confirmation=False,
-            replace_unreleased=False,
+            
         )
 
         assert result is True
@@ -85,7 +85,7 @@ class TestMainBusinessLogic:
             hint="",
             show_prompt=False,
             quiet=True,
-            replace_unreleased=False,
+            
         )
         mock_write.assert_called_once()
 
@@ -168,7 +168,7 @@ class TestMainBusinessLogic:
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
             require_confirmation=False,
-            replace_unreleased=False,
+            
         )
 
         assert result is False
@@ -185,7 +185,7 @@ class TestMainBusinessLogic:
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
             require_confirmation=False,
-            replace_unreleased=False,
+            
         )
 
         assert result is False
@@ -204,7 +204,7 @@ class TestMainBusinessLogic:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
-            replace_unreleased=False,
+            
         )
 
         assert result is False
@@ -230,7 +230,7 @@ class TestMainLogicMultipleTags:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
-            replace_unreleased=False,
+            
         )
 
         assert result is True
@@ -262,7 +262,7 @@ class TestMainLogicMultipleTags:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
-            replace_unreleased=False,
+            
         )
 
         assert result is False
@@ -328,7 +328,7 @@ class TestMainLogicEdgeCases:
             changelog_file="",
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
-            replace_unreleased=False,
+            
         )
 
         assert result is False
@@ -341,7 +341,7 @@ class TestMainLogicEdgeCases:
                 model=None,
                 quiet=True,
                 require_confirmation=False,
-                replace_unreleased=False,
+                
             )
 
             assert result is False
@@ -364,7 +364,6 @@ class TestMainLogicConfiguration:
             {
                 "model": "anthropic:claude-3-5-haiku-latest",
                 "temperature": 0.7,
-                "replace_unreleased": True,
             },
         ):
             result = main_business_logic(
@@ -392,18 +391,16 @@ class TestMainLogicConfiguration:
             "clog.main.config",
             {
                 "model": "anthropic:claude-3-5-haiku-latest",
-                "replace_unreleased": True,
             },
         ):
             result = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 require_confirmation=False,
                 quiet=True,
-                replace_unreleased=None,  # Should use config value
             )
 
         assert result is True
-        # Check that the last call used the config value for replace_unreleased
+        # Check that the last call used the default replace_unreleased value (True)
         call_args = mock_update.call_args[1]
         assert call_args["replace_unreleased"] is True
 
@@ -423,7 +420,7 @@ class TestMainLogicLogging:
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
             require_confirmation=False,
-            replace_unreleased=False,
+            
         )
 
         assert result is True
@@ -442,7 +439,7 @@ class TestMainLogicLogging:
             model="anthropic:claude-3-5-haiku-latest",
             quiet=False,
             require_confirmation=False,
-            replace_unreleased=False,
+            
         )
 
         assert result is True

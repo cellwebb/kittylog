@@ -113,7 +113,13 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     )
     # Convert replace_unreleased to boolean
     if env_replace_unreleased is not None:
-        config["replace_unreleased"] = env_replace_unreleased.lower() in ("true", "1", "yes", "on")
+        # For invalid boolean values, we want to default to True (replace mode)
+        if env_replace_unreleased.lower() in ("true", "1", "yes", "on"):
+            config["replace_unreleased"] = True
+        elif env_replace_unreleased.lower() in ("false", "0", "no", "off"):
+            config["replace_unreleased"] = False
+        else:
+            config["replace_unreleased"] = True  # Default to replace mode for invalid values
     else:
         config["replace_unreleased"] = None
 
@@ -200,7 +206,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
         if config_replace_unreleased_str is not None:
             config["replace_unreleased"] = config_replace_unreleased_str.lower() in ("true", "1", "yes", "on")
         else:
-            config["replace_unreleased"] = False
+            config["replace_unreleased"] = True  # Default to replace mode
 
     return config
 
@@ -281,6 +287,6 @@ def apply_config_defaults(config: dict) -> dict:
     # For replace_unreleased, ensure it's a boolean
     replace_unreleased = config.get("replace_unreleased")
     if replace_unreleased is not None and not isinstance(replace_unreleased, bool):
-        validated_config["replace_unreleased"] = False
+        validated_config["replace_unreleased"] = True  # Default to replace mode for invalid values
 
     return validated_config
