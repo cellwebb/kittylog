@@ -7,6 +7,7 @@ It extends the concepts from gac but focuses on tag operations and commit histor
 import logging
 import re
 from datetime import datetime
+from functools import lru_cache
 
 import git
 from git import InvalidGitRepositoryError, Repo
@@ -17,16 +18,37 @@ from clog.utils import run_subprocess
 logger = logging.getLogger(__name__)
 
 
+def clear_git_cache() -> None:
+    """Clear all git operation caches.
+
+    This is useful for testing or when the git repository state
+    might have changed during execution.
+    """
+    get_repo.cache_clear()
+    get_all_tags.cache_clear()
+    get_current_commit_hash.cache_clear()
+
+
+@lru_cache(maxsize=1)
 def get_repo() -> Repo:
-    """Get the Git repository object for the current directory."""
+    """Get the Git repository object for the current directory.
+
+    This function is cached to avoid repeated initialization overhead
+    during a single execution.
+    """
     try:
         return Repo(".", search_parent_directories=True)
     except InvalidGitRepositoryError as e:
         raise GitError("Not in a git repository") from e
 
 
+@lru_cache(maxsize=1)
 def get_all_tags() -> list[str]:
-    """Get all git tags sorted by semantic version if possible, otherwise by creation date."""
+    """Get all git tags sorted by semantic version if possible, otherwise by creation date.
+
+    This function is cached to avoid repeated git operations and sorting
+    during a single execution.
+    """
     try:
         repo = get_repo()
         tags = list(repo.tags)
@@ -116,6 +138,21 @@ def get_previous_tag(target_tag: str) -> str | None:
         return None
 
 
+@lru_cache(maxsize=1)
+def get_current_commit_hash() -> str:
+    """Get the current commit hash (HEAD).
+
+    This function is cached to avoid repeated git operations
+    during a single execution.
+    """
+    try:
+        repo = get_repo()
+        return repo.head.commit.hexsha
+    except Exception as e:
+        logger.error(f"Failed to get current commit hash: {str(e)}")
+        raise GitError(f"Failed to get current commit hash: {str(e)}") from e
+
+
 def is_current_commit_tagged() -> bool:
     """Check if the current commit (HEAD) has a tag pointing to it.
 
@@ -124,7 +161,7 @@ def is_current_commit_tagged() -> bool:
     """
     try:
         repo = get_repo()
-        current_commit = repo.head.commit.hexsha
+        current_commit = get_current_commit_hash()
 
         # Check if any tag points to the current commit
         for tag in repo.tags:

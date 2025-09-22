@@ -25,6 +25,10 @@ def temp_dir():
 @pytest.fixture
 def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
+    # Clear git cache before setting up new repo
+    from clog.git_operations import clear_git_cache
+    clear_git_cache()
+
     repo = Repo.init(temp_dir)
 
     # Configure git user (required for commits)
@@ -48,6 +52,9 @@ def git_repo(temp_dir):
     repo.index.commit("Initial commit")
 
     yield repo
+
+    # Clear git cache after test to prevent cross-test contamination
+    clear_git_cache()
 
     # Restore original directory or change to a safe one
     try:
