@@ -198,9 +198,7 @@ class TestConfigIntegration:
 
         # Also mock environment variables to ensure they don't interfere
         monkeypatch.delenv("CLOG_MODEL", raising=False)
-        monkeypatch.delenv("CHANGELOG_UPDATER_MODEL", raising=False)
         monkeypatch.delenv("CLOG_TEMPERATURE", raising=False)
-        monkeypatch.delenv("CHANGELOG_UPDATER_TEMPERATURE", raising=False)
 
         runner = CliRunner()
 
@@ -252,12 +250,12 @@ class TestConfigIntegration:
         assert "anthropic:claude-3-5-haiku-latest" in result.output
 
         # Test config set
-        result = runner.invoke(cli, ["config", "set", "CHANGELOG_UPDATER_TEMPERATURE", "0.5"])
+        result = runner.invoke(cli, ["config", "set", "CLOG_TEMPERATURE", "0.5"])
         assert result.exit_code == 0
-        assert "Set CHANGELOG_UPDATER_TEMPERATURE" in result.output
+        assert "Set CLOG_TEMPERATURE" in result.output
 
         # Verify the setting
-        result = runner.invoke(cli, ["config", "get", "CHANGELOG_UPDATER_TEMPERATURE"])
+        result = runner.invoke(cli, ["config", "get", "CLOG_TEMPERATURE"])
         assert result.exit_code == 0
         assert "0.5" in result.output
 

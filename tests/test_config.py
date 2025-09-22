@@ -27,13 +27,13 @@ class TestLoadConfig:
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
         # Set environment variables
-        monkeypatch.setenv("CHANGELOG_UPDATER_MODEL", "anthropic:claude-3-5-haiku-latest")
-        monkeypatch.setenv("CHANGELOG_UPDATER_TEMPERATURE", "0.5")
-        monkeypatch.setenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS", "2048")
-        monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "5")
-        monkeypatch.setenv("CHANGELOG_UPDATER_LOG_LEVEL", "DEBUG")
-        monkeypatch.setenv("CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS", "8192")
-        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "true")
+        monkeypatch.setenv("CLOG_MODEL", "anthropic:claude-3-5-haiku-latest")
+        monkeypatch.setenv("CLOG_TEMPERATURE", "0.5")
+        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "2048")
+        monkeypatch.setenv("CLOG_RETRIES", "5")
+        monkeypatch.setenv("CLOG_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("CLOG_WARNING_LIMIT_TOKENS", "8192")
+        monkeypatch.setenv("CLOG_REPLACE_UNRELEASED", "true")
 
         config = load_config()
 
@@ -50,9 +50,9 @@ class TestLoadConfig:
         home_dir = isolated_config_test["home"]
         user_env_file = home_dir / ".clog.env"
 
-        user_env_file.write_text("""CHANGELOG_UPDATER_MODEL=openai:gpt-4
-CHANGELOG_UPDATER_TEMPERATURE=0.3
-CHANGELOG_UPDATER_REPLACE_UNRELEASED=true
+        user_env_file.write_text("""CLOG_MODEL=openai:gpt-4
+CLOG_TEMPERATURE=0.3
+CLOG_REPLACE_UNRELEASED=true
 OPENAI_API_KEY=sk-test123
 """)
 
@@ -68,9 +68,9 @@ OPENAI_API_KEY=sk-test123
         cwd = isolated_config_test["cwd"]
         project_env_file = cwd / ".clog.env"
 
-        project_env_file.write_text("""CHANGELOG_UPDATER_MODEL=groq:llama-4
-CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=512
-CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
+        project_env_file.write_text("""CLOG_MODEL=groq:llama-4
+CLOG_MAX_OUTPUT_TOKENS=512
+CLOG_REPLACE_UNRELEASED=false
 """)
 
         config = load_config()
@@ -86,19 +86,19 @@ CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
 
         # Create user-level config
         user_env_file = home_dir / ".clog.env"
-        user_env_file.write_text("""CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
-CHANGELOG_UPDATER_TEMPERATURE=0.3
-CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=1024
+        user_env_file.write_text("""CLOG_MODEL=anthropic:claude-3-5-haiku-latest
+CLOG_TEMPERATURE=0.3
+CLOG_MAX_OUTPUT_TOKENS=1024
 """)
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".clog.env"
-        project_env_file.write_text("""CHANGELOG_UPDATER_MODEL=openai:gpt-4
-CHANGELOG_UPDATER_TEMPERATURE=0.5
+        project_env_file.write_text("""CLOG_MODEL=openai:gpt-4
+CLOG_TEMPERATURE=0.5
 """)
 
         # Set environment variable (should override everything)
-        monkeypatch.setenv("CHANGELOG_UPDATER_MODEL", "groq:llama-4")
+        monkeypatch.setenv("CLOG_MODEL", "groq:llama-4")
 
         config = load_config()
 
@@ -114,10 +114,10 @@ CHANGELOG_UPDATER_TEMPERATURE=0.5
     def test_load_config_invalid_values(self, isolated_config_test, monkeypatch):
         """Test handling of invalid configuration values."""
         # Set invalid values
-        monkeypatch.setenv("CHANGELOG_UPDATER_TEMPERATURE", "invalid")
-        monkeypatch.setenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS", "not_a_number")
-        monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "-1")
-        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "maybe")
+        monkeypatch.setenv("CLOG_TEMPERATURE", "invalid")
+        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "not_a_number")
+        monkeypatch.setenv("CLOG_RETRIES", "-1")
+        monkeypatch.setenv("CLOG_REPLACE_UNRELEASED", "maybe")
 
         config = load_config()
 
@@ -250,17 +250,17 @@ class TestConfigurationIntegration:
         # Create user config
         user_env_file = home_dir / ".clog.env"
         user_env_file.write_text("""# User configuration
-CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
-CHANGELOG_UPDATER_TEMPERATURE=0.3
-CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
+CLOG_MODEL=anthropic:claude-3-5-haiku-latest
+CLOG_TEMPERATURE=0.3
+CLOG_REPLACE_UNRELEASED=false
 ANTHROPIC_API_KEY=sk-ant-user123
 """)
 
         # Create project config
         project_env_file = cwd / ".clog.env"
         project_env_file.write_text("""# Project overrides
-CHANGELOG_UPDATER_TEMPERATURE=0.7
-CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=2048
+CLOG_TEMPERATURE=0.7
+CLOG_MAX_OUTPUT_TOKENS=2048
 """)
 
         # Load and validate config
@@ -283,8 +283,8 @@ CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=2048
 
         # Create config with invalid values
         project_env_file = cwd / ".clog.env"
-        project_env_file.write_text("""CHANGELOG_UPDATER_TEMPERATURE=10.0
-CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=-1
+        project_env_file.write_text("""CLOG_TEMPERATURE=10.0
+CLOG_MAX_OUTPUT_TOKENS=-1
 """)
 
         # Load config (should handle invalid values gracefully)
@@ -302,11 +302,11 @@ CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=-1
         user_env_file.write_text("""# Changelog Updater Configuration
 # AI Provider Settings
 
-CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
+CLOG_MODEL=anthropic:claude-3-5-haiku-latest
 
 # Generation Settings
-CHANGELOG_UPDATER_TEMPERATURE=0.5
-CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=1024
+CLOG_TEMPERATURE=0.5
+CLOG_MAX_OUTPUT_TOKENS=1024
 
 # API Keys
 ANTHROPIC_API_KEY=sk-ant-test123
@@ -341,11 +341,11 @@ class TestConfigUtils:
     def test_config_type_conversion(self, isolated_config_test, monkeypatch):
         """Test that string values from env are properly converted to correct types."""
         # Set string values that should be converted
-        monkeypatch.setenv("CHANGELOG_UPDATER_TEMPERATURE", "0.8")
-        monkeypatch.setenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS", "2048")
-        monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "5")
-        monkeypatch.setenv("CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS", "32768")
-        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "true")
+        monkeypatch.setenv("CLOG_TEMPERATURE", "0.8")
+        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "2048")
+        monkeypatch.setenv("CLOG_RETRIES", "5")
+        monkeypatch.setenv("CLOG_WARNING_LIMIT_TOKENS", "32768")
+        monkeypatch.setenv("CLOG_REPLACE_UNRELEASED", "true")
 
         config = load_config()
 
@@ -377,6 +377,6 @@ class TestConfigUtils:
         ]
 
         for value, expected in test_cases:
-            monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", value)
+            monkeypatch.setenv("CLOG_REPLACE_UNRELEASED", value)
             config = load_config()
             assert config["replace_unreleased"] is expected, f"Failed for value: {value}"

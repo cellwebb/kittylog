@@ -85,15 +85,13 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     config: dict[str, str | int | float | bool | None] = {}
 
     # Read environment variables (these have highest precedence)
-    env_model = os.getenv("CLOG_MODEL") or os.getenv("CHANGELOG_UPDATER_MODEL")
-    env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_TEMPERATURE")
-    env_max_output_tokens = os.getenv("CLOG_MAX_OUTPUT_TOKENS") or os.getenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS")
-    env_max_retries = os.getenv("CLOG_RETRIES") or os.getenv("CHANGELOG_UPDATER_RETRIES")
-    env_log_level = os.getenv("CLOG_LOG_LEVEL") or os.getenv("CHANGELOG_UPDATER_LOG_LEVEL")
-    env_warning_limit_tokens = os.getenv("CLOG_WARNING_LIMIT_TOKENS") or os.getenv(
-        "CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS"
-    )
-    env_replace_unreleased = os.getenv("CLOG_REPLACE_UNRELEASED") or os.getenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED")
+    env_model = os.getenv("CLOG_MODEL")
+    env_temperature = os.getenv("CLOG_TEMPERATURE")
+    env_max_output_tokens = os.getenv("CLOG_MAX_OUTPUT_TOKENS")
+    env_max_retries = os.getenv("CLOG_RETRIES")
+    env_log_level = os.getenv("CLOG_LOG_LEVEL")
+    env_warning_limit_tokens = os.getenv("CLOG_WARNING_LIMIT_TOKENS")
+    env_replace_unreleased = os.getenv("CLOG_REPLACE_UNRELEASED")
 
     # Apply safe conversion to environment variables WITHOUT defaults
     # For environment variables, we delay applying defaults so validate_config can catch invalid values
@@ -168,33 +166,27 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     # Apply file values as fallbacks (only if env vars weren't set or were None)
     # For file variables, convert them normally so validate_config can catch errors
     if config["model"] is None:
-        config["model"] = config_vars.get("CLOG_MODEL") or config_vars.get("CHANGELOG_UPDATER_MODEL")
+        config["model"] = config_vars.get("CLOG_MODEL")
 
     if config["temperature"] is None:
-        config_temperature_str = config_vars.get("CLOG_TEMPERATURE") or config_vars.get("CHANGELOG_UPDATER_TEMPERATURE")
+        config_temperature_str = config_vars.get("CLOG_TEMPERATURE")
         config["temperature"] = _safe_float(config_temperature_str, EnvDefaults.TEMPERATURE) or EnvDefaults.TEMPERATURE
 
     if config["max_output_tokens"] is None:
-        config_max_output_tokens_str = config_vars.get("CLOG_MAX_OUTPUT_TOKENS") or config_vars.get(
-            "CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS"
-        )
+        config_max_output_tokens_str = config_vars.get("CLOG_MAX_OUTPUT_TOKENS")
         config["max_output_tokens"] = (
             _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS) or EnvDefaults.MAX_OUTPUT_TOKENS
         )
 
     if config["max_retries"] is None:
-        config_max_retries_str = config_vars.get("CLOG_RETRIES") or config_vars.get("CHANGELOG_UPDATER_RETRIES")
+        config_max_retries_str = config_vars.get("CLOG_RETRIES")
         config["max_retries"] = _safe_int(config_max_retries_str, EnvDefaults.MAX_RETRIES) or EnvDefaults.MAX_RETRIES
 
     if config["log_level"] is None:
-        config["log_level"] = (
-            config_vars.get("CLOG_LOG_LEVEL") or config_vars.get("CHANGELOG_UPDATER_LOG_LEVEL") or Logging.DEFAULT_LEVEL
-        )
+        config["log_level"] = config_vars.get("CLOG_LOG_LEVEL") or Logging.DEFAULT_LEVEL
 
     if config["warning_limit_tokens"] is None:
-        config_warning_limit_tokens_str = config_vars.get("CLOG_WARNING_LIMIT_TOKENS") or config_vars.get(
-            "CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS"
-        )
+        config_warning_limit_tokens_str = config_vars.get("CLOG_WARNING_LIMIT_TOKENS")
         config["warning_limit_tokens"] = (
             _safe_int(config_warning_limit_tokens_str, EnvDefaults.WARNING_LIMIT_TOKENS)
             or EnvDefaults.WARNING_LIMIT_TOKENS
@@ -202,9 +194,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
 
     # Apply file values as fallbacks for replace_unreleased (only if env vars weren't set or were None)
     if config["replace_unreleased"] is None:
-        config_replace_unreleased_str = config_vars.get("CLOG_REPLACE_UNRELEASED") or config_vars.get(
-            "CHANGELOG_UPDATER_REPLACE_UNRELEASED"
-        )
+        config_replace_unreleased_str = config_vars.get("CLOG_REPLACE_UNRELEASED")
         if config_replace_unreleased_str is not None:
             config["replace_unreleased"] = config_replace_unreleased_str.lower() in ("true", "1", "yes", "on")
         else:

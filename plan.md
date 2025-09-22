@@ -102,11 +102,35 @@ temperature = validate_env_var(
 )
 ```
 
+### 4. Remove Backward Compatibility for Old Environment Variables 🧹
+**Problem**: The codebase still supports deprecated `CHANGELOG_UPDATER_*` environment variable names
+**Impact**: Technical debt, maintenance overhead, potential user confusion
+**Files**: `src/clog/config.py` (multiple lines), `tests/conftest.py`, `tests/test_config.py`, `tests/test_integration.py`
+
+**Solution**:
+- Remove all fallback logic for `CHANGELOG_UPDATER_*` variables in `src/clog/config.py`
+- Update tests to only use `CLOG_*` environment variables
+- Clean up test fixtures and mock data that reference old variable names
+
+**Benefits**:
+- Simplified configuration loading logic
+- Reduced code complexity and maintenance burden
+- Clearer user experience with only one set of environment variables
+- Smaller codebase footprint
+
+**Current Backward Compatibility Code**:
+```python
+# In config.py, all environment variable lookups follow this pattern:
+env_model = os.getenv("CLOG_MODEL") or os.getenv("CHANGELOG_UPDATER_MODEL")
+env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_TEMPERATURE")
+# etc.
+```
+
 ---
 
 ## 🟡 Medium Priority Improvements
 
-### 5. Implement Git Operation Caching
+### 6. Implement Git Operation Caching
 **Problem**: Repeated calls to expensive git operations within single execution
 **Impact**: Performance degradation with large repositories
 **Files**: `src/clog/git_operations.py`
@@ -122,7 +146,7 @@ def get_current_commit_hash() -> str:
     """Cache current commit hash for current execution."""
 ```
 
-### 6. Create Unified Output Interface
+### 7. Create Unified Output Interface
 **Problem**: Mixed usage of `console.print()`, `click.echo()`, and `logger.*()`
 **Impact**: Inconsistent user experience, harder to test output
 **Files**: Multiple CLI and core files
@@ -150,7 +174,7 @@ class OutputManager:
         """Error message output."""
 ```
 
-### 7. Reduce CLI Command Duplication
+### 8. Reduce CLI Command Duplication
 **Problem**: Similar option definitions across CLI commands
 **Impact**: Maintenance overhead, inconsistent behavior
 **Files**: `src/clog/cli.py`
@@ -170,7 +194,7 @@ def update(...):
     """Update changelog command."""
 ```
 
-### 8. Add Performance Monitoring
+### 9. Add Performance Monitoring
 **Problem**: No visibility into performance with large repositories
 **Impact**: Poor user experience with slow operations
 
@@ -183,7 +207,7 @@ def update(...):
 
 ## 🟢 Low Priority Improvements
 
-### 9. Enhanced Type Safety
+### 10. Enhanced Type Safety
 **Problem**: Some data structures use generic `dict` types
 **Impact**: Reduced IDE support and runtime safety
 
@@ -204,7 +228,7 @@ class TagInfo(TypedDict):
     date: str
 ```
 
-### 10. AI Provider Abstraction
+### 11. AI Provider Abstraction
 **Problem**: Hard-coded provider-specific logic
 **Impact**: Difficult to add new providers or customize behavior
 
@@ -225,7 +249,7 @@ class OpenAIProvider(AIProvider):
     """OpenAI-specific implementation."""
 ```
 
-### 11. Configuration Migration System
+### 12. Configuration Migration System
 **Problem**: Legacy environment variable names need deprecation path
 **Impact**: User confusion and maintenance overhead
 
@@ -234,7 +258,7 @@ class OpenAIProvider(AIProvider):
 - Automatic migration of old configuration files
 - Clear migration documentation
 
-### 12. Advanced Changelog Parsing
+### 13. Advanced Changelog Parsing
 **Problem**: Regex-based changelog parsing is brittle
 **Impact**: May break with markdown variations
 
@@ -257,6 +281,7 @@ class OpenAIProvider(AIProvider):
 
 ### Phase 2: Code Quality & Performance (Weeks 1-2)
 - [ ] Standardize configuration validation
+- [ ] Remove backward compatibility for old environment variables
 - [ ] Implement git operation caching
 - [ ] Create unified output interface
 - [ ] Reduce CLI command duplication
@@ -274,6 +299,7 @@ class OpenAIProvider(AIProvider):
 - [ ] Reduce largest function size from 288 to <100 lines
 - [ ] Eliminate code duplication in CLI commands
 - [ ] Achieve 100% type annotation coverage
+- [ ] Remove all backward compatibility code for deprecated environment variables
 - [ ] Add performance benchmarks
 
 ### User Experience
@@ -295,6 +321,7 @@ class OpenAIProvider(AIProvider):
 - Documentation fixes
 - Code refactoring (well-tested codebase)
 - Configuration improvements
+- Backward compatibility cleanup (well-tested codebase)
 
 ### Medium Risk
 - Output interface changes (may affect existing scripts)

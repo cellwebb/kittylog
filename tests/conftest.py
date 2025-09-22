@@ -264,12 +264,6 @@ def isolated_config_test(temp_dir, monkeypatch):
 
     # Clear environment variables
     env_vars_to_clear = [
-        "CHANGELOG_UPDATER_MODEL",
-        "CHANGELOG_UPDATER_TEMPERATURE",
-        "CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS",
-        "CHANGELOG_UPDATER_RETRIES",
-        "CHANGELOG_UPDATER_LOG_LEVEL",
-        "CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS",
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
         "GROQ_API_KEY",
