@@ -95,6 +95,7 @@ def _build_system_prompt() -> str:
 - Never include multiple "## [Unreleased]" sections
 - Never mention commit hashes or technical Git details in the output"""
 
+
 def _build_user_prompt(
     commits: list[dict],
     tag: str,
@@ -203,6 +204,7 @@ def clean_changelog_content(content: str) -> str:
 
     # Clean up the content using our new postprocessing module
     from clog.postprocess import postprocess_changelog_content
+
     content = postprocess_changelog_content(content)
 
     return content

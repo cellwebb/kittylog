@@ -202,7 +202,9 @@ def load_config() -> dict[str, str | int | float | bool | None]:
 
     # Apply file values as fallbacks for replace_unreleased (only if env vars weren't set or were None)
     if config["replace_unreleased"] is None:
-        config_replace_unreleased_str = config_vars.get("CLOG_REPLACE_UNRELEASED") or config_vars.get("CHANGELOG_UPDATER_REPLACE_UNRELEASED")
+        config_replace_unreleased_str = config_vars.get("CLOG_REPLACE_UNRELEASED") or config_vars.get(
+            "CHANGELOG_UPDATER_REPLACE_UNRELEASED"
+        )
         if config_replace_unreleased_str is not None:
             config["replace_unreleased"] = config_replace_unreleased_str.lower() in ("true", "1", "yes", "on")
         else:

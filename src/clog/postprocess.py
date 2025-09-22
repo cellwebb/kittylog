@@ -6,7 +6,6 @@ with Keep a Changelog standards.
 """
 
 import re
-from typing import List
 
 
 def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
@@ -61,7 +60,7 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
     return processed_lines
 
 
-def clean_duplicate_sections(lines: List[str]) -> List[str]:
+def clean_duplicate_sections(lines: list[str]) -> list[str]:
     """Remove duplicate section headers from changelog content.
 
     Args:
@@ -130,7 +129,7 @@ def postprocess_changelog_content(content: str, is_current_commit_tagged: bool =
     return processed_content
 
 
-def remove_unreleased_sections(lines: List[str]) -> List[str]:
+def remove_unreleased_sections(lines: list[str]) -> list[str]:
     """Remove any [Unreleased] sections from the changelog content.
 
     Args:

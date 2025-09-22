@@ -8,7 +8,6 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
 from clog.ai import generate_changelog_entry
 from clog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date
@@ -17,7 +16,7 @@ from clog.postprocess import postprocess_changelog_content, remove_unreleased_se
 logger = logging.getLogger(__name__)
 
 
-def limit_bullets_in_sections(content_lines: List[str], max_bullets: int = 6) -> List[str]:
+def limit_bullets_in_sections(content_lines: list[str], max_bullets: int = 6) -> list[str]:
     """Limit the number of bullet points in each section to a maximum count.
 
     Args:
@@ -35,11 +34,11 @@ def limit_bullets_in_sections(content_lines: List[str], max_bullets: int = 6) ->
         stripped_line = line.strip()
 
         # Handle section headers
-        if stripped_line.startswith('### '):
+        if stripped_line.startswith("### "):
             current_section = stripped_line
             section_bullet_count[current_section] = 0
             limited_lines.append(line)
-        elif stripped_line.startswith('- ') and current_section:
+        elif stripped_line.startswith("- ") and current_section:
             # Handle bullet points - limit to max_bullets per section
             if section_bullet_count.get(current_section, 0) < max_bullets:
                 limited_lines.append(line)
@@ -82,7 +81,7 @@ def find_existing_tags(content: str) -> set[str]:
             tag_name = match.group(1).strip()
             if tag_name.lower() != "unreleased":
                 # Normalize tag name by removing 'v' prefix if present
-                normalized_tag = tag_name.lstrip('v')
+                normalized_tag = tag_name.lstrip("v")
                 existing_tags.add(normalized_tag)
 
     logger.debug(f"Found existing tags: {existing_tags}")
@@ -210,7 +209,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     return header
 
 
-def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_date: datetime | None = None, include_unreleased_header: bool = True) -> str:
+def format_changelog_entry(
+    tag: str,
+    commits: list[dict],
+    ai_content: str,
+    tag_date: datetime | None = None,
+    include_unreleased_header: bool = True,
+) -> str:
     """Format a changelog entry for a specific tag.
 
     Args:
@@ -305,6 +310,7 @@ def update_changelog(
     """
     # Import git operations function early to avoid scoping issues
     from clog.git_operations import is_current_commit_tagged
+
     logger.info(f"Updating changelog from {from_tag or 'beginning'} to {to_tag}")
 
     # Read existing changelog if content wasn't provided
@@ -347,7 +353,9 @@ def update_changelog(
     # Post-process the AI content to ensure proper formatting
     current_commit_is_tagged_value = is_current_commit_tagged()
     logger.debug(f"AI content before postprocessing: {repr(ai_content)}")
-    ai_content = postprocess_changelog_content(ai_content, is_current_commit_tagged=(to_tag is not None and current_commit_is_tagged_value))
+    ai_content = postprocess_changelog_content(
+        ai_content, is_current_commit_tagged=(to_tag is not None and current_commit_is_tagged_value)
+    )
     logger.debug(f"AI content after postprocessing: {repr(ai_content)}")
 
     # Get tag date (None for unreleased changes)
@@ -402,7 +410,9 @@ def update_changelog(
                 # Replace mode: Remove existing content and insert new content
                 # Replace the content between the Unreleased header and the next section
                 # Remove existing content
-                logger.debug(f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}")
+                logger.debug(
+                    f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}"
+                )
                 del lines[content_start_line:end_line]
                 logger.debug(f"Lines after deletion: {lines}")
 

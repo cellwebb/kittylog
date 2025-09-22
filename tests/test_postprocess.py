@@ -1,6 +1,5 @@
 """Tests for changelog postprocessing module."""
 
-import pytest
 
 from clog.postprocess import (
     clean_duplicate_sections,
@@ -22,7 +21,7 @@ class TestEnsureNewlinesAroundSectionHeaders:
             "## [1.0.0]",
             "### Added",
             "- New feature",
-            "## [0.1.0]"
+            "## [0.1.0]",
         ]
 
         result = ensure_newlines_around_section_headers(lines)
@@ -34,13 +33,7 @@ class TestEnsureNewlinesAroundSectionHeaders:
 
     def test_adds_newlines_around_category_headers(self):
         """Test that proper newlines are added around category section headers."""
-        lines = [
-            "## [1.0.0]",
-            "### Added",
-            "- New feature",
-            "### Changed",
-            "- Improvement"
-        ]
+        lines = ["## [1.0.0]", "### Added", "- New feature", "### Changed", "- Improvement"]
 
         result = ensure_newlines_around_section_headers(lines)
 
@@ -57,7 +50,7 @@ class TestEnsureNewlinesAroundSectionHeaders:
             "## [1.0.0]",
             "",  # Already has blank line
             "### Added",
-            "- New feature"
+            "- New feature",
         ]
 
         result = ensure_newlines_around_section_headers(lines)
@@ -81,34 +74,18 @@ class TestCleanDuplicateSections:
             "### Changed",
             "- Change 1",
             "### Changed",  # Duplicate
-            "- Change 2"
+            "- Change 2",
         ]
 
         result = clean_duplicate_sections(lines)
 
         # Should only keep first occurrence of each section
-        expected = [
-            "## [1.0.0]",
-            "### Added",
-            "- Feature 1",
-            "- Feature 2",
-            "### Changed",
-            "- Change 1",
-            "- Change 2"
-        ]
+        expected = ["## [1.0.0]", "### Added", "- Feature 1", "- Feature 2", "### Changed", "- Change 1", "- Change 2"]
         assert result == expected
 
     def test_preserves_non_duplicate_headers(self):
         """Test that non-duplicate headers are preserved."""
-        lines = [
-            "## [1.0.0]",
-            "### Added",
-            "- Feature 1",
-            "### Changed",
-            "- Change 1",
-            "### Fixed",
-            "- Fix 1"
-        ]
+        lines = ["## [1.0.0]", "### Added", "- Feature 1", "### Changed", "- Change 1", "### Fixed", "- Fix 1"]
 
         result = clean_duplicate_sections(lines)
 
@@ -132,19 +109,13 @@ class TestRemoveUnreleasedSections:
             "",
             "## [1.0.0]",
             "### Added",
-            "- Released feature"
+            "- Released feature",
         ]
 
         result = remove_unreleased_sections(lines)
 
         # Should remove the Unreleased section and all its content
-        expected = [
-            "# Changelog",
-            "",
-            "## [1.0.0]",
-            "### Added",
-            "- Released feature"
-        ]
+        expected = ["# Changelog", "", "## [1.0.0]", "### Added", "- Released feature"]
         assert result == expected
 
     def test_removes_unreleased_with_different_casing(self):
@@ -158,34 +129,18 @@ class TestRemoveUnreleasedSections:
             "",
             "## [1.0.0]",
             "### Added",
-            "- Released feature"
+            "- Released feature",
         ]
 
         result = remove_unreleased_sections(lines)
 
         # Should remove the UNRELEASED section and all its content
-        expected = [
-            "# Changelog",
-            "",
-            "## [1.0.0]",
-            "### Added",
-            "- Released feature"
-        ]
+        expected = ["# Changelog", "", "## [1.0.0]", "### Added", "- Released feature"]
         assert result == expected
 
     def test_preserves_other_sections(self):
         """Test that non-Unreleased sections are preserved."""
-        lines = [
-            "# Changelog",
-            "",
-            "## [1.0.0]",
-            "### Added",
-            "- Feature",
-            "",
-            "## [0.1.0]",
-            "### Changed",
-            "- Change"
-        ]
+        lines = ["# Changelog", "", "## [1.0.0]", "### Added", "- Feature", "", "## [0.1.0]", "### Changed", "- Change"]
 
         result = remove_unreleased_sections(lines)
 
@@ -214,7 +169,7 @@ class TestPostprocessChangelogContent:
         # Should apply all postprocessing steps
         assert "### Added" in result
         # Should remove duplicates and ensure proper spacing
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert lines.count("### Added") == 1  # Only one occurrence
 
     def test_removes_unreleased_when_tagged(self):

@@ -765,7 +765,7 @@ class TestUnreleasedBulletLimitingIntegration:
         mock_client = Mock()
         mock_response = Mock()
         mock_choice = Mock()
-        
+
         # Create AI content with more than 6 bullets in a section
         ai_content = "### Added\n- Feature 1\n- Feature 2\n- Feature 3\n- Feature 4\n- Feature 5\n- Feature 6\n- Feature 7\n- Feature 8"
         mock_message = Mock()
@@ -831,21 +831,21 @@ All notable changes to this project will be documented in this file.
 
         # Check that unreleased section has been updated with bullet limiting
         updated_content = changelog_file.read_text()
-        
+
         # Verify existing content is preserved
         assert "Existing feature A" in updated_content
         assert "Existing feature B" in updated_content
         assert "Existing feature C" in updated_content
-        
+
         # Verify new AI content was appended but bullet limited
         assert "Feature 1" in updated_content
         assert "Feature 6" in updated_content
-        
+
         # Count bullets in the unreleased Added section
         lines = updated_content.split("\n")
         in_added_section = False
         bullet_count = 0
-        
+
         for line in lines:
             if line.strip() == "### Added":
                 in_added_section = True
@@ -854,7 +854,7 @@ All notable changes to this project will be documented in this file.
                 in_added_section = False
             elif in_added_section and line.strip().startswith("- "):
                 bullet_count += 1
-                
+
         # Should have exactly 6 bullets (3 existing + 3 new from the 8 AI bullets)
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
@@ -935,16 +935,16 @@ All notable changes to this project will be documented in this file.
         assert "Existing feature A" not in updated_content
         assert "Existing feature B" not in updated_content
         assert "Existing feature C" not in updated_content
-        
+
         # Verify new AI content was added but bullet limited
         assert "Feature 1" in updated_content
         assert "Feature 6" in updated_content
-        
+
         # Count bullets in the unreleased Added section
         lines = updated_content.split("\n")
         in_added_section = False
         bullet_count = 0
-        
+
         for line in lines:
             if line.strip() == "### Added":
                 in_added_section = True
@@ -953,6 +953,6 @@ All notable changes to this project will be documented in this file.
                 in_added_section = False
             elif in_added_section and line.strip().startswith("- "):
                 bullet_count += 1
-                
+
         # Should have exactly 6 bullets (limited from the 8 AI bullets)
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"

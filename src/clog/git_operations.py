@@ -92,10 +92,10 @@ def get_previous_tag(target_tag: str) -> str | None:
         except ValueError:
             # If exact match not found, try with 'v' prefix variations
             target_tag_str = str(target_tag)  # Convert to string to ensure it has lstrip method
-            if target_tag_str.startswith('v'):
-                alt_tag = target_tag_str.lstrip('v')
+            if target_tag_str.startswith("v"):
+                alt_tag = target_tag_str.lstrip("v")
             else:
-                alt_tag = f'v{target_tag_str}'
+                alt_tag = f"v{target_tag_str}"
 
             try:
                 target_index = all_tags.index(alt_tag)
@@ -324,7 +324,9 @@ def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
         logger.debug(f"Getting git diff for range: {rev_range}")
 
         # Get the diff, excluding changelog files
-        diff_output = run_git_command(["diff", rev_range, "--", ".", ":(exclude)CHANGELOG.md", ":(exclude)changelog.md"])
+        diff_output = run_git_command(
+            ["diff", rev_range, "--", ".", ":(exclude)CHANGELOG.md", ":(exclude)changelog.md"]
+        )
         return diff_output
 
     except Exception as e:

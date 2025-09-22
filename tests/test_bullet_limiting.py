@@ -3,8 +3,6 @@
 from datetime import datetime
 from unittest.mock import patch
 
-import pytest
-
 from clog.changelog import update_changelog
 
 
@@ -19,7 +17,7 @@ class TestBulletLimiting:
         mock_get_commits.return_value = [
             {"hash": "abc123", "message": "Add new feature", "files": ["feature.py"]},
         ]
-        
+
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added
 - New feature 1
@@ -71,46 +69,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog
         updated_content = update_changelog(
-            existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag=None,
-            model="test:model",
-            quiet=True
+            existing_content=changelog_content, from_tag="v0.1.0", to_tag=None, model="test:model", quiet=True
         )
 
-
         # Count bullets in each section
-        lines = updated_content.split('\n')
-        
+        lines = updated_content.split("\n")
+
         # Count all bullets in the unreleased section
         added_count = 0
         fixed_count = 0
         changed_count = 0
-        
+
         in_unreleased_section = False
         in_added_section = False
         in_fixed_section = False
         in_changed_section = False
-        
+
         for line in lines:
             if "## [Unreleased]" in line:
                 in_unreleased_section = True
-            elif in_unreleased_section and line.startswith('### Added'):
+            elif in_unreleased_section and line.startswith("### Added"):
                 in_added_section = True
                 in_fixed_section = False
                 in_changed_section = False
-            elif in_unreleased_section and line.startswith('### Fixed'):
+            elif in_unreleased_section and line.startswith("### Fixed"):
                 in_added_section = False
                 in_fixed_section = True
                 in_changed_section = False
-            elif in_unreleased_section and line.startswith('### Changed'):
+            elif in_unreleased_section and line.startswith("### Changed"):
                 in_added_section = False
                 in_fixed_section = False
                 in_changed_section = True
-            elif in_unreleased_section and line.startswith('## [') and not line.startswith('## [Unreleased]'):
+            elif in_unreleased_section and line.startswith("## [") and not line.startswith("## [Unreleased]"):
                 # Next version section - stop processing
                 break
-            elif in_unreleased_section and line.startswith('- ') and (in_added_section or in_fixed_section or in_changed_section):
+            elif (
+                in_unreleased_section
+                and line.startswith("- ")
+                and (in_added_section or in_fixed_section or in_changed_section)
+            ):
                 if in_added_section:
                     added_count += 1
                 elif in_fixed_section:
@@ -152,7 +149,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         mock_get_commits.return_value = [
             {"hash": "abc123", "message": "Add features and fixes", "files": ["feature.py", "fix.py"]},
         ]
-        
+
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added
 - Feature 1
@@ -192,37 +189,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog in replace mode
         updated_content = update_changelog(
-            existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag=None,
-            model="test:model",
-            quiet=True
+            existing_content=changelog_content, from_tag="v0.1.0", to_tag=None, model="test:model", quiet=True
         )
 
         # Count bullets in each section
-        lines = updated_content.split('\n')
-        
+        lines = updated_content.split("\n")
+
         # Find the unreleased section and count bullets within it
         added_count = 0
         fixed_count = 0
-        
+
         in_unreleased_section = False
         in_added_section = False
         in_fixed_section = False
-        
+
         for line in lines:
             if "## [Unreleased]" in line:
                 in_unreleased_section = True
-            elif in_unreleased_section and line.startswith('### Added'):
+            elif in_unreleased_section and line.startswith("### Added"):
                 in_added_section = True
                 in_fixed_section = False
-            elif in_unreleased_section and line.startswith('### Fixed'):
+            elif in_unreleased_section and line.startswith("### Fixed"):
                 in_added_section = False
                 in_fixed_section = True
-            elif in_unreleased_section and line.startswith('## [') and not line.startswith('## [Unreleased]'):
+            elif in_unreleased_section and line.startswith("## [") and not line.startswith("## [Unreleased]"):
                 # Next version section - stop processing
                 break
-            elif in_unreleased_section and line.startswith('- ') and (in_added_section or in_fixed_section):
+            elif in_unreleased_section and line.startswith("- ") and (in_added_section or in_fixed_section):
                 if in_added_section:
                     added_count += 1
                 elif in_fixed_section:
@@ -240,7 +233,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "Feature 1" in updated_content
         assert "Feature 6" in updated_content
         assert "Feature 7" not in updated_content
-        
+
         assert "Fix 1" in updated_content
         assert "Fix 6" in updated_content
         assert "Fix 7" not in updated_content
@@ -256,7 +249,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             {"hash": "abc123", "message": "Add features and fixes", "files": ["feature.py", "fix.py"]},
         ]
         mock_get_date.return_value = datetime(2024, 1, 20)
-        
+
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added
 - Feature 1
@@ -300,37 +293,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog in standard mode (tag to tag)
         updated_content = update_changelog(
-            existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag="v0.2.0",
-            model="test:model",
-            quiet=True
+            existing_content=changelog_content, from_tag="v0.1.0", to_tag="v0.2.0", model="test:model", quiet=True
         )
 
         # Count bullets in each section
-        lines = updated_content.split('\n')
+        lines = updated_content.split("\n")
         added_count = 0
         fixed_count = 0
         changed_count = 0
-        
+
         in_added_section = False
         in_fixed_section = False
         in_changed_section = False
-        
+
         for line in lines:
-            if line.startswith('### Added'):
+            if line.startswith("### Added"):
                 in_added_section = True
                 in_fixed_section = False
                 in_changed_section = False
-            elif line.startswith('### Fixed'):
+            elif line.startswith("### Fixed"):
                 in_added_section = False
                 in_fixed_section = True
                 in_changed_section = False
-            elif line.startswith('### Changed'):
+            elif line.startswith("### Changed"):
                 in_added_section = False
                 in_fixed_section = False
                 in_changed_section = True
-            elif line.startswith('- ') and (in_added_section or in_fixed_section or in_changed_section):
+            elif line.startswith("- ") and (in_added_section or in_fixed_section or in_changed_section):
                 if in_added_section:
                     added_count += 1
                 elif in_fixed_section:
@@ -347,12 +336,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "Feature 1" in updated_content
         assert "Feature 6" in updated_content
         assert "Feature 7" not in updated_content
-        
+
         assert "Fix 1" in updated_content
         assert "Fix 6" in updated_content
         assert "Fix 7" not in updated_content
         assert "Fix 8" not in updated_content
-        
+
         assert "Change 1" in updated_content
         assert "Change 6" in updated_content
         assert "Change 7" not in updated_content

@@ -196,7 +196,7 @@ class TestIsCurrentCommitTagged:
         test_file.write_text("# This file is not tagged\nprint('uncommitted')\n")
         repo.index.add([str(test_file)])
         repo.index.commit("Add file without tag")
-        
+
         result = is_current_commit_tagged()
         assert result is False
 

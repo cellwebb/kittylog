@@ -13,10 +13,10 @@ from clog.config import load_config
 from clog.config_cli import config as config_cli
 from clog.constants import Logging
 from clog.errors import handle_error
-from clog.init_cli import init as init_cli
 from clog.init_changelog import init_changelog
-from clog.update_cli import update_version
+from clog.init_cli import init as init_cli
 from clog.main import main_business_logic
+from clog.update_cli import update_version
 from clog.utils import setup_logging
 
 config = load_config()
@@ -49,7 +49,22 @@ logger = logging.getLogger(__name__)
 )
 @click.argument("tag", required=False)
 def add(
-    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, all, tag
+    file,
+    from_tag,
+    to_tag,
+    show_prompt,
+    quiet,
+    yes,
+    hint,
+    model,
+    dry_run,
+    verbose,
+    log_level,
+    preserve_existing,
+    replace_unreleased,
+    no_replace_unreleased,
+    all,
+    tag,
 ):
     """Add missing changelog entries or update a specific tag entry.
 
@@ -69,9 +84,9 @@ def add(
         # If a specific tag is provided, process only that tag
         if tag:
             # Normalize tag (remove 'v' prefix if present)
-            normalized_tag = tag.lstrip('v')
+            normalized_tag = tag.lstrip("v")
             # Try to add 'v' prefix if not present (to match git tags)
-            git_tag = f"v{normalized_tag}" if not tag.startswith('v') else tag
+            git_tag = f"v{normalized_tag}" if not tag.startswith("v") else tag
 
             # For specific tags, always overwrite the entry
             success = main_business_logic(
@@ -135,7 +150,22 @@ def add(
     help="Set log level",
 )
 def update_compat(
-    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, all, version
+    file,
+    from_tag,
+    to_tag,
+    show_prompt,
+    quiet,
+    yes,
+    hint,
+    model,
+    dry_run,
+    verbose,
+    log_level,
+    preserve_existing,
+    replace_unreleased,
+    no_replace_unreleased,
+    all,
+    version,
 ):
     """Compatibility update command for integration tests."""
 
@@ -208,7 +238,24 @@ def update_compat(
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
-def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_level, from_tag, to_tag, show_prompt, preserve_existing, replace_unreleased, no_replace_unreleased, all):
+def unreleased(
+    version,
+    dry_run,
+    yes,
+    file,
+    model,
+    hint,
+    quiet,
+    verbose,
+    log_level,
+    from_tag,
+    to_tag,
+    show_prompt,
+    preserve_existing,
+    replace_unreleased,
+    no_replace_unreleased,
+    all,
+):
     """Generate unreleased changelog entries from beginning to specified version or HEAD."""
     # Import here to avoid circular imports
     from clog.main import main_business_logic
@@ -264,7 +311,24 @@ def cli(ctx, version):
         sys.exit(0)
     # If no subcommand was invoked, run the add command by default
     if ctx.invoked_subcommand is None:
-        ctx.invoke(add, file="CHANGELOG.md", from_tag=None, to_tag=None, show_prompt=False, quiet=False, yes=False, hint="", model=None, dry_run=False, verbose=False, log_level=None, preserve_existing=False, replace_unreleased=False, all=False, tag=None)
+        ctx.invoke(
+            add,
+            file="CHANGELOG.md",
+            from_tag=None,
+            to_tag=None,
+            show_prompt=False,
+            quiet=False,
+            yes=False,
+            hint="",
+            model=None,
+            dry_run=False,
+            verbose=False,
+            log_level=None,
+            preserve_existing=False,
+            replace_unreleased=False,
+            all=False,
+            tag=None,
+        )
 
 
 # Add subcommands

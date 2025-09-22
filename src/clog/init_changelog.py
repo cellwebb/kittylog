@@ -43,7 +43,7 @@ def init_changelog(yes, file):
     missing_tags = []
     for tag in all_tags:
         # Normalize tag name (remove 'v' prefix for comparison)
-        normalized_tag = tag.lstrip('v')
+        normalized_tag = tag.lstrip("v")
         if normalized_tag not in existing_tags:
             missing_tags.append(tag)
 
@@ -67,20 +67,20 @@ def init_changelog(yes, file):
             placeholder_entry = f"## [{tag.lstrip('v')}]\n\n### Added\n- Initial release\n\n"
 
             # Insert after the header or unreleased section
-            lines = updated_content.split('\n')
+            lines = updated_content.split("\n")
             insert_point = 0
 
             # Find where to insert (after first version section or at beginning if none exist)
             for i, line in enumerate(lines):
-                if line.startswith('## [') and 'unreleased' not in line.lower():
+                if line.startswith("## [") and "unreleased" not in line.lower():
                     insert_point = i
                     break
-                elif line.startswith('# ') or line.startswith('## ') or line.startswith('### '):
+                elif line.startswith("# ") or line.startswith("## ") or line.startswith("### "):
                     insert_point = i + 1
 
             # Insert the placeholder entry
             lines.insert(insert_point, placeholder_entry.rstrip())
-            updated_content = '\n'.join(lines)
+            updated_content = "\n".join(lines)
 
         # Write updated changelog
         write_changelog(file, updated_content)

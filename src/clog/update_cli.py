@@ -6,13 +6,13 @@ from pathlib import Path
 
 import click
 
-from clog.changelog import create_changelog_header, read_changelog, write_changelog, find_existing_tags
-from clog.git_operations import get_all_tags, get_commits_between_tags, get_previous_tag, get_latest_tag
-from clog.main import main_business_logic
+from clog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
 from clog.config import load_config
-from clog.utils import setup_logging
 from clog.constants import Logging
 from clog.errors import handle_error
+from clog.git_operations import get_previous_tag
+from clog.main import main_business_logic
+from clog.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 config = load_config()
@@ -39,7 +39,24 @@ config = load_config()
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
-def update_version(version, dry_run, yes, file, model, hint, quiet, verbose, log_level, from_tag, to_tag, show_prompt, preserve_existing, replace_unreleased, no_replace_unreleased, all):
+def update_version(
+    version,
+    dry_run,
+    yes,
+    file,
+    model,
+    hint,
+    quiet,
+    verbose,
+    log_level,
+    from_tag,
+    to_tag,
+    show_prompt,
+    preserve_existing,
+    replace_unreleased,
+    no_replace_unreleased,
+    all,
+):
     """Update changelog for a specific version or all missing tags if no version specified.
 
     Example: clog update v0.1.0
@@ -102,8 +119,8 @@ def update_version(version, dry_run, yes, file, model, hint, quiet, verbose, log
             return
 
         # Normalize version (remove 'v' prefix for internal processing)
-        normalized_version = version.lstrip('v')
-        git_version = f"v{normalized_version}" if not version.startswith('v') else version
+        normalized_version = version.lstrip("v")
+        git_version = f"v{normalized_version}" if not version.startswith("v") else version
 
         # Check if version already exists in changelog
         existing_content = read_changelog(file)

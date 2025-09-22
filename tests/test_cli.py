@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from clog.cli import cli, add
+from clog.cli import cli
 from clog.update_cli import update_version as update
 
 

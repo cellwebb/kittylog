@@ -10,7 +10,13 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
-from clog.changelog import create_changelog_header, find_existing_tags, read_changelog, update_changelog, write_changelog
+from clog.changelog import (
+    create_changelog_header,
+    find_existing_tags,
+    read_changelog,
+    update_changelog,
+    write_changelog,
+)
 from clog.config import load_config
 from clog.errors import AIError, GitError, handle_error
 from clog.git_operations import (
@@ -18,7 +24,6 @@ from clog.git_operations import (
     get_commits_between_tags,
     get_latest_tag,
     get_previous_tag,
-    get_tags_since_last_changelog,
     is_current_commit_tagged,
 )
 
@@ -101,7 +106,9 @@ def main_business_logic(
 
         # Update changelog for unreleased changes only
         # In special unreleased mode, we should process regardless of whether current commit is tagged
-        replace_unreleased_value = replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)
+        replace_unreleased_value = (
+            replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)
+        )
         logger.debug(f"Calling update_changelog with replace_unreleased_value: {replace_unreleased_value}")
         updated_content = update_changelog(
             existing_content=changelog_content,
@@ -127,7 +134,7 @@ def main_business_logic(
             existing_tags = find_existing_tags(existing_content)
 
             # Filter to only process tags that are missing from changelog
-            tags_to_process = [tag for tag in all_tags if tag.lstrip('v') not in existing_tags]
+            tags_to_process = [tag for tag in all_tags if tag.lstrip("v") not in existing_tags]
 
             if not quiet:
                 missing_tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
@@ -272,7 +279,9 @@ def main_business_logic(
                 hint=hint,
                 show_prompt=show_prompt,
                 quiet=quiet,
-                replace_unreleased=True if special_unreleased_mode else (replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)),
+                replace_unreleased=True
+                if special_unreleased_mode
+                else (replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True)),
             )
         except Exception as e:
             handle_error(e)

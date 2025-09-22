@@ -20,7 +20,20 @@ class TestMainBusinessLogic:
     @patch("clog.main.get_latest_tag")
     @patch("clog.main.is_current_commit_tagged")
     @patch("clog.main.get_commits_between_tags")
-    def test_main_logic_auto_detect_success(self, mock_get_commits_between_tags, mock_is_current_commit_tagged, mock_get_latest_tag, mock_get_previous_tag, mock_generate_changelog_entry, mock_get_all_tags, mock_read_changelog, mock_find_existing_tags, mock_update, mock_write, temp_dir):
+    def test_main_logic_auto_detect_success(
+        self,
+        mock_get_commits_between_tags,
+        mock_is_current_commit_tagged,
+        mock_get_latest_tag,
+        mock_get_previous_tag,
+        mock_generate_changelog_entry,
+        mock_get_all_tags,
+        mock_read_changelog,
+        mock_find_existing_tags,
+        mock_update,
+        mock_write,
+        temp_dir,
+    ):
         """Test successful auto-detection and update."""
         # Setup mocks
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
@@ -31,7 +44,12 @@ class TestMainBusinessLogic:
         mock_is_current_commit_tagged.return_value = False
         mock_get_commits_between_tags.return_value = ["commit1", "commit2"]
         # Need 4 return values: one for each tag including v0.1.0 (None->v0.1.0, v0.1.0->v0.2.0, v0.2.0->v0.3.0) and one for unreleased changes
-        mock_update.side_effect = ["Updated changelog content v0.1.0", "Updated changelog content v0.2.0", "Updated changelog content v0.3.0", "Updated changelog content unreleased"]
+        mock_update.side_effect = [
+            "Updated changelog content v0.1.0",
+            "Updated changelog content v0.2.0",
+            "Updated changelog content v0.3.0",
+            "Updated changelog content unreleased",
+        ]
         mock_generate_changelog_entry.return_value = "Mock AI generated content"
 
         # Test
@@ -45,7 +63,6 @@ class TestMainBusinessLogic:
             require_confirmation=False,
             show_prompt=False,
             quiet=True,
-            
         )
 
         assert result is True
@@ -76,7 +93,9 @@ class TestMainBusinessLogic:
     @patch("clog.main.update_changelog")
     @patch("clog.main.write_changelog")
     @patch("clog.main.get_previous_tag")
-    def test_main_logic_specific_tags(self, mock_get_previous_tag, mock_write, mock_update, mock_get_all_tags, temp_dir):
+    def test_main_logic_specific_tags(
+        self, mock_get_previous_tag, mock_write, mock_update, mock_get_all_tags, temp_dir
+    ):
         """Test with specific from/to tags."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_previous_tag.return_value = "v0.1.0"
@@ -133,7 +152,9 @@ class TestMainBusinessLogic:
     @patch("click.confirm")
     @patch("clog.main.get_all_tags")
     @patch("clog.main.get_previous_tag")
-    def test_main_logic_user_confirmation_yes(self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir):
+    def test_main_logic_user_confirmation_yes(
+        self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir
+    ):
         """Test user confirmation when user says yes."""
         mock_update.return_value = "Updated changelog content"
         mock_confirm.return_value = True
@@ -158,7 +179,9 @@ class TestMainBusinessLogic:
     @patch("click.confirm")
     @patch("clog.main.get_all_tags")
     @patch("clog.main.get_previous_tag")
-    def test_main_logic_user_confirmation_no(self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir):
+    def test_main_logic_user_confirmation_no(
+        self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir
+    ):
         """Test user confirmation when user says no."""
         mock_update.return_value = "Updated changelog content"
         mock_confirm.return_value = False
@@ -246,25 +269,45 @@ class TestMainLogicMultipleTags:
     @patch("clog.main.get_latest_tag")
     @patch("clog.main.is_current_commit_tagged")
     @patch("clog.main.get_commits_between_tags")
-    def test_multiple_tags_success(self, mock_get_commits, mock_is_tagged, mock_get_latest, mock_get_previous_tag, mock_write, mock_update, mock_find_existing, mock_read, mock_get_all_tags, temp_dir):
+    def test_multiple_tags_success(
+        self,
+        mock_get_commits,
+        mock_is_tagged,
+        mock_get_latest,
+        mock_get_previous_tag,
+        mock_write,
+        mock_update,
+        mock_find_existing,
+        mock_read,
+        mock_get_all_tags,
+        temp_dir,
+    ):
         """Test processing multiple new tags."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0", "v0.4.0"]
         mock_read.return_value = "# Changelog"
         mock_find_existing.return_value = ["0.1.0"]  # v0.1.0 already in changelog
-        mock_get_previous_tag.side_effect = lambda tag: {"v0.2.0": "v0.1.0", "v0.3.0": "v0.2.0", "v0.4.0": "v0.3.0"}.get(tag, None)
+        mock_get_previous_tag.side_effect = lambda tag: {
+            "v0.2.0": "v0.1.0",
+            "v0.3.0": "v0.2.0",
+            "v0.4.0": "v0.3.0",
+        }.get(tag, None)
         mock_get_latest.return_value = "v0.4.0"
         mock_is_tagged.return_value = False
         mock_get_commits.return_value = ["commit1"]
 
         # Return different content for each update (3 new tags + unreleased)
-        mock_update.side_effect = ["Changelog with v0.2.0", "Changelog with v0.3.0", "Changelog with v0.4.0", "Changelog with unreleased"]
+        mock_update.side_effect = [
+            "Changelog with v0.2.0",
+            "Changelog with v0.3.0",
+            "Changelog with v0.4.0",
+            "Changelog with unreleased",
+        ]
 
         result = main_business_logic(
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
-            
         )
 
         assert result is True
@@ -286,7 +329,9 @@ class TestMainLogicMultipleTags:
     @patch("clog.main.get_tags_since_last_changelog")
     @patch("clog.main.update_changelog")
     @patch("clog.main.get_previous_tag")
-    def test_multiple_tags_partial_failure(self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, temp_dir):
+    def test_multiple_tags_partial_failure(
+        self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, temp_dir
+    ):
         """Test when one tag update fails among multiple."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
         mock_get_tags.return_value = ("v0.1.0", ["v0.2.0", "v0.3.0"])
@@ -300,7 +345,6 @@ class TestMainLogicMultipleTags:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
-            
         )
 
         assert result is False
@@ -346,8 +390,7 @@ class TestMainLogicEdgeCases:
         mock_get_previous_tag.return_value = "v0.1.0"
         mock_read.return_value = "# Changelog"
 
-        with patch("clog.main.update_changelog") as mock_update, \
-             patch("clog.main.write_changelog") as mock_write:
+        with patch("clog.main.update_changelog") as mock_update, patch("clog.main.write_changelog") as mock_write:
             mock_update.return_value = "Updated content"
 
             result = main_business_logic(
@@ -389,7 +432,6 @@ class TestMainLogicEdgeCases:
                 model=None,
                 quiet=True,
                 require_confirmation=False,
-                
             )
 
             assert result is False
@@ -437,7 +479,19 @@ class TestMainLogicConfiguration:
     @patch("clog.main.get_latest_tag")
     @patch("clog.main.is_current_commit_tagged")
     @patch("clog.main.get_commits_between_tags")
-    def test_replace_unreleased_config_default(self, mock_get_commits, mock_is_tagged, mock_get_latest, mock_get_previous_tag, mock_write, mock_update, mock_find_existing, mock_read, mock_get_all_tags, temp_dir):
+    def test_replace_unreleased_config_default(
+        self,
+        mock_get_commits,
+        mock_is_tagged,
+        mock_get_latest,
+        mock_get_previous_tag,
+        mock_write,
+        mock_update,
+        mock_find_existing,
+        mock_read,
+        mock_get_all_tags,
+        temp_dir,
+    ):
         """Test that replace_unreleased config is used as default when not specified."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_read.return_value = "# Changelog"
