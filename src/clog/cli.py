@@ -43,6 +43,9 @@ cli.add_command(init_cli)
 # Git workflow options
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.option("--preserve-existing", is_flag=True, help="Preserve existing changelog content instead of overwriting")
+@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
+@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 # Changelog options
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
@@ -61,7 +64,7 @@ cli.add_command(init_cli)
 )
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def update(
-    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, args
+    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, args
 ):
     """Update changelog with AI-generated content."""
     try:
@@ -73,6 +76,14 @@ def update(
         setup_logging(effective_log_level)
         logger.info("Starting changelog-updater")
 
+        # Determine the final replace_unreleased value
+        # --no-replace-unreleased takes precedence over --replace-unreleased
+        final_replace_unreleased = None
+        if no_replace_unreleased:
+            final_replace_unreleased = False
+        elif replace_unreleased:
+            final_replace_unreleased = True
+
         success = main_business_logic(
             changelog_file=file,
             from_tag=from_tag,
@@ -83,6 +94,8 @@ def update(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
+            preserve_existing=preserve_existing,
+            replace_unreleased=final_replace_unreleased,
         )
 
         if not success:

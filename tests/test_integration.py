@@ -806,11 +806,13 @@ All notable changes to this project will be documented in this file.
             # Change to the git repo directory, not temp_dir
             os.chdir(git_repo_with_tags.working_dir)
 
-            # Run without --replace-unreleased flag (append mode)
+            # Run without --replace-unreleased flag to test that default behavior is replace mode
+            # But we need to explicitly disable it to test append mode
             result = runner.invoke(
                 cli,
                 [
                     "update",
+                    "--no-replace-unreleased",  # Disable replace mode for append behavior
                     "--yes",  # Skip confirmation
                     "--quiet",
                 ],

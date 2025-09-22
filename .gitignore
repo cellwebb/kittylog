@@ -167,3 +167,6 @@ cython_debug/
 # Project-specific
 .changelog-updater.env
 *.log
+.clog.env
+.claude/settings.local.json
+test_changelog.md

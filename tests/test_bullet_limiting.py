@@ -75,8 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             from_tag="v0.1.0",
             to_tag=None,
             model="test:model",
-            quiet=True,
-            replace_unreleased=False
+            quiet=True
         )
 
 
@@ -197,8 +196,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             from_tag="v0.1.0",
             to_tag=None,
             model="test:model",
-            quiet=True,
-            replace_unreleased=True
+            quiet=True
         )
 
         # Count bullets in each section

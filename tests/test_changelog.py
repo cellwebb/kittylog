@@ -326,14 +326,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 """
         changelog_file.write_text(existing_content)
 
-        # Update with unreleased changes in append mode (default)
+        # Update with unreleased changes in append mode
         result = update_changelog(
             existing_content=existing_content,
             from_tag="v0.1.0",
             to_tag=None,  # Unreleased changes
             model="test:model",
             quiet=True,
-            replace_unreleased=False,  # Append mode
+            replace_unreleased=False,
         )
 
         # Should have both existing and new content in unreleased section
@@ -372,7 +372,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
             to_tag=None,  # Unreleased changes
             model="test:model",
             quiet=True,
-            replace_unreleased=True,  # Replace mode
         )
 
         # Should have only new content in unreleased section (existing content removed)

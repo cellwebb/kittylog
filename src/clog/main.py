@@ -10,7 +10,7 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
-from clog.changelog import read_changelog, update_changelog, write_changelog
+from clog.changelog import create_changelog_header, read_changelog, update_changelog, write_changelog
 from clog.config import load_config
 from clog.errors import AIError, GitError, handle_error
 from clog.git_operations import (
@@ -39,16 +39,13 @@ def main_business_logic(
     require_confirmation: bool = True,
     quiet: bool = False,
     dry_run: bool = False,
-    replace_unreleased: bool = None,
+    preserve_existing: bool = False,
+    replace_unreleased: bool | None = None,
 ) -> bool:
     """Main application logic for changelog-updater.
 
     Returns True on success, False on failure.
     """
-    # Use config value as default if not explicitly provided
-    if replace_unreleased is None:
-        replace_unreleased = config.get("replace_unreleased", True)  # Default to replace mode
-
     try:
         # Validate we're in a git repository
         all_tags = get_all_tags()
@@ -73,8 +70,8 @@ def main_business_logic(
 
     # Determine which tags to process
     if from_tag is None and to_tag is None:
-        # Auto-detect new tags since last changelog update
-        last_changelog_tag, new_tags = get_tags_since_last_changelog(changelog_file)
+        # In retroactive mode by default, process all tags
+        all_tags = get_all_tags()
 
         # Check if we have unreleased changes
         has_unreleased_changes = False
@@ -91,28 +88,29 @@ def main_business_logic(
             if all_commits:
                 has_unreleased_changes = True
 
-        if not new_tags and not has_unreleased_changes:
-            console.print("[green]Changelog is up to date with all git tags.[/green]")
+        if not all_tags and not has_unreleased_changes:
+            console.print("[yellow]No git tags found. Create some tags first to generate changelog entries.[/yellow]")
             return True
 
-        logger.info(f"Found {len(new_tags)} new tags: {new_tags}")
+        # Log all tags being processed
+        logger.info(f"Found {len(all_tags)} tags: {all_tags}")
         if has_unreleased_changes:
             logger.info("Found unreleased changes since the latest tag")
 
         if not quiet:
-            tag_list = ", ".join(new_tags) if new_tags else "none"
-            console.print(f"[cyan]Found {len(new_tags)} new tags to process: {tag_list}[/cyan]")
+            tag_list = ", ".join(all_tags) if all_tags else "none"
+            console.print(f"[cyan]Processing {len(all_tags)} tags: {tag_list}[/cyan]")
             if has_unreleased_changes:
-                console.print("[cyan]Also found unreleased changes to process[/cyan]")
+                console.print("[cyan]Also processing unreleased changes[/cyan]")
 
-        # Process each new tag
-        current_from_tag = last_changelog_tag
-        changelog_content = read_changelog(changelog_file)
+        # Start with an empty changelog or the existing one if preserving
+        changelog_content = read_changelog(changelog_file) if preserve_existing else create_changelog_header()
 
+        # Process each tag in order
+        current_from_tag = None
         try:
-            for tag in new_tags:
+            for tag in all_tags:
                 logger.info(f"Processing tag {tag} (from {current_from_tag or 'beginning'})")
-                logger.info(f"About to process tag {tag}")
 
                 if not quiet:
                     console.print(f"[bold blue]Processing {tag}...[/bold blue]")
@@ -126,7 +124,7 @@ def main_business_logic(
                     hint=hint,
                     show_prompt=show_prompt,
                     quiet=quiet,
-                    replace_unreleased=replace_unreleased,
+                    replace_unreleased=True,  # Always replace for tagged versions
                 )
 
                 current_from_tag = tag
@@ -147,7 +145,7 @@ def main_business_logic(
                     hint=hint,
                     show_prompt=show_prompt,
                     quiet=quiet,
-                    replace_unreleased=replace_unreleased,
+                    replace_unreleased=replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True),
                 )
         except Exception as e:
             handle_error(e)
@@ -176,7 +174,7 @@ def main_business_logic(
                 hint=hint,
                 show_prompt=show_prompt,
                 quiet=quiet,
-                replace_unreleased=replace_unreleased,
+                replace_unreleased=replace_unreleased if replace_unreleased is not None else config.get("replace_unreleased", True),
             )
         except Exception as e:
             handle_error(e)

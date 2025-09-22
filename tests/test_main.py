@@ -400,9 +400,9 @@ class TestMainLogicConfiguration:
             )
 
         assert result is True
-        # Check that the last call used the default replace_unreleased value (True)
+        # With the simplified implementation, we no longer pass replace_unreleased parameter
         call_args = mock_update.call_args[1]
-        assert call_args["replace_unreleased"] is True
+        assert "replace_unreleased" not in call_args
 
 
 class TestMainLogicLogging:
