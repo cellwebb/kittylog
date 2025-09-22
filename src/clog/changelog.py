@@ -429,6 +429,9 @@ def update_changelog(
     # Clean up any excessive blank lines and ensure proper spacing
     updated_content = re.sub(r"\n{3,}", "\n\n", updated_content)
 
+    # Remove any "### Changelog" sections that might have been generated
+    updated_content = re.sub(r"###\s+Changelog\s*\n", "", updated_content, flags=re.MULTILINE)
+
     # Ensure there's proper spacing between sections (two newlines between sections)
     updated_content = re.sub(r"(\S)\n(##\s*\[)", r"\1\n\n\2", updated_content)
 

@@ -33,65 +33,54 @@ def build_changelog_prompt(
 
 
 def _build_system_prompt() -> str:
-    """Build the system prompt with instructions for changelog generation."""
+    """Build the system prompt with strict instructions for changelog generation."""
     return """You are an expert technical writer specializing in creating clear, comprehensive changelog entries from git commit history. Your task is to analyze commits and generate well-structured changelog entries following the "Keep a Changelog" format.
 
-## Instructions
+## Strict Instructions
 
 1. **Analyze the commits** to understand the changes made in this version
 2. **Categorize changes** into appropriate sections:
    - **Added** for new features
-   - **Changed** for changes in existing functionality\n
+   - **Changed** for changes in existing functionality
    - **Deprecated** for soon-to-be removed features
    - **Removed** for now removed features
    - **Fixed** for any bug fixes
    - **Security** for vulnerability fixes
-
 3. **Write clear, user-focused descriptions** that explain:
    - What changed from a user's perspective
    - Why the change matters
    - Any important technical details
-
 4. **Limit output to 6 bullets per section maximum** - Group similar items together or summarize when needed
    - Quality over quantity - focus on the most important changes
    - Very rarely will there need to be 6 bullets in each section; 2-4 is typical
-
-4. **Follow these conventions**:
+5. **Conventions**:
    - Use present tense ("Add feature" not "Added feature")
    - Start entries with action verbs
    - Be specific and descriptive
    - Group related changes together
    - Prioritize user-facing changes over internal refactoring
    - Include breaking changes prominently
-
-5. **Limit output to 6 bullets per section maximum** - This is a hard limit. Group similar commits together or summarize related changes under a single bullet point when you exceed this limit.
-
-5. **Format requirements**:
+6. **Format requirements** (CRITICAL - follow exactly):
    - Use markdown formatting
    - Use bullet points (- ) for individual changes
-   - Do not include the version header (## [x.x.x])
-   - Do not include dates
-   - Start directly with the category sections
+   - Start directly with the category sections (### Added, ### Changed, etc.)
+   - Do NOT include version headers, dates, or extra sections like "### Changelog"
+   - Use exactly 2 newlines between sections
+   - Do NOT duplicate section headers
 
-## Example Output Format
+## Required Output Format
 
 ### Added
-
-- New user authentication system with OAuth2 support
-- Dashboard widgets for real-time monitoring
-- Export functionality for reports in PDF and CSV formats
+- Feature description 1
+- Feature description 2
 
 ### Changed
-
-- Improved performance of search functionality by 50%
-- Updated user interface with modern design system
-- Enhanced error messages to be more descriptive
+- Improvement description 1
+- Improvement description 2
 
 ### Fixed
-
-- Fixed issue where users couldn't save preferences
-- Resolved memory leak in background processing
-- Corrected timezone handling in date displays
+- Bug fix description 1
+- Bug fix description 2
 
 ## Guidelines
 
@@ -100,8 +89,11 @@ def _build_system_prompt() -> str:
 - Omit trivial commits (typo fixes, formatting changes) unless they're significant
 - Highlight breaking changes and migrations clearly
 - Use technical terms appropriately for the audience
-- Be concise but informative"""
-
+- Be concise but informative
+- IMPORTANT: Never include duplicate section headers (e.g., "### Added" multiple times)
+- Never include "### Changelog" sections
+- Never include multiple "## [Unreleased]" sections
+- Never mention commit hashes or technical Git details in the output"""
 
 def _build_user_prompt(
     commits: list[dict],
@@ -154,17 +146,7 @@ Analyze the above commits and generate a well-structured changelog entry. Focus 
 
 Group related commits together and write clear, descriptive entries that help users understand what's new and what's changed."""
 
-    # Add special instruction for unreleased changes to avoid duplicates
-    duplicate_instruction = ""
-    if tag is None:
-        duplicate_instruction = (
-            "\nIMPORTANT: Only include NEW changes that are not already documented in the existing Unreleased section.\n"
-            "Do NOT repeat items that are already present in the current Unreleased content.\n"
-            "This is critical - any duplication will cause problems for users.\n"
-            "ALSO remember the 6 bullets per section maximum limit.\n"
-        )
-
-    return version_context + hint_section + commits_section + duplicate_instruction + instructions
+    return version_context + hint_section + commits_section + instructions
 
 
 def clean_changelog_content(content: str) -> str:
@@ -182,6 +164,9 @@ def clean_changelog_content(content: str) -> str:
     # Remove any version headers that might have been included
     content = re.sub(r"^##\s*\[?v?\d+\.\d+\.\d+[^\n]*\n?", "", content, flags=re.MULTILINE)
 
+    # Remove any "### Changelog" sections that might have been included
+    content = re.sub(r"^###\s+Changelog\s*\n?", "", content, flags=re.MULTILINE)
+
     # Remove any date stamps
     content = re.sub(r"- \d{4}-\d{2}-\d{2}[^\n]*\n?", "", content, flags=re.MULTILINE)
 
@@ -190,7 +175,6 @@ def clean_changelog_content(content: str) -> str:
         "<thinking>",
         "</thinking>",
         "<analysis>",
-        "</analysis>",
         "<summary>",
         "</summary>",
         "<changelog>",
@@ -216,7 +200,7 @@ def clean_changelog_content(content: str) -> str:
 
     # Normalize bullet points to use consistent format (- instead of *)
     content = re.sub(r"^\*\s+", "- ", content, flags=re.MULTILINE)
-    
+
     # Handle duplicate sections in AI output by deduplicating content
     # Split into lines for processing
     lines = content.split("\n")
@@ -238,7 +222,7 @@ def clean_changelog_content(content: str) -> str:
                 deduplicated_lines.append(line)
         else:
             deduplicated_lines.append(line)
-    
+
     content = "\n".join(deduplicated_lines)
 
     return content
