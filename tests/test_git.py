@@ -2,12 +2,13 @@
 
 import os
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from clog.errors import GitError
-from clog.git import (
+from clog.git_operations import (
     get_all_tags,
     get_commits_between_tags,
     get_latest_tag,
@@ -189,6 +190,13 @@ class TestIsCurrentCommitTagged:
     def test_is_current_commit_tagged_false(self, git_repo_with_tags):
         """Test that current commit is not tagged in a repo with existing tags."""
         # In our test repo, HEAD should not have a tag pointing to it
+        # Add a new commit without a tag to ensure HEAD is not tagged
+        repo = git_repo_with_tags
+        test_file = Path(repo.working_dir) / "uncommitted_file.py"
+        test_file.write_text("# This file is not tagged\nprint('uncommitted')\n")
+        repo.index.add([str(test_file)])
+        repo.index.commit("Add file without tag")
+        
         result = is_current_commit_tagged()
         assert result is False
 
@@ -207,7 +215,7 @@ class TestIsCurrentCommitTagged:
 class TestGitErrorHandling:
     """Test git error handling."""
 
-    @patch("clog.git.Repo")
+    @patch("clog.git_operations.Repo")
     def test_git_error_not_in_repo(self, mock_repo):
         """Test error when not in a git repository."""
         from git import InvalidGitRepositoryError
@@ -217,7 +225,7 @@ class TestGitErrorHandling:
         with pytest.raises(GitError):
             get_all_tags()
 
-    @patch("clog.git.get_repo")
+    @patch("clog.git_operations.get_repo")
     def test_git_error_general_exception(self, mock_get_repo):
         """Test handling of general git exceptions."""
         mock_get_repo.side_effect = Exception("Git error")

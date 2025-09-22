@@ -237,9 +237,9 @@ def mock_tiktoken():
 def mock_all_git_operations():
     """Mock all git operations for isolated testing."""
     with (
-        patch("clog.git.get_repo") as mock_get_repo,
-        patch("clog.git.get_all_tags") as mock_get_tags,
-        patch("clog.git.get_commits_between_tags") as mock_get_commits,
+        patch("clog.git_operations.get_repo") as mock_get_repo,
+        patch("clog.git_operations.get_all_tags") as mock_get_tags,
+        patch("clog.git_operations.get_commits_between_tags") as mock_get_commits,
     ):
         # Set up defaults
         mock_repo = Mock()

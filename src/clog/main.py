@@ -13,7 +13,7 @@ from rich.panel import Panel
 from clog.changelog import read_changelog, update_changelog, write_changelog
 from clog.config import load_config
 from clog.errors import AIError, GitError, handle_error
-from clog.git import (
+from clog.git_operations import (
     get_all_tags,
     get_commits_between_tags,
     get_latest_tag,
@@ -75,13 +75,15 @@ def main_business_logic(
 
         # Check if we have unreleased changes
         has_unreleased_changes = False
-        if new_tags:
-            # If we have tags but the current commit isn't tagged, we have unreleased changes
-            latest_tag = get_latest_tag()
-            if latest_tag and not is_current_commit_tagged():
+        latest_tag = get_latest_tag()
+        if latest_tag and not is_current_commit_tagged():
+            # If the current commit isn't tagged, we have unreleased changes
+            # But only if there are actually commits since the last tag
+            unreleased_commits = get_commits_between_tags(latest_tag, None)
+            if len(unreleased_commits) > 0:
                 has_unreleased_changes = True
-        elif not new_tags and not is_current_commit_tagged():
-            # If no tags in changelog and no tags in repo, check if we have commits
+        elif not latest_tag and not is_current_commit_tagged():
+            # If no tags exist in repo at all, check if we have commits
             all_commits = get_commits_between_tags(None, None)
             if all_commits:
                 has_unreleased_changes = True
@@ -142,6 +144,7 @@ def main_business_logic(
                     hint=hint,
                     show_prompt=show_prompt,
                     quiet=quiet,
+                    replace_unreleased=replace_unreleased,
                 )
         except Exception as e:
             handle_error(e)

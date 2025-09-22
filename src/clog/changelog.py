@@ -8,11 +8,45 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 from clog.ai import generate_changelog_entry
-from clog.git import get_commits_between_tags, get_tag_date
+from clog.git_operations import get_commits_between_tags, get_tag_date
 
 logger = logging.getLogger(__name__)
+
+
+def limit_bullets_in_sections(content_lines: List[str], max_bullets: int = 6) -> List[str]:
+    """Limit the number of bullet points in each section to a maximum count.
+    
+    Args:
+        content_lines: List of content lines to process
+        max_bullets: Maximum number of bullets per section (default 6)
+        
+    Returns:
+        List of lines with bullet points limited per section
+    """
+    limited_lines = []
+    current_section = None
+    section_bullet_count = {}
+    
+    for line in content_lines:
+        stripped_line = line.strip()
+        
+        # Handle section headers
+        if stripped_line.startswith('### '):
+            current_section = stripped_line
+            section_bullet_count[current_section] = 0
+            limited_lines.append(line)
+        elif stripped_line.startswith('- ') and current_section:
+            # Handle bullet points - limit to max_bullets per section
+            if section_bullet_count.get(current_section, 0) < max_bullets:
+                limited_lines.append(line)
+                section_bullet_count[current_section] = section_bullet_count.get(current_section, 0) + 1
+        else:
+            limited_lines.append(line)
+    
+    return limited_lines
 
 
 def read_changelog(file_path: str) -> str:
@@ -37,7 +71,9 @@ def find_unreleased_section(content: str) -> int | None:
     lines = content.split("\n")
     for i, line in enumerate(lines):
         if re.match(r"##\s*\[unreleased\]", line, re.IGNORECASE):
+            logger.debug(f"Found unreleased section at line {i}: {line}")
             return i
+    logger.debug("No unreleased section found")
     return None
 
 
@@ -224,84 +260,171 @@ def update_changelog(
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None
 
-    # Format the new entry
+    # Format new entries
+    # For both tagged releases and unreleased changes, we use the same formatting function
     new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date)
 
     # Find where to insert the new entry
     lines = existing_content.split("\n")
 
-    # Special handling for unreleased changes when an unreleased section already exists
-    if to_tag is None and find_unreleased_section(existing_content) is not None:
-        # For unreleased changes with existing section, we don't want the header
-        # Extract just the content part (skip the ## [Unreleased] header line and any empty lines after it)
-        entry_lines = new_entry.strip().split("\n")
-        content_start_index = 0
+    # Special handling for unreleased changes
+    if to_tag is None:
+        # For unreleased changes, we use the formatted new_entry
+        unreleased_line = find_unreleased_section(existing_content)
         
-        # Find where the actual content starts (skip header and empty lines)
-        for i, line in enumerate(entry_lines):
-            if line.strip().startswith("## [Unreleased]"):
-                continue
-            elif line.strip() == "":
-                continue
-            else:
-                content_start_index = i
-                break
-        
-        content_to_append = "\n".join(entry_lines[content_start_index:])
-
-        if replace_unreleased:
-            # Replace mode: Remove existing content and insert new content
-
-            # Find the start and end of the existing unreleased section
-            unreleased_line = find_unreleased_section(existing_content)
-            if unreleased_line is not None:
-                end_line = find_end_of_unreleased_section(lines, unreleased_line)
-
-                # In replace mode, we want to replace all content between the Unreleased header
-                # and the next section header, but we need to be careful about removing
-                # only the content and keeping appropriate structure
-
-                # Find the first content line (skip empty lines after the header)
-                start_content_line = unreleased_line + 1
-                while start_content_line < len(lines) and not lines[start_content_line].strip():
-                    start_content_line += 1
-            else:
-                # This shouldn't happen in replace mode, but handle gracefully
-                end_line = len(lines)
-                start_content_line = end_line
-
+        if unreleased_line is not None and not replace_unreleased:
+            # Append mode: Deduplicate new AI entry with existing unreleased content
+            end_line = find_end_of_unreleased_section(lines, unreleased_line)
+            
+            # Extract existing unreleased content (skip header and empty lines)
+            existing_unreleased_content = []
+            content_start_line = unreleased_line + 1
+            while content_start_line < len(lines) and not lines[content_start_line].strip():
+                content_start_line += 1
+            
+            # Collect all non-empty lines from existing unreleased section
+            for i in range(content_start_line, end_line):
+                if lines[i].strip():  # Only collect non-empty lines
+                    existing_unreleased_content.append(lines[i])
+            
+            # Parse new AI content and deduplicate against existing content
+            # First, split into sections to better manage the existing content
+            new_content_sections = {}
+            current_section = None
+            
+            for line in new_entry.split('\n'):
+                stripped = line.strip()
+                if stripped.startswith('### '):
+                    current_section = stripped
+                    new_content_sections[current_section] = []
+                elif current_section and stripped:  # Only add non-empty lines to sections
+                    new_content_sections[current_section].append(line)
+            
+            # Create sets for fast lookup of existing items
+            existing_bullets_set = set()
+            for line in existing_unreleased_content:
+                stripped = line.strip()
+                if stripped.startswith('- '):
+                    # Add both the bullet and the text content for matching
+                    bullet_text = stripped[2:].strip()  # Remove '- ' prefix
+                    existing_bullets_set.add(stripped)
+                    existing_bullets_set.add(bullet_text)
+            
+            # Parse new content and filter out duplicates
+            unique_content_lines = []
+            seen_sections = set([line.strip() for line in existing_unreleased_content if line.strip().startswith('### ')])
+            
+            # Collect all content lines (section headers and non-bullet content)
+            all_new_content_lines = []
+            for section_header, section_lines in new_content_sections.items():
+                # Add section header if it doesn't already exist
+                if section_header not in seen_sections:
+                    all_new_content_lines.append(section_header)
+                
+                # Add all bullets and non-bullet content
+                for line in section_lines:
+                    if line.strip().startswith('- '):
+                        # Check if bullet already exists
+                        bullet_text = line.strip()[2:].strip()  # Remove '- ' prefix
+                        if line.strip() not in existing_bullets_set and bullet_text not in existing_bullets_set:
+                            all_new_content_lines.append(line)
+                    elif line.strip():  # Non-empty non-bullet line
+                        all_new_content_lines.append(line)
+            
+            # Find where to insert new content (at the end of the existing unreleased section)
+            insert_point = end_line
+            
+            # Combine existing and new content with bullet limiting applied to each section
+            # Parse existing content into sections
+            existing_sections = {}
+            current_section = None
+            
+            for line in existing_unreleased_content:
+                stripped = line.strip()
+                if stripped.startswith('### '):
+                    current_section = stripped
+                    if current_section not in existing_sections:
+                        existing_sections[current_section] = []
+                elif current_section:  # Collect all lines in the section
+                    existing_sections[current_section].append(line)
+            
+            # Parse new AI content into sections
+            new_sections = {}
+            current_section = None
+            
+            for line in new_entry.split('\n'):
+                stripped = line.strip()
+                if stripped.startswith('### '):
+                    current_section = stripped
+                    if current_section not in new_sections:
+                        new_sections[current_section] = []
+                elif current_section:  # Collect all lines in the section
+                    new_sections[current_section].append(line)
+            
+            # Combine existing and new content
+            combined_content = "\n".join(existing_unreleased_content) + "\n" + new_entry
+            combined_lines = [line for line in combined_content.split("\n") if line.strip()]
+            
+            # Apply bullet limiting to combined content
+            limited_combined_lines = limit_bullets_in_sections(combined_lines)
+            
+            # Replace the unreleased section content
+            del lines[content_start_line:end_line]
+            
+            # Insert limited content (in correct order)
+            if limited_combined_lines:
+                # Add a blank line before content if needed
+                if content_start_line > unreleased_line + 1 and lines[content_start_line - 1].strip():
+                    lines.insert(content_start_line, "")
+                    content_start_line += 1
+                    
+                for line in limited_combined_lines:
+                    lines.insert(content_start_line, line)
+                    content_start_line += 1
+        elif unreleased_line is not None and replace_unreleased:
+            # Replace mode: Remove existing unreleased content and replace with new AI content
+            end_line = find_end_of_unreleased_section(lines, unreleased_line)
+            
+            # Find where actual content starts in the existing section (skip empty lines after header)
+            content_start_line = unreleased_line + 1
+            while content_start_line < len(lines) and not lines[content_start_line].strip():
+                content_start_line += 1
+            
             # Replace the content between the Unreleased header and the next section
-            # Keep the header line and replace everything after it until the next section
-            lines = lines[:start_content_line] + content_to_append.split("\n") + lines[end_line:]
+            # Remove existing content
+            del lines[content_start_line:end_line]
+            
+            # Insert new content with bullet limiting
+            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+            
+            for line in reversed(limited_content_lines):
+                lines.insert(content_start_line, line)
         else:
-            # Append mode: Insert just the AI content at the end of the existing unreleased section
-            insert_line = None
-
-            # Find the end of the existing unreleased section (next ## heading or end of file)
-            unreleased_line = find_unreleased_section(existing_content)
-            if unreleased_line is not None:
-                for i in range(unreleased_line + 1, len(lines)):
-                    if lines[i].strip().startswith("##"):
-                        insert_line = i
-                        break
-
-            # If no next section found, insert at end
-            if insert_line is None:
-                insert_line = len(lines)
-
-            # Insert the AI content (without header) at the end of existing unreleased section
-            # Split content into lines and insert them individually
-            content_lines = content_to_append.rstrip().split('\n')
-            # Insert lines in reverse order to maintain correct order
-            for line in reversed(content_lines):
-                if line.strip():  # Only insert non-empty lines
-                    lines.insert(insert_line, line)
+            # No existing unreleased section - create one with new entry
+            insert_line = find_insertion_point(existing_content)
+            
+            # Insert new content with bullet limiting
+            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+            
+            # Add a blank line before inserting if needed
+            if insert_line > 0 and lines[insert_line - 1].strip():
+                lines.insert(insert_line, "")
+                insert_line += 1
+            
+            for line in reversed(limited_content_lines):
+                lines.insert(insert_line, line)
     else:
-        # Standard insertion logic
+        # Standard insertion logic for tagged versions
         insert_line = find_insertion_point(existing_content)
-
-        # Insert the new entry
-        lines.insert(insert_line, new_entry.rstrip())
+        
+        # Insert the new entry with bullet limiting
+        entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
+        limited_entry_lines = limit_bullets_in_sections(entry_lines)
+        
+        for line in reversed(limited_entry_lines):
+            lines.insert(insert_line, line)
 
     # Join back together
     updated_content = "\n".join(lines)

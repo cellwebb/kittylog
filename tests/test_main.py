@@ -31,6 +31,7 @@ class TestMainBusinessLogic:
             require_confirmation=False,
             show_prompt=False,
             quiet=True,
+            replace_unreleased=False,
         )
 
         assert result is True
@@ -51,6 +52,8 @@ class TestMainBusinessLogic:
             to_tag=None,
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
+            require_confirmation=False,
+            replace_unreleased=False,
         )
 
         assert result is True
@@ -82,6 +85,7 @@ class TestMainBusinessLogic:
             hint="",
             show_prompt=False,
             quiet=True,
+            replace_unreleased=False,
         )
         mock_write.assert_called_once()
 
@@ -163,6 +167,8 @@ class TestMainBusinessLogic:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
+            require_confirmation=False,
+            replace_unreleased=False,
         )
 
         assert result is False
@@ -178,6 +184,8 @@ class TestMainBusinessLogic:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
+            require_confirmation=False,
+            replace_unreleased=False,
         )
 
         assert result is False
@@ -196,6 +204,7 @@ class TestMainBusinessLogic:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
+            replace_unreleased=False,
         )
 
         assert result is False
@@ -221,6 +230,7 @@ class TestMainLogicMultipleTags:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
+            replace_unreleased=False,
         )
 
         assert result is True
@@ -252,6 +262,7 @@ class TestMainLogicMultipleTags:
             model="anthropic:claude-3-5-haiku-latest",
             require_confirmation=False,
             quiet=True,
+            replace_unreleased=False,
         )
 
         assert result is False
@@ -317,6 +328,7 @@ class TestMainLogicEdgeCases:
             changelog_file="",
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
+            replace_unreleased=False,
         )
 
         assert result is False
@@ -328,6 +340,8 @@ class TestMainLogicEdgeCases:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 model=None,
                 quiet=True,
+                require_confirmation=False,
+                replace_unreleased=False,
             )
 
             assert result is False
@@ -360,7 +374,7 @@ class TestMainLogicConfiguration:
             )
 
         assert result is True
-        mock_update.assert_called_once()
+        # Check that the last call used the correct model
         call_args = mock_update.call_args[1]
         assert call_args["model"] == "openai:gpt-4"
 
@@ -379,6 +393,8 @@ class TestMainLogicLogging:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=True,
+            require_confirmation=False,
+            replace_unreleased=False,
         )
 
         assert result is True
@@ -396,6 +412,8 @@ class TestMainLogicLogging:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             model="anthropic:claude-3-5-haiku-latest",
             quiet=False,
+            require_confirmation=False,
+            replace_unreleased=False,
         )
 
         assert result is True

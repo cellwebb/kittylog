@@ -752,3 +752,202 @@ class TestFilePathIntegration:
             # Check that relative path worked
             changelog_file = subdir / "CHANGELOG.md"
             assert changelog_file.exists()
+
+
+class TestUnreleasedBulletLimitingIntegration:
+    """Integration tests for bullet limiting in unreleased section handling."""
+
+    @patch("clog.ai.ai.Client")
+    def test_unreleased_section_bullet_limiting_append_mode(self, mock_client_class, git_repo_with_tags, temp_dir):
+        """Test that bullet limiting works correctly when appending to existing unreleased section."""
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_choice = Mock()
+        
+        # Create AI content with more than 6 bullets in a section
+        ai_content = "### Added\n- Feature 1\n- Feature 2\n- Feature 3\n- Feature 4\n- Feature 5\n- Feature 6\n- Feature 7\n- Feature 8"
+        mock_message = Mock()
+        mock_message.content = ai_content
+
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        # Create existing changelog with Unreleased section
+        changelog_content = """# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- Existing feature A
+- Existing feature B
+- Existing feature C
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial project setup
+"""
+        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file.write_text(changelog_content)
+
+        # Create config in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
+        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+
+        runner = CliRunner()
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
+
+            # Run without --replace-unreleased flag (append mode)
+            result = runner.invoke(
+                cli,
+                [
+                    "update",
+                    "--yes",  # Skip confirmation
+                    "--quiet",
+                ],
+            )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
+
+        assert result.exit_code == 0
+
+        # Check that unreleased section has been updated with bullet limiting
+        updated_content = changelog_file.read_text()
+        
+        # Verify existing content is preserved
+        assert "Existing feature A" in updated_content
+        assert "Existing feature B" in updated_content
+        assert "Existing feature C" in updated_content
+        
+        # Verify new AI content was appended but bullet limited
+        assert "Feature 1" in updated_content
+        assert "Feature 6" in updated_content
+        
+        # Count bullets in the unreleased Added section
+        lines = updated_content.split("\n")
+        in_added_section = False
+        bullet_count = 0
+        
+        for line in lines:
+            if line.strip() == "### Added":
+                in_added_section = True
+                bullet_count = 0  # Reset counter when entering section
+            elif in_added_section and line.strip().startswith("## ["):  # Next section
+                in_added_section = False
+            elif in_added_section and line.strip().startswith("- "):
+                bullet_count += 1
+                
+        # Should have exactly 6 bullets (3 existing + 3 new from the 8 AI bullets)
+        assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
+
+    @patch("clog.ai.ai.Client")
+    def test_unreleased_section_bullet_limiting_replace_mode(self, mock_client_class, git_repo_with_tags, temp_dir):
+        """Test that bullet limiting works correctly when replacing existing unreleased section."""
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_choice = Mock()
+        
+        # Create AI content with more than 6 bullets in a section
+        ai_content = "### Added\n- Feature 1\n- Feature 2\n- Feature 3\n- Feature 4\n- Feature 5\n- Feature 6\n- Feature 7\n- Feature 8"
+        mock_message = Mock()
+        mock_message.content = ai_content
+
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        # Create existing changelog with Unreleased section
+        changelog_content = """# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- Existing feature A
+- Existing feature B
+- Existing feature C
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial project setup
+"""
+        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file.write_text(changelog_content)
+
+        # Create config in the git repo directory
+        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
+        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+
+        runner = CliRunner()
+        # Store original cwd for cleanup
+        original_cwd = os.getcwd()
+        result = None
+        try:
+            # Change to the git repo directory, not temp_dir
+            os.chdir(git_repo_with_tags.working_dir)
+
+            # Run with --replace-unreleased flag
+            result = runner.invoke(
+                cli,
+                [
+                    "update",
+                    "--replace-unreleased",
+                    "--yes",  # Skip confirmation
+                    "--quiet",
+                ],
+            )
+        finally:
+            # Always restore original directory
+            try:
+                os.chdir(original_cwd)
+            except Exception:
+                pass
+        assert result is not None
+
+        assert result.exit_code == 0
+
+        # Check that unreleased section has been updated with bullet limiting
+        updated_content = changelog_file.read_text()
+        
+        # Verify existing content was replaced
+        assert "Existing feature A" not in updated_content
+        assert "Existing feature B" not in updated_content
+        assert "Existing feature C" not in updated_content
+        
+        # Verify new AI content was added but bullet limited
+        assert "Feature 1" in updated_content
+        assert "Feature 6" in updated_content
+        
+        # Count bullets in the unreleased Added section
+        lines = updated_content.split("\n")
+        in_added_section = False
+        bullet_count = 0
+        
+        for line in lines:
+            if line.strip() == "### Added":
+                in_added_section = True
+                bullet_count = 0  # Reset counter when entering section
+            elif in_added_section and line.strip().startswith("## ["):  # Next section
+                in_added_section = False
+            elif in_added_section and line.strip().startswith("- "):
+                bullet_count += 1
+                
+        # Should have exactly 6 bullets (limited from the 8 AI bullets)
+        assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
