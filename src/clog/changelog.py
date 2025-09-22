@@ -12,7 +12,7 @@ from typing import List
 
 from clog.ai import generate_changelog_entry
 from clog.git_operations import get_commits_between_tags, get_tag_date, get_git_diff
-from clog.postprocess import postprocess_changelog_content
+from clog.postprocess import postprocess_changelog_content, remove_unreleased_sections
 
 logger = logging.getLogger(__name__)
 
@@ -189,18 +189,25 @@ def find_insertion_point(content: str) -> int:
     return 0
 
 
-def create_changelog_header() -> str:
-    """Create a standard changelog header."""
-    return """# Changelog
+def create_changelog_header(include_unreleased: bool = True) -> str:
+    """Create a standard changelog header.
+
+    Args:
+        include_unreleased: Whether to include the Unreleased section in the header
+    """
+    header = """# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 """
+
+    if include_unreleased:
+        header += "## [Unreleased]\n\n"
+
+    return header
 
 
 def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_date: datetime | None = None) -> str:
@@ -299,7 +306,10 @@ def update_changelog(
 
     # If file is empty or very short, create header
     if len(existing_content.strip()) < 50:
-        existing_content = create_changelog_header()
+        # Check if current commit is tagged to determine if we should include Unreleased section
+        from clog.git_operations import is_current_commit_tagged
+        include_unreleased = not is_current_commit_tagged()
+        existing_content = create_changelog_header(include_unreleased)
 
     # Get commits for this tag range
     commits = get_commits_between_tags(from_tag, to_tag)
@@ -328,13 +338,7 @@ def update_changelog(
     )
 
     # Post-process the AI content to ensure proper formatting
-    # For unreleased content, don't pass the tagged commit status
-    if to_tag is None:
-        ai_content = postprocess_changelog_content(ai_content)
-    else:
-        # For tagged releases, check if the current commit is tagged
-        from clog.git_operations import is_current_commit_tagged
-        ai_content = postprocess_changelog_content(ai_content, is_current_commit_tagged())
+    ai_content = postprocess_changelog_content(ai_content)
 
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None
@@ -349,8 +353,16 @@ def update_changelog(
     # Find where to insert the new entry
     lines = existing_content.split("\n")
 
+    # Check if current commit is tagged - if so, don't process unreleased content
+    from clog.git_operations import is_current_commit_tagged
+    current_commit_is_tagged = is_current_commit_tagged()
+
+    # If the current commit is tagged, remove any Unreleased sections from the existing content
+    if current_commit_is_tagged:
+        lines = remove_unreleased_sections(lines)
+
     # For unreleased changes, handle the unreleased section
-    if to_tag is None:
+    if to_tag is None and not current_commit_is_tagged:
         # Find the unreleased section
         unreleased_line = find_unreleased_section(existing_content)
 
@@ -393,20 +405,21 @@ def update_changelog(
                 for line in reversed(limited_new_entry_lines):
                     lines.insert(insert_point, line)
         else:
-            # No existing unreleased section - create one with new entry
-            insert_line = find_insertion_point(existing_content)
+            # No existing unreleased section - only create one if current commit is not tagged
+            if not current_commit_is_tagged:
+                insert_line = find_insertion_point(existing_content)
 
-            # Insert new content with bullet limiting
-            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+                # Insert new content with bullet limiting
+                new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+                limited_content_lines = limit_bullets_in_sections(new_entry_lines)
 
-            # Add a blank line before inserting if needed
-            if insert_line > 0 and lines[insert_line - 1].strip():
-                lines.insert(insert_line, "")
-                insert_line += 1
+                # Add a blank line before inserting if needed
+                if insert_line > 0 and lines[insert_line - 1].strip():
+                    lines.insert(insert_line, "")
+                    insert_line += 1
 
-            for line in reversed(limited_content_lines):
-                lines.insert(insert_line, line)
+                for line in reversed(limited_content_lines):
+                    lines.insert(insert_line, line)
     else:
         # For tagged versions, find and replace the existing version section
         version = tag_name.lstrip("v")

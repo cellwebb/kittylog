@@ -152,45 +152,20 @@ def remove_unreleased_sections(lines: List[str]) -> List[str]:
 
         # Check if this is an Unreleased section header
         if re.match(r"^##\s*\[\s*Unreleased\s*\]", stripped_line, re.IGNORECASE):
-            # Skip this line and any subsequent lines until we reach the next version section
+            # Skip this line and all subsequent lines until we reach the next version section
             i += 1
             while i < len(lines):
-                next_line = lines[i].strip()
-                # If we find another version section header, break and continue processing
-                if re.match(r"^##\s*\[.*\]", next_line):
+                next_line = lines[i]
+                stripped_next_line = next_line.strip()
+                # If we find another section header, break and continue processing
+                if re.match(r"^##\s*\[.*\]", stripped_next_line):
+                    processed_lines.append(next_line)
+                    i += 1
                     break
-                # If we find a category section header, check if it has content
-                elif re.match(r"^###\s+[A-Z][a-z]+", next_line):
-                    # Look ahead to see if this category has any bullet points
-                    has_content = False
-                    temp_i = i + 1
-                    while temp_i < len(lines):
-                        temp_line = lines[temp_i].strip()
-                        # If we find a bullet point, this category has content
-                        if temp_line.startswith("- "):
-                            has_content = True
-                            break
-                        # If we find another section header, stop looking
-                        elif re.match(r"^###+\s+", temp_line):
-                            break
-                        temp_i += 1
-
-                    # If this category has no content, skip it
-                    if not has_content:
-                        i += 1
-                        continue
-                    else:
-                        # Otherwise, process this line normally
-                        processed_lines.append(line)
-                        break
-                # If we find other content, skip it
-                elif next_line:
-                    i += 1
-                else:
-                    # Empty line, just skip it
-                    i += 1
+                # Skip all content lines until we find the next section header
+                i += 1
         else:
             processed_lines.append(line)
-        i += 1
+            i += 1
 
     return processed_lines
