@@ -130,7 +130,7 @@ def update_changelog(
     file_path: str | None = None,
     existing_content: str | None = None,
     from_tag: str | None = None,
-    to_tag: str = "",
+    to_tag: str | None = None,
     model: str = "",
     hint: str = "",
     show_prompt: bool = False,

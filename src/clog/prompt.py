@@ -106,9 +106,14 @@ def _build_user_prompt(
     """Build the user prompt with commit data."""
 
     # Start with version context
-    version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
+    if tag is None:
+        version_context = "Generate a changelog entry for unreleased changes"
+    else:
+        version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
     if from_tag:
-        version_context += f" (changes since {from_tag.lstrip('v')})"
+        # Handle case where from_tag might be None
+        from_tag_display = from_tag.lstrip('v') if from_tag is not None else 'beginning'
+        version_context += f" (changes since {from_tag_display})"
     version_context += ".\n\n"
 
     # Add hint if provided

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Add support for tracking and displaying unreleased changes in changelog generation
+  - Automatically detect changes since the last git tag
+  - Include an 'Unreleased' section when the current commit is not tagged
+  - Enhance changelog formatting to gracefully handle versions without tags
+- Introduce comprehensive contribution guidelines in CONTRIBUTING.md
+  - Detail development setup, code quality standards, and testing requirements
+  - Provide instructions for integrating new AI providers via aisuite
+- Add documentation for AI agent integration and configuration in AGENTS.md
+  - Document supported AI providers: Anthropic, OpenAI, Groq, Ollama, and Cerebras
+  - Explain the structured workflow used by AI agents to generate changelog entries
+  - Include configuration examples using environment variables
+
+### Changed
+
+- Improve changelog formatting and output quality
+  - Clean up trailing newlines to prevent excessive blank lines
+  - Remove empty [Unreleased] sections automatically
+  - Ensure consistent spacing before version sections
+- Enhance core business logic to process both tagged releases and unreleased changes
+- Refactor integration tests for better directory context management and cleanup
+- Rename main Click group function from `main` to `cli` for improved clarity
+
+### Fixed
+
+- Address test stability issues related to git working directory context
+- Correct parameter alignment in function signatures for better code consistency
+
+### Removed
+
+- Remove unused preview functionality and redundant test setup steps
+
+
 ## [0.1.1] - 2025-09-20
 
 ### Added
@@ -30,7 +66,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 - Eliminate redundant directory creation and changelog pre-setup steps in integration tests for cleaner test execution flow
-
 
 ## [0.1.0] - 2025-01-01
 

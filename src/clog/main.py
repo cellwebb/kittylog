@@ -13,7 +13,13 @@ from rich.panel import Panel
 from clog.changelog import read_changelog, update_changelog, write_changelog
 from clog.config import load_config
 from clog.errors import AIError, GitError, handle_error
-from clog.git import get_all_tags, get_latest_tag, get_tags_since_last_changelog, is_current_commit_tagged
+from clog.git import (
+    get_all_tags,
+    get_commits_between_tags,
+    get_latest_tag,
+    get_tags_since_last_changelog,
+    is_current_commit_tagged,
+)
 
 logger = logging.getLogger(__name__)
 config = load_config()
