@@ -281,7 +281,10 @@ def update_changelog(
                 insert_line = len(lines)
 
             # Insert the AI content (without header) at the end of existing unreleased section
-            lines.insert(insert_line, content_to_append.rstrip())
+            # Split content into lines and insert them individually
+            content_lines = content_to_append.rstrip().split('\n')
+            for line in reversed(content_lines):
+                lines.insert(insert_line, line)
     else:
         # Standard insertion logic
         insert_line = find_insertion_point(existing_content)
