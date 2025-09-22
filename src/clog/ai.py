@@ -32,6 +32,7 @@ def generate_changelog_entry(
     temperature: float | None = None,
     max_tokens: int | None = None,
     max_retries: int | None = None,
+    diff_content: str = "",
 ) -> str:
     """Generate a changelog entry using AI.
 
@@ -73,6 +74,14 @@ def generate_changelog_entry(
         from_tag=from_tag,
         hint=hint,
     )
+
+    # Add diff content to user prompt if available, but limit its size to prevent timeouts
+    if diff_content:
+        # Limit diff content to 5000 characters to prevent extremely large prompts
+        max_diff_length = 5000
+        if len(diff_content) > max_diff_length:
+            diff_content = diff_content[:max_diff_length] + "\n\n... (diff content truncated for brevity)"
+        user_prompt += f"\n\n## Detailed Changes (Git Diff):\n\n{diff_content}"
 
     if show_prompt:
         console = Console()
@@ -147,6 +156,7 @@ def _generate_with_retries(
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
+                timeout=120,  # Increase timeout to 120 seconds for larger prompts
             )
 
             content = response.choices[0].message.content
@@ -159,7 +169,7 @@ def _generate_with_retries(
             last_exception = e
             error_type = _classify_error(e)
 
-            if error_type in ["authentication", "model_not_found", "context_length"]:
+            if error_type in ["authentication", "model_not_found", "context_length", "sdk_error"]:
                 # Don't retry these errors
                 raise AIError.generation_error(f"AI generation failed: {str(e)}") from e
 
@@ -192,5 +202,7 @@ def _classify_error(error: Exception) -> str:
         return "rate_limit"
     elif "timeout" in error_str:
         return "timeout"
+    elif "cerebras.cloud.sdk" in error_str and "attribute" in error_str:
+        return "sdk_error"
     else:
         return "unknown"

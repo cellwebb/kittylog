@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List
 
 from clog.ai import generate_changelog_entry
-from clog.git_operations import get_commits_between_tags, get_tag_date
+from clog.git_operations import get_commits_between_tags, get_tag_date, get_git_diff
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +278,9 @@ def update_changelog(
 
     logger.info(f"Found {len(commits)} commits between {from_tag or 'beginning'} and {to_tag}")
 
+    # Get git diff for better context
+    diff_content = get_git_diff(from_tag, to_tag)
+
     # Generate AI content for this version
     # For unreleased changes, use "Unreleased" as the tag name
     tag_name = to_tag or "Unreleased"
@@ -289,6 +292,7 @@ def update_changelog(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
+        diff_content=diff_content,
     )
 
     # Get tag date (None for unreleased changes)
@@ -388,8 +392,11 @@ def update_changelog(
     # Join back together
     updated_content = "\n".join(lines)
 
-    # Clean up any excessive blank lines
+    # Clean up any excessive blank lines and ensure proper spacing
     updated_content = re.sub(r"\n{3,}", "\n\n", updated_content)
+
+    # Ensure there's proper spacing between sections (two newlines between sections)
+    updated_content = re.sub(r"(\S)\n(##\s*\[)", r"\1\n\n\2", updated_content)
 
     # Remove empty [Unreleased] sections (only when there's no content between header and next section)
     # This regex looks for ## [Unreleased] followed by only whitespace until the next ## section

@@ -210,19 +210,25 @@ def clean_changelog_content(content: str) -> str:
 
     # Ensure sections have proper spacing
     content = re.sub(r"\n(### [^\n]+)\n([^\n])", r"\n\1\n\n\2", content)
+
+    # Normalize section headers to use ### format consistently
+    content = re.sub(r"^##\s+([A-Z][a-z]+)", r"### \1", content, flags=re.MULTILINE)
+
+    # Normalize bullet points to use consistent format (- instead of *)
+    content = re.sub(r"^\*\s+", "- ", content, flags=re.MULTILINE)
     
     # Handle duplicate sections in AI output by deduplicating content
     # Split into lines for processing
     lines = content.split("\n")
     deduplicated_lines = []
     section_headers = set()
-    
+
     for line in lines:
-        # Check if this line is a section header
-        section_match = re.match(r"### ([^\n]+)", line)
+        # Check if this line is a section header (both ## and ### formats)
+        section_match = re.match(r"#{2,3}\s+([^\n]+)", line)
         if section_match:
             section_name = section_match.group(1)
-            
+
             # If we've seen this section before, skip it
             if section_name in section_headers:
                 continue
