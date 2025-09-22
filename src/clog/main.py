@@ -7,8 +7,6 @@ Orchestrates the changelog update workflow including git operations, AI generati
 import logging
 
 import click
-from rich.console import Console
-from rich.panel import Panel
 
 from clog.changelog import (
     create_changelog_header,
@@ -26,13 +24,10 @@ from clog.git_operations import (
     get_previous_tag,
     is_current_commit_tagged,
 )
+from clog.output import get_output_manager
 
 logger = logging.getLogger(__name__)
 config = load_config()
-console = Console()
-
-
-console = Console()
 
 
 def handle_unreleased_mode(
@@ -58,8 +53,8 @@ def handle_unreleased_mode(
     # Process only the unreleased section
     logger.info("Processing unreleased section only")
 
-    if not quiet:
-        console.print("[bold blue]Processing unreleased section...[/bold blue]")
+    output = get_output_manager()
+    output.processing("Processing unreleased section...")
 
     # Get latest tag for commit range
     latest_tag = get_latest_tag()
@@ -106,15 +101,17 @@ def handle_auto_mode(
         if not quiet:
             missing_tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
             existing_tag_list = ", ".join(existing_tags) if existing_tags else "none"
-            console.print(f"[cyan]Found {len(all_tags)} total tags[/cyan]")
-            console.print(f"[cyan]Existing tags in changelog: {existing_tag_list}[/cyan]")
-            console.print(f"[cyan]Missing tags to process: {missing_tag_list}[/cyan]")
+            output = get_output_manager()
+            output.info(f"Found {len(all_tags)} total tags")
+            output.info(f"Existing tags in changelog: {existing_tag_list}")
+            output.info(f"Missing tags to process: {missing_tag_list}")
     else:
         # Process all tags when update_all_entries is True
         tags_to_process = all_tags
         if not quiet:
             tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
-            console.print(f"[cyan]Updating all {len(tags_to_process)} tags: {tag_list}[/cyan]")
+            output = get_output_manager()
+            output.info(f"Updating all {len(tags_to_process)} tags: {tag_list}")
 
     # Read existing changelog content
     existing_content = read_changelog(changelog_file)
@@ -130,14 +127,16 @@ def handle_auto_mode(
 
     if not quiet:
         tag_list = ", ".join(all_tags) if all_tags else "none"
-        console.print(f"[cyan]Found {len(all_tags)} tags: {tag_list}[/cyan]")
+        output = get_output_manager()
+        output.info(f"Found {len(all_tags)} tags: {tag_list}")
 
     # Process each tag with AI-generated content (overwrite existing placeholders)
     for tag in tags_to_process:
         logger.info(f"Processing tag {tag}")
 
         if not quiet:
-            console.print(f"[bold blue]Processing {tag}...[/bold blue]")
+            output = get_output_manager()
+            output.processing(f"Processing {tag}...")
 
         # Get previous tag to determine the range
         previous_tag = get_previous_tag(tag)
@@ -174,7 +173,8 @@ def handle_auto_mode(
         logger.info("Processing unreleased changes")
 
         if not quiet:
-            console.print("[bold blue]Processing unreleased changes...[/bold blue]")
+            output = get_output_manager()
+            output.processing("Processing unreleased changes...")
 
         # Update changelog for unreleased changes
         changelog_content = update_changelog(
@@ -212,7 +212,8 @@ def handle_single_tag_mode(
     previous_tag = get_previous_tag(to_tag)
 
     if not quiet:
-        console.print(f"[cyan]Processing tag {to_tag} (from {previous_tag or 'beginning'} to {to_tag})[/cyan]")
+        output = get_output_manager()
+        output.info(f"Processing tag {to_tag} (from {previous_tag or 'beginning'} to {to_tag})")
 
     # Update changelog for this specific tag only (overwrite if exists)
     changelog_content = update_changelog(
@@ -244,7 +245,8 @@ def handle_tag_range_mode(
     if to_tag is None and not special_unreleased_mode:
         to_tag = get_latest_tag()
         if to_tag is None:
-            console.print("[red]No tags found in repository.[/red]")
+            output = get_output_manager()
+            output.error("No tags found in repository.")
             raise ValueError("No tags found in repository")
     elif from_tag is None and to_tag is not None and not special_unreleased_mode:
         # When only to_tag is specified, find the previous tag to use as from_tag
@@ -253,7 +255,8 @@ def handle_tag_range_mode(
     logger.info(f"Processing specific range: {from_tag or 'beginning'} to {to_tag}")
 
     if not quiet:
-        console.print(f"[cyan]Processing from {from_tag or 'beginning'} to {to_tag}[/cyan]")
+        output = get_output_manager()
+        output.info(f"Processing from {from_tag or 'beginning'} to {to_tag}")
 
     # Update changelog for specified range
     changelog_content = update_changelog(
@@ -301,7 +304,8 @@ def main_business_logic(
         all_tags = get_all_tags()
         # In special_unreleased_mode, we don't require tags
         if not all_tags and not special_unreleased_mode:
-            console.print("[yellow]No git tags found. Create some tags first to generate changelog entries.[/yellow]")
+            output = get_output_manager()
+            output.warning("No git tags found. Create some tags first to generate changelog entries.")
             return True
 
     except GitError as e:
@@ -340,24 +344,27 @@ def main_business_logic(
 
     # Show preview and get confirmation
     if dry_run:
-        console.print("[yellow]Dry run: Changelog content generated but not saved[/yellow]")
-        console.print("\nPreview of updated changelog:")
-        console.print(Panel(changelog_content, title="Updated Changelog", border_style="cyan"))
+        output = get_output_manager()
+        output.warning("Dry run: Changelog content generated but not saved")
+        output.echo("\nPreview of updated changelog:")
+        output.panel(changelog_content, title="Updated Changelog", style="cyan")
         return True
 
     if require_confirmation:
-        console.print("\n[bold green]Updated changelog preview:[/bold green]")
+        output = get_output_manager()
+        output.print("\n[bold green]Updated changelog preview:[/bold green]")
         # Show just the new parts for confirmation
         preview_lines = changelog_content.split("\n")[:50]  # First 50 lines
         preview_text = "\n".join(preview_lines)
         if len(changelog_content.split("\n")) > 50:
             preview_text += "\n\n... (content truncated for preview)"
 
-        console.print(Panel(preview_text, title="Changelog Preview", border_style="cyan"))
+        output.panel(preview_text, title="Changelog Preview", style="cyan")
 
         proceed = click.confirm("\nSave the updated changelog?", default=True)
         if not proceed:
-            console.print("[yellow]Changelog update cancelled.[/yellow]")
+            output = get_output_manager()
+            output.warning("Changelog update cancelled.")
             return True
 
     # Write the updated changelog

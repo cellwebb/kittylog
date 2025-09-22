@@ -16,6 +16,7 @@ from clog.errors import handle_error
 from clog.init_changelog import init_changelog
 from clog.init_cli import init as init_cli
 from clog.main import main_business_logic
+from clog.output import get_output_manager, set_output_mode
 from clog.update_cli import update_version
 from clog.utils import setup_logging
 
@@ -77,6 +78,9 @@ def setup_command_logging(log_level, verbose, quiet):
     if quiet:
         effective_log_level = "ERROR"
     setup_logging(effective_log_level)
+
+    # Configure output manager mode
+    set_output_mode(quiet=quiet, verbose=verbose)
 
 
 @click.command(context_settings={"ignore_unknown_options": True})
@@ -143,7 +147,8 @@ def add(
         if not success:
             sys.exit(1)
     except KeyboardInterrupt:
-        click.echo("Operation cancelled by user.")
+        output = get_output_manager()
+        output.warning("Operation cancelled by user.")
         sys.exit(1)
     except Exception as e:
         handle_error(e)
@@ -250,7 +255,8 @@ def unreleased(
 def cli(ctx, version):
     """Changelog Updater - Generate changelog entries from git tags with AI."""
     if version:
-        click.echo(f"changelog-updater version: {__version__}")
+        output = get_output_manager()
+        output.echo(f"changelog-updater version: {__version__}")
         sys.exit(0)
     # If no subcommand was invoked, run the add command by default
     if ctx.invoked_subcommand is None:

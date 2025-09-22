@@ -5,10 +5,9 @@ import sys
 from collections.abc import Callable
 from typing import TypeVar
 
-from rich.console import Console
+from clog.output import get_output_manager
 
 logger = logging.getLogger(__name__)
-console = Console()
 T = TypeVar("T")
 
 
@@ -202,10 +201,10 @@ def handle_error(error: Exception, exit_program: bool = False, quiet: bool = Fal
         exit_program: If True, exit the program after handling the error
         quiet: If True, suppress non-error output
     """
-    import click
 
     error_message = format_error_for_user(error)
-    click.echo(f"Error: {error_message}", err=True)
+    output = get_output_manager()
+    output.error(error_message)
     logger.error(f"Error: {str(error)}")
 
     if isinstance(error, GitError):
