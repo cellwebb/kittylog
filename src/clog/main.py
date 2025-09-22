@@ -39,12 +39,15 @@ def main_business_logic(
     require_confirmation: bool = True,
     quiet: bool = False,
     dry_run: bool = False,
-    replace_unreleased: bool = False,
+    replace_unreleased: bool = None,
 ) -> bool:
     """Main application logic for changelog-updater.
 
     Returns True on success, False on failure.
     """
+    # Use config value as default if not explicitly provided
+    if replace_unreleased is None:
+        replace_unreleased = config.get("replace_unreleased", False)
 
     try:
         # Validate we're in a git repository

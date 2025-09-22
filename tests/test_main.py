@@ -364,6 +364,7 @@ class TestMainLogicConfiguration:
             {
                 "model": "anthropic:claude-3-5-haiku-latest",
                 "temperature": 0.7,
+                "replace_unreleased": True,
             },
         ):
             result = main_business_logic(
@@ -377,6 +378,34 @@ class TestMainLogicConfiguration:
         # Check that the last call used the correct model
         call_args = mock_update.call_args[1]
         assert call_args["model"] == "openai:gpt-4"
+
+    @patch("clog.main.get_all_tags")
+    @patch("clog.main.get_tags_since_last_changelog")
+    @patch("clog.main.update_changelog")
+    def test_replace_unreleased_config_default(self, mock_update, mock_get_tags, mock_get_all_tags, temp_dir):
+        """Test that replace_unreleased config is used as default when not specified."""
+        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        mock_get_tags.return_value = ("v0.1.0", ["v0.2.0"])
+        mock_update.return_value = "Updated content"
+
+        with patch(
+            "clog.main.config",
+            {
+                "model": "anthropic:claude-3-5-haiku-latest",
+                "replace_unreleased": True,
+            },
+        ):
+            result = main_business_logic(
+                changelog_file=str(temp_dir / "CHANGELOG.md"),
+                require_confirmation=False,
+                quiet=True,
+                replace_unreleased=None,  # Should use config value
+            )
+
+        assert result is True
+        # Check that the last call used the config value for replace_unreleased
+        call_args = mock_update.call_args[1]
+        assert call_args["replace_unreleased"] is True
 
 
 class TestMainLogicLogging:

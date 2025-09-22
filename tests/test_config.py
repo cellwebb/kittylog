@@ -32,6 +32,7 @@ class TestLoadConfig:
         monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "5")
         monkeypatch.setenv("CHANGELOG_UPDATER_LOG_LEVEL", "DEBUG")
         monkeypatch.setenv("CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS", "8192")
+        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "true")
 
         config = load_config()
 
@@ -41,6 +42,7 @@ class TestLoadConfig:
         assert config["max_retries"] == 5
         assert config["log_level"] == "DEBUG"
         assert config["warning_limit_tokens"] == 8192
+        assert config["replace_unreleased"] is True
 
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
@@ -49,6 +51,7 @@ class TestLoadConfig:
 
         user_env_file.write_text("""CHANGELOG_UPDATER_MODEL=openai:gpt-4
 CHANGELOG_UPDATER_TEMPERATURE=0.3
+CHANGELOG_UPDATER_REPLACE_UNRELEASED=true
 OPENAI_API_KEY=sk-test123
 """)
 
@@ -66,12 +69,14 @@ OPENAI_API_KEY=sk-test123
 
         project_env_file.write_text("""CHANGELOG_UPDATER_MODEL=groq:llama-4
 CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=512
+CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
 """)
 
         config = load_config()
 
         assert config["model"] == "groq:llama-4"
         assert config["max_output_tokens"] == 512
+        assert config["replace_unreleased"] is False
 
     def test_load_config_precedence(self, isolated_config_test, monkeypatch):
         """Test configuration precedence: env vars > project .env > user .env > defaults."""
@@ -83,12 +88,14 @@ CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=512
         user_env_file.write_text("""CHANGELOG_UPDATER_MODEL=anthropic:claude-3-5-haiku-latest
 CHANGELOG_UPDATER_TEMPERATURE=0.3
 CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS=1024
+CHANGELOG_UPDATER_REPLACE_UNRELEASED=true
 """)
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".clog.env"
         project_env_file.write_text("""CHANGELOG_UPDATER_MODEL=openai:gpt-4
 CHANGELOG_UPDATER_TEMPERATURE=0.5
+CHANGELOG_UPDATER_REPLACE_UNRELEASED=false
 """)
 
         # Set environment variable (should override everything)
@@ -100,6 +107,7 @@ CHANGELOG_UPDATER_TEMPERATURE=0.5
         assert config["model"] == "groq:llama-4"
         # Project file overrides user file
         assert config["temperature"] == 0.5
+        assert config["replace_unreleased"] is False
         # User file provides value not overridden
         assert config["max_output_tokens"] == 1024
 
@@ -109,6 +117,7 @@ CHANGELOG_UPDATER_TEMPERATURE=0.5
         monkeypatch.setenv("CHANGELOG_UPDATER_TEMPERATURE", "invalid")
         monkeypatch.setenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS", "not_a_number")
         monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "-1")
+        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "maybe")
 
         config = load_config()
 
@@ -116,6 +125,7 @@ CHANGELOG_UPDATER_TEMPERATURE=0.5
         assert config["temperature"] == 0.7  # default
         assert config["max_output_tokens"] == 1024  # default
         assert config["max_retries"] == 3  # default
+        assert config["replace_unreleased"] is False  # default
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -333,6 +343,7 @@ class TestConfigUtils:
         monkeypatch.setenv("CHANGELOG_UPDATER_MAX_OUTPUT_TOKENS", "2048")
         monkeypatch.setenv("CHANGELOG_UPDATER_RETRIES", "5")
         monkeypatch.setenv("CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS", "32768")
+        monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", "true")
 
         config = load_config()
 
@@ -341,9 +352,29 @@ class TestConfigUtils:
         assert isinstance(config["max_output_tokens"], int)
         assert isinstance(config["max_retries"], int)
         assert isinstance(config["warning_limit_tokens"], int)
+        assert isinstance(config["replace_unreleased"], bool)
 
         # Check values
         assert config["temperature"] == 0.8
         assert config["max_output_tokens"] == 2048
         assert config["max_retries"] == 5
         assert config["warning_limit_tokens"] == 32768
+        assert config["replace_unreleased"] is True
+
+    def test_replace_unreleased_variants(self, isolated_config_test, monkeypatch):
+        """Test different variants of replace_unreleased configuration values."""
+        test_cases = [
+            ("true", True),
+            ("1", True),
+            ("yes", True),
+            ("on", True),
+            ("false", False),
+            ("0", False),
+            ("no", False),
+            ("off", False),
+        ]
+
+        for value, expected in test_cases:
+            monkeypatch.setenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED", value)
+            config = load_config()
+            assert config["replace_unreleased"] is expected, f"Failed for value: {value}"

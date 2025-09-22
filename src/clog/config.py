@@ -93,6 +93,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     env_warning_limit_tokens = os.getenv("CLOG_WARNING_LIMIT_TOKENS") or os.getenv(
         "CHANGELOG_UPDATER_WARNING_LIMIT_TOKENS"
     )
+    env_replace_unreleased = os.getenv("CLOG_REPLACE_UNRELEASED") or os.getenv("CHANGELOG_UPDATER_REPLACE_UNRELEASED")
 
     # Apply safe conversion to environment variables WITHOUT defaults
     # For environment variables, we delay applying defaults so validate_config can catch invalid values
@@ -110,6 +111,11 @@ def load_config() -> dict[str, str | int | float | bool | None]:
         if env_warning_limit_tokens is not None
         else None
     )
+    # Convert replace_unreleased to boolean
+    if env_replace_unreleased is not None:
+        config["replace_unreleased"] = env_replace_unreleased.lower() in ("true", "1", "yes", "on")
+    else:
+        config["replace_unreleased"] = None
 
     # Apply stricter validation only to INVALID environment variables
     # For environment variables, we want to apply defaults for both syntactic and semantic errors
@@ -188,6 +194,14 @@ def load_config() -> dict[str, str | int | float | bool | None]:
             or EnvDefaults.WARNING_LIMIT_TOKENS
         )
 
+    # Apply file values as fallbacks for replace_unreleased (only if env vars weren't set or were None)
+    if config["replace_unreleased"] is None:
+        config_replace_unreleased_str = config_vars.get("CLOG_REPLACE_UNRELEASED") or config_vars.get("CHANGELOG_UPDATER_REPLACE_UNRELEASED")
+        if config_replace_unreleased_str is not None:
+            config["replace_unreleased"] = config_replace_unreleased_str.lower() in ("true", "1", "yes", "on")
+        else:
+            config["replace_unreleased"] = False
+
     return config
 
 
@@ -263,5 +277,10 @@ def apply_config_defaults(config: dict) -> dict:
     log_level = config.get("log_level")
     if log_level is not None and log_level not in Logging.LEVELS:
         validated_config["log_level"] = Logging.DEFAULT_LEVEL
+
+    # For replace_unreleased, ensure it's a boolean
+    replace_unreleased = config.get("replace_unreleased")
+    if replace_unreleased is not None and not isinstance(replace_unreleased, bool):
+        validated_config["replace_unreleased"] = False
 
     return validated_config
