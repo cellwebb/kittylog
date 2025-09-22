@@ -113,6 +113,10 @@ def generate_changelog_entry(
         # Clean and format the content
         cleaned_content = clean_changelog_content(content)
 
+        # Apply additional post-processing
+        from clog.postprocess import postprocess_changelog_content
+        cleaned_content = postprocess_changelog_content(cleaned_content)
+
         # Count completion tokens
         completion_tokens = count_tokens(cleaned_content, model)
         total_tokens = prompt_tokens + completion_tokens

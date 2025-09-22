@@ -12,6 +12,7 @@ from typing import List
 
 from clog.ai import generate_changelog_entry
 from clog.git_operations import get_commits_between_tags, get_tag_date, get_git_diff
+from clog.postprocess import postprocess_changelog_content
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,9 @@ def update_changelog(
         quiet=quiet,
         diff_content=diff_content,
     )
+
+    # Post-process the AI content to ensure proper formatting
+    ai_content = postprocess_changelog_content(ai_content)
 
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None

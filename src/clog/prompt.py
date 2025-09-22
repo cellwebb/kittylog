@@ -201,29 +201,9 @@ def clean_changelog_content(content: str) -> str:
     # Normalize bullet points to use consistent format (- instead of *)
     content = re.sub(r"^\*\s+", "- ", content, flags=re.MULTILINE)
 
-    # Handle duplicate sections in AI output by deduplicating content
-    # Split into lines for processing
-    lines = content.split("\n")
-    deduplicated_lines = []
-    section_headers = set()
-
-    for line in lines:
-        # Check if this line is a section header (both ## and ### formats)
-        section_match = re.match(r"#{2,3}\s+([^\n]+)", line)
-        if section_match:
-            section_name = section_match.group(1)
-
-            # If we've seen this section before, skip it
-            if section_name in section_headers:
-                continue
-            else:
-                # Mark that we've seen this section
-                section_headers.add(section_name)
-                deduplicated_lines.append(line)
-        else:
-            deduplicated_lines.append(line)
-
-    content = "\n".join(deduplicated_lines)
+    # Clean up the content using our new postprocessing module
+    from clog.postprocess import postprocess_changelog_content
+    content = postprocess_changelog_content(content)
 
     return content
 
