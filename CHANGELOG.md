@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-09-22
+### Fixed
+- Resolve test isolation issues causing failures when tests were run in specific orders
+- Fix AI mocking conflicts in test fixtures to ensure test-specific responses override global mocks
+- Correct git repository context problems in multiple test cases to enable proper git operations
+- Address and resolve all remaining test failures related to file path handling and repository detection
+- Update test fixtures to properly include unreleased commits and improve test reliability
+- Verify and document that all 216 tests now pass consistently in the test suite
+
 ## [0.1.8] - 2025-09-21
 
 ### Added
