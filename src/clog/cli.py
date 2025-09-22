@@ -14,6 +14,8 @@ from clog.config_cli import config as config_cli
 from clog.constants import Logging
 from clog.errors import handle_error
 from clog.init_cli import init as init_cli
+from clog.init_changelog import init_changelog
+from clog.update_cli import update_version
 from clog.main import main_business_logic
 from clog.utils import setup_logging
 
@@ -31,12 +33,13 @@ def cli(ctx, version):
         sys.exit(0)
     # If no subcommand was invoked, run the update command by default
     if ctx.invoked_subcommand is None:
-        ctx.invoke(update)
+        ctx.invoke(update_version, version=None)
 
 
 # Add subcommands
 cli.add_command(config_cli)
 cli.add_command(init_cli)
+cli.add_command(init_changelog)
 
 
 @click.command(context_settings={"ignore_unknown_options": True})
@@ -127,8 +130,6 @@ def update(
         sys.exit(1)
 
 
-# Add the update command
-cli.add_command(update)
 
 
 @click.command()
@@ -179,6 +180,9 @@ def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_lev
 
 # Add the unreleased command
 cli.add_command(unreleased, "unreleased")
+
+# Add the update-version command
+cli.add_command(update_version, "update")
 
 
 if __name__ == "__main__":

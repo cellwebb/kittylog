@@ -78,6 +78,10 @@ def get_previous_tag(target_tag: str) -> str | None:
         The previous tag name, or None if target_tag is the first tag
     """
     try:
+        # Handle case where target_tag is None or doesn't have lstrip method
+        if target_tag is None:
+            return None
+
         all_tags = get_all_tags()
         if not all_tags:
             return None
@@ -87,10 +91,11 @@ def get_previous_tag(target_tag: str) -> str | None:
             target_index = all_tags.index(target_tag)
         except ValueError:
             # If exact match not found, try with 'v' prefix variations
-            if target_tag.startswith('v'):
-                alt_tag = target_tag.lstrip('v')
+            target_tag_str = str(target_tag)  # Convert to string to ensure it has lstrip method
+            if target_tag_str.startswith('v'):
+                alt_tag = target_tag_str.lstrip('v')
             else:
-                alt_tag = f'v{target_tag}'
+                alt_tag = f'v{target_tag_str}'
 
             try:
                 target_index = all_tags.index(alt_tag)

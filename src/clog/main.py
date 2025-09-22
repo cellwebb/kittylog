@@ -72,7 +72,7 @@ def main_business_logic(
 
     # Determine which tags to process
     if from_tag is None and to_tag is None:
-        # In simplified mode by default, process all tags with missing entries
+        # In simplified mode by default, process all tags with proper AI-generated content
         all_tags = get_all_tags()
 
         # Read existing changelog content
@@ -85,30 +85,16 @@ def main_business_logic(
         else:
             changelog_content = existing_content
 
-        # Find existing tags in changelog
-        existing_tags = find_existing_tags(changelog_content)
-
-        # Determine which tags are missing entries
-        missing_tags = []
-        for tag in all_tags:
-            # Normalize tag name (remove 'v' prefix for comparison)
-            normalized_tag = tag.lstrip('v')
-            if normalized_tag not in existing_tags:
-                missing_tags.append(tag)
-
         logger.info(f"Found {len(all_tags)} tags: {all_tags}")
-        logger.info(f"Missing {len(missing_tags)} tags: {missing_tags}")
 
         if not quiet:
             tag_list = ", ".join(all_tags) if all_tags else "none"
             console.print(f"[cyan]Found {len(all_tags)} tags: {tag_list}[/cyan]")
-            missing_list = ", ".join(missing_tags) if missing_tags else "none"
-            console.print(f"[cyan]Missing entries for {len(missing_tags)} tags: {missing_list}[/cyan]")
 
-        # Process each missing tag
+        # Process each tag with AI-generated content (overwrite existing placeholders)
         try:
-            for tag in missing_tags:
-                logger.info(f"Processing missing tag {tag}")
+            for tag in all_tags:
+                logger.info(f"Processing tag {tag}")
 
                 if not quiet:
                     console.print(f"[bold blue]Processing {tag}...[/bold blue]")
@@ -116,7 +102,7 @@ def main_business_logic(
                 # Get previous tag to determine the range
                 previous_tag = get_previous_tag(tag)
 
-                # Update changelog for this tag only (overwrite if exists)
+                # Update changelog for this tag only (overwrite existing content)
                 changelog_content = update_changelog(
                     existing_content=changelog_content,
                     from_tag=previous_tag,
