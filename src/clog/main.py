@@ -165,6 +165,32 @@ def main_business_logic(
                 quiet=quiet,
                 replace_unreleased=True,  # Always overwrite unreleased content
             )
+    elif to_tag is not None and from_tag is None:
+        # When only to_tag is specified, find the previous tag to use as from_tag
+        changelog_content = read_changelog(changelog_file)
+
+        # If changelog doesn't exist, create header
+        if not changelog_content.strip():
+            changelog_content = create_changelog_header()
+            logger.info("Created new changelog header")
+
+        # Get previous tag to determine the range
+        previous_tag = get_previous_tag(to_tag)
+
+        if not quiet:
+            console.print(f"[cyan]Processing tag {to_tag} (from {previous_tag or 'beginning'} to {to_tag})[/cyan]")
+
+        # Update changelog for this specific tag only (overwrite if exists)
+        changelog_content = update_changelog(
+            existing_content=changelog_content,
+            from_tag=previous_tag,
+            to_tag=to_tag,
+            model=model,
+            hint=hint,
+            show_prompt=show_prompt,
+            quiet=quiet,
+            replace_unreleased=True,  # Always replace for specific tags
+        )
 
     else:
         # Process specific tag range
