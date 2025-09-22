@@ -26,14 +26,9 @@ clog analyzes your git tags and commits to generate changelog entries. It examin
 - **Existing Changelog**: Detects what's already documented to avoid duplicates
 - **Change Categorization**: Uses AI to properly categorize changes as Added, Changed, Fixed, etc.
 
-### Technical Architecture
 
-- **Smart Tag Detection**: Automatically finds new tags since the last changelog update
-- **Commit Analysis**: Examines commit messages, file changes, and code patterns
-- **AI-Powered Generation**: Uses structured prompts to generate well-organized changelog entries
-- **Format Compliance**: Ensures output follows Keep a Changelog standards
 
-## How to Use
+## Quick Start
 
 After setting up the tool, updating your changelog is simple:
 
@@ -54,16 +49,6 @@ To create a pull request with your changelog updates:
 ```sh
 # Create a pull request with changelog updates
 clog -p
-
-# This will:
-# 1. Detect new git tags (or specified range)
-# 2. Analyze commits for each new version
-# 3. Generate changelog entries using AI
-# 4. Show preview and ask for confirmation
-# 5. Create a new branch with the changelog updates
-# 6. Commit the changes
-# 7. Push the branch to origin
-# 8. Create a pull request using GitHub CLI
 ```
 
 ![Simple clog Usage](assets/clog-usage.png)
@@ -117,14 +102,11 @@ clog init
 
 This command will guide you through selecting an AI provider, model, and securely entering your API keys. It will create or update a user-level configuration file at `$HOME/.clog.env`.
 
-Example `$HOME/.clog.env` output:
+See [USAGE.md](USAGE.md) for detailed command information.
 
-```env
-CLOG_MODEL=anthropic:claude-3-5-haiku-latest
-ANTHROPIC_API_KEY=your_anthropic_key_here
-```
 
-#### Managing Configuration with `clog config`
+
+#### Managing Configuration
 
 You can manage settings in your `$HOME/.clog.env` file using config commands:
 
@@ -132,6 +114,8 @@ You can manage settings in your `$HOME/.clog.env` file using config commands:
 - Set a value: `clog config set CLOG_MODEL groq:meta-llama/llama-4-scout-17b-16e-instruct`
 - Get a value: `clog config get CLOG_MODEL`
 - Unset a value: `clog config unset CLOG_MODEL`
+
+See [USAGE.md](USAGE.md) for detailed command information.
 
 ### 3. Verify Setup
 
@@ -148,22 +132,7 @@ clog --dry-run
 
 You should see an AI-generated changelog preview.
 
-### Command Line Options
 
-The `clog update` command supports several options:
-
-- `-d, --dry-run`: Preview changes without modifying the changelog file
-- `-y, --yes`: Skip confirmation prompts
-- `-f, --file`: Specify a different changelog file path (default: CHANGELOG.md)
-- `-s, --from-tag`: Specify the starting tag for changelog generation
-- `-t, --to-tag`: Specify the ending tag for changelog generation
-- `-p, --show-prompt`: Display the prompt sent to the AI model
-- `-h, --hint`: Provide additional context to guide the AI model
-- `-m, --model`: Override the configured AI model
-- `-q, --quiet`: Suppress non-error output messages
-- `-v, --verbose`: Increase output verbosity to INFO
-- `--log-level`: Set a specific logging level
-- `--replace-unreleased`: Replace existing unreleased content instead of appending to it
 
 ### 4. Upgrade
 
@@ -173,7 +142,7 @@ To upgrade `clog` to the latest version, run:
 pipx upgrade clog
 ```
 
-## Basic Usage
+## Usage
 
 Once installed and configured, using `clog` is straightforward:
 
@@ -202,61 +171,9 @@ Once installed and configured, using `clog` is straightforward:
 - Use different changelog file: `clog -f CHANGES.md`
 - Show the AI prompt: `clog --show-prompt`
 
-### Unreleased Changes
+See [USAGE.md](USAGE.md) for comprehensive usage documentation and examples.
 
-When you have commits that haven't been tagged yet, clog will automatically include them in
-an "Unreleased" section at the top of your changelog. This is useful for tracking ongoing
-changes between official releases.
 
-By default, clog will append new unreleased changes to any existing unreleased section. If you
-want to replace the existing unreleased content entirely (useful when you've made significant
-changes and want a fresh AI-generated summary), use the `--replace-unreleased` option:
-
-```bash
-clog --replace-unreleased
-```
-
-This will replace everything in your current unreleased section with a new AI-generated summary
-based on all commits since your last tag.
-
-### Advanced Usage Examples
-
-```sh
-# Process only new tags since last update
-clog
-
-# Process specific version range
-clog --from-tag v1.0.0 --to-tag v1.2.0
-
-# Dry run with AI hints
-clog --dry-run -h "Focus on user-facing changes"
-
-# Use different model
-clog -m "openai:gpt-4"
-
-# Different changelog file location
-clog -f docs/CHANGELOG.md
-
-# Create a pull request with changelog updates
-clog -p
-```
-
-## Configuration Options
-
-clog loads configuration from two locations (in order of precedence):
-
-1. User-level `$HOME/.clog.env` (applies to all projects for the user)
-2. Project-level `.clog.env` (in the project root, overrides user config)
-
-Environment variables always take final precedence over both files.
-
-### Available Configuration Variables
-
-- `CLOG_MODEL`: AI model to use (e.g., "anthropic:claude-3-5-haiku-latest")
-- `CLOG_TEMPERATURE`: Model temperature (0.0-2.0, default: 0.7)
-- `CLOG_MAX_OUTPUT_TOKENS`: Maximum tokens for AI response (default: 1024)
-- `CLOG_WARNING_LIMIT_TOKENS`: Warn when prompt exceeds this limit (default: 16384)
-- `CLOG_LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
 
 ## Best Practices
 
@@ -277,7 +194,9 @@ Environment variables always take final precedence over both files.
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-For information about AI agent integrations, see [AGENTS.md](AGENTS.md).
+## AI Agents
+
+clog uses AI agents to analyze git commit history and generate changelog entries. See [AGENTS.md](AGENTS.md) for detailed information about the agents and their integration points.
 
 ## License
 
