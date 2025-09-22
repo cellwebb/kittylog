@@ -23,27 +23,64 @@ config = load_config()
 logger = logging.getLogger(__name__)
 
 
+# Shared option decorators to reduce CLI duplication
+def workflow_options(f):
+    """Common workflow control options."""
+    f = click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")(f)
+    f = click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")(f)
+    f = click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")(f)
+    return f
+
+
+def changelog_options(f):
+    """Common changelog-related options."""
+    f = click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")(f)
+    f = click.option("--from-tag", "-s", default=None, help="Start from specific tag")(f)
+    f = click.option("--to-tag", "-t", default=None, help="Update up to specific tag")(f)
+    f = click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")(f)
+    f = click.option("--hint", "-h", default="", help="Additional context for the prompt")(f)
+    return f
+
+
+def model_options(f):
+    """Common model-related options."""
+    f = click.option("--model", "-m", default=None, help="Override default model")(f)
+    return f
+
+
+def logging_options(f):
+    """Common logging and output options."""
+    f = click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")(f)
+    f = click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")(f)
+    f = click.option(
+        "--log-level",
+        type=click.Choice(Logging.LEVELS, case_sensitive=False),
+        help="Set log level",
+    )(f)
+    return f
+
+
+def common_options(f):
+    """All common options combined."""
+    f = workflow_options(f)
+    f = changelog_options(f)
+    f = model_options(f)
+    f = logging_options(f)
+    return f
+
+
+def setup_command_logging(log_level, verbose, quiet):
+    """Set up logging for CLI commands with consistent logic."""
+    effective_log_level = log_level or config["log_level"]
+    if verbose and effective_log_level not in ("DEBUG", "INFO"):
+        effective_log_level = "INFO"
+    if quiet:
+        effective_log_level = "ERROR"
+    setup_logging(effective_log_level)
+
+
 @click.command(context_settings={"ignore_unknown_options": True})
-# Git workflow options
-@click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
-@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-# Changelog options
-@click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
-@click.option("--from-tag", "-s", default=None, help="Start from specific tag")
-@click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
-@click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
-@click.option("--hint", "-h", default="", help="Additional context for the prompt")
-# Model options
-@click.option("--model", "-m", default=None, help="Override default model")
-# Output options
-@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
-@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
-@click.option(
-    "--log-level",
-    type=click.Choice(Logging.LEVELS, case_sensitive=False),
-    help="Set log level",
-)
+@common_options
 @click.argument("tag", required=False)
 def add(
     file,
@@ -67,12 +104,7 @@ def add(
     When --all flag is used, updates all entries in changelog.
     """
     try:
-        effective_log_level = log_level or config["log_level"]
-        if verbose and effective_log_level not in ("DEBUG", "INFO"):
-            effective_log_level = "INFO"
-        if quiet:
-            effective_log_level = "ERROR"
-        setup_logging(effective_log_level)
+        setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting changelog-updater")
 
         # If a specific tag is provided, process only that tag
@@ -119,23 +151,8 @@ def add(
 
 
 @click.command()
+@common_options
 @click.argument("version", required=False)
-@click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
-@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
-@click.option("--from-tag", "-s", default=None, help="Start from specific tag")
-@click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
-@click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
-@click.option("--hint", "-h", default="", help="Additional context for the prompt")
-@click.option("--model", "-m", default=None, help="Override default model")
-@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
-@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
-@click.option(
-    "--log-level",
-    type=click.Choice(Logging.LEVELS, case_sensitive=False),
-    help="Set log level",
-)
 def update_compat(
     file,
     from_tag,
@@ -185,23 +202,8 @@ def update_compat(
 
 
 @click.command()
+@common_options
 @click.argument("version", required=False)
-@click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
-@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
-@click.option("--from-tag", "-s", default=None, help="Start from specific tag")
-@click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
-@click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
-@click.option("--hint", "-h", default="", help="Additional context for the prompt")
-@click.option("--model", "-m", default=None, help="Override default model")
-@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
-@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
-@click.option(
-    "--log-level",
-    type=click.Choice(Logging.LEVELS, case_sensitive=False),
-    help="Set log level",
-)
 def unreleased(
     version,
     dry_run,
@@ -222,12 +224,7 @@ def unreleased(
     from clog.main import main_business_logic
 
     # Set up logging
-    effective_log_level = log_level or config["log_level"]
-    if verbose and effective_log_level not in ("DEBUG", "INFO"):
-        effective_log_level = "INFO"
-    if quiet:
-        effective_log_level = "ERROR"
-    setup_logging(effective_log_level)
+    setup_command_logging(log_level, verbose, quiet)
 
     # Handle the special unreleased mode
     success = main_business_logic(
