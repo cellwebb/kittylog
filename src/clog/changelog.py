@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List
 
 from clog.ai import generate_changelog_entry
-from clog.git_operations import get_commits_between_tags, get_tag_date, get_git_diff
+from clog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date
 from clog.postprocess import postprocess_changelog_content, remove_unreleased_sections
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     return header
 
 
-def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_date: datetime | None = None) -> str:
+def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_date: datetime | None = None, include_unreleased_header: bool = True) -> str:
     """Format a changelog entry for a specific tag.
 
     Args:
@@ -218,6 +218,7 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
         commits: List of commit dictionaries
         ai_content: AI-generated changelog content
         tag_date: Date the tag was created
+        include_unreleased_header: Whether to include the Unreleased header (used in append mode)
 
     Returns:
         Formatted changelog entry as a string
@@ -236,10 +237,14 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
     # For unreleased changes, we include the header UNLESS we're appending to an existing section
     if tag is None:
         # For unreleased changes, we still want the header when creating a new section
-        entry = "## [Unreleased]\n\n"
+        if include_unreleased_header:
+            entry = "## [Unreleased]\n\n"
+        else:
+            entry = ""
         if ai_content.strip():
             entry += ai_content.strip() + "\n\n"
         else:
+            logger.warning("No AI content generated for tag: %s", tag)
             # Fallback: create a simple list from commit messages
             entry += "### Changed\n\n"
             for commit in commits:
@@ -255,6 +260,7 @@ def format_changelog_entry(tag: str, commits: list[dict], ai_content: str, tag_d
         if ai_content.strip():
             entry += ai_content.strip() + "\n\n"
         else:
+            logger.warning("No AI content generated for tag: %s", tag)
             # Fallback: create a simple list from commit messages
             entry += "### Changed\n\n"
             for commit in commits:
@@ -306,10 +312,8 @@ def update_changelog(
 
     # If file is empty or very short, create header
     if len(existing_content.strip()) < 50:
-        # Check if current commit is tagged to determine if we should include Unreleased section
-        from clog.git_operations import is_current_commit_tagged
-        include_unreleased = not is_current_commit_tagged()
-        existing_content = create_changelog_header(include_unreleased)
+        # Always include Unreleased section when creating a new header
+        existing_content = create_changelog_header()
 
     # Get commits for this tag range
     commits = get_commits_between_tags(from_tag, to_tag)
@@ -340,12 +344,20 @@ def update_changelog(
     # Post-process the AI content to ensure proper formatting
     ai_content = postprocess_changelog_content(ai_content)
 
+    # DEBUG: Print the postprocessed AI content
+    # print(f"Postprocessed AI content: {repr(ai_content)}")
+
     # Get tag date (None for unreleased changes)
     tag_date = get_tag_date(to_tag) if to_tag else None
 
     # Format new entries
     # For both tagged releases and unreleased changes, we use the same formatting function
-    new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date)
+    # For unreleased changes in append mode, don't include the Unreleased header
+    include_header = not (to_tag is None and not replace_unreleased)
+    new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date, include_header)
+
+    # DEBUG: Print the formatted new entry
+    # print(f"Formatted new entry: {repr(new_entry)}")
 
     # Log the AI content for debugging
     logger.debug(f"AI-generated content for {tag_name}: {ai_content}")
@@ -353,16 +365,22 @@ def update_changelog(
     # Find where to insert the new entry
     lines = existing_content.split("\n")
 
-    # Check if current commit is tagged - if so, don't process unreleased content
+    # Check if current commit is tagged
     from clog.git_operations import is_current_commit_tagged
     current_commit_is_tagged = is_current_commit_tagged()
 
-    # If the current commit is tagged, remove any Unreleased sections from the existing content
-    if current_commit_is_tagged:
-        lines = remove_unreleased_sections(lines)
+    # If the current commit is tagged AND we're processing a specific version (not unreleased),
+    # remove any Unreleased sections from the existing content, but only if there's no existing Unreleased section
+    # or if we're actually processing the Unreleased section itself
+    if current_commit_is_tagged and to_tag is not None:
+        # Only remove unreleased sections if there isn't already an unreleased section in the content
+        # This preserves existing unreleased sections when adding new version sections
+        has_unreleased = find_unreleased_section(existing_content) is not None
+        if not has_unreleased:
+            lines = remove_unreleased_sections(lines)
 
     # For unreleased changes, handle the unreleased section
-    if to_tag is None and not current_commit_is_tagged:
+    if to_tag is None:
         # Find the unreleased section
         unreleased_line = find_unreleased_section(existing_content)
 
@@ -400,7 +418,12 @@ def update_changelog(
                 # Apply bullet limiting to new content
                 limited_new_entry_lines = limit_bullets_in_sections(content_lines)
 
+                # DEBUG: Print the state before insertion
+                # print(f"Before insertion - lines[content_start_line:end_line] = {lines[content_start_line:end_line]}")
+                # print(f"Inserting content at position {insert_point}: {limited_new_entry_lines}")
+
                 # Insert limited new content at the end of the existing unreleased section content
+                # The insertion point should be just before the next section (end_line)
                 insert_point = end_line
                 for line in reversed(limited_new_entry_lines):
                     lines.insert(insert_point, line)

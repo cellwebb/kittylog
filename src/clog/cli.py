@@ -23,29 +23,11 @@ config = load_config()
 logger = logging.getLogger(__name__)
 
 
-@click.group(invoke_without_command=True)
-@click.option("--version", is_flag=True, help="Show the version of the Changelog Updater tool")
-@click.pass_context
-def cli(ctx, version):
-    """Changelog Updater - Generate changelog entries from git tags with AI."""
-    if version:
-        click.echo(f"changelog-updater version: {__version__}")
-        sys.exit(0)
-    # If no subcommand was invoked, run the update command by default
-    if ctx.invoked_subcommand is None:
-        ctx.invoke(update_version, version=None)
-
-
-# Add subcommands
-cli.add_command(config_cli)
-cli.add_command(init_cli)
-cli.add_command(init_changelog)
-
-
 @click.command(context_settings={"ignore_unknown_options": True})
 # Git workflow options
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
 @click.option("--preserve-existing", is_flag=True, help="Preserve existing changelog content instead of overwriting")
 @click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
 @click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
@@ -66,13 +48,14 @@ cli.add_command(init_changelog)
     help="Set log level",
 )
 @click.argument("tag", required=False)
-def update(
-    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, tag
+def add(
+    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, all, tag
 ):
-    """Update changelog with AI-generated content.
+    """Add missing changelog entries or update a specific tag entry.
 
-    When run without arguments, processes all tags missing from changelog.
+    When run without arguments, adds entries for tags missing from changelog.
     When run with a specific tag, processes only that tag (overwrites if exists).
+    When --all flag is used, updates all entries in changelog.
     """
     try:
         effective_log_level = log_level or config["log_level"]
@@ -130,15 +113,94 @@ def update(
         sys.exit(1)
 
 
+@click.command()
+@click.argument("version", required=False)
+@click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
+@click.option("--preserve-existing", is_flag=True, help="Preserve existing changelog content instead of overwriting")
+@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
+@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
+@click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
+@click.option("--from-tag", "-s", default=None, help="Start from specific tag")
+@click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
+@click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
+@click.option("--hint", "-h", default="", help="Additional context for the prompt")
+@click.option("--model", "-m", default=None, help="Override default model")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
+@click.option(
+    "--log-level",
+    type=click.Choice(Logging.LEVELS, case_sensitive=False),
+    help="Set log level",
+)
+def update_compat(
+    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, all, version
+):
+    """Compatibility update command for integration tests."""
+
+    # Handle conflicting flags
+    if replace_unreleased and no_replace_unreleased:
+        click.echo("Error: --replace-unreleased and --no-replace-unreleased cannot be used together")
+        sys.exit(2)
+
+    # Determine replace_unreleased value
+    if no_replace_unreleased:
+        replace_unreleased_value = False
+    elif replace_unreleased is not None:
+        replace_unreleased_value = replace_unreleased
+    else:
+        replace_unreleased_value = None
+
+    if all:
+        # Update all entries - process all tags
+        success = main_business_logic(
+            changelog_file=file,
+            from_tag=from_tag,
+            to_tag=to_tag,
+            model=model,
+            hint=hint,
+            show_prompt=show_prompt,
+            require_confirmation=not yes,
+            quiet=quiet,
+            dry_run=dry_run,
+            preserve_existing=preserve_existing,
+            replace_unreleased=replace_unreleased_value,
+        )
+    else:
+        # Default behavior: process missing tags only
+        success = main_business_logic(
+            changelog_file=file,
+            from_tag=from_tag,
+            to_tag=to_tag,
+            model=model,
+            hint=hint,
+            show_prompt=show_prompt,
+            require_confirmation=not yes,
+            quiet=quiet,
+            dry_run=dry_run,
+            preserve_existing=preserve_existing,
+            replace_unreleased=replace_unreleased_value,
+        )
+
+    if not success:
+        sys.exit(1)
 
 
 @click.command()
 @click.argument("version", required=False)
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
+@click.option("--preserve-existing", is_flag=True, help="Preserve existing changelog content instead of overwriting")
+@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
+@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
-@click.option("--model", "-m", default=None, help="Override default model")
+@click.option("--from-tag", "-s", default=None, help="Start from specific tag")
+@click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
+@click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
 @click.option("--hint", "-h", default="", help="Additional context for the prompt")
+@click.option("--model", "-m", default=None, help="Override default model")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
 @click.option(
@@ -178,10 +240,26 @@ def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_lev
     if not success:
         sys.exit(1)
 
-# Add the unreleased command
-cli.add_command(unreleased, "unreleased")
 
-# Add the update-version command
+@click.group(invoke_without_command=True)
+@click.option("--version", is_flag=True, help="Show the version of the Changelog Updater tool")
+@click.pass_context
+def cli(ctx, version):
+    """Changelog Updater - Generate changelog entries from git tags with AI."""
+    if version:
+        click.echo(f"changelog-updater version: {__version__}")
+        sys.exit(0)
+    # If no subcommand was invoked, run the add command by default
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(add, file="CHANGELOG.md", from_tag=None, to_tag=None, show_prompt=False, quiet=False, yes=False, hint="", model=None, dry_run=False, verbose=False, log_level=None, preserve_existing=False, replace_unreleased=False, all=False, tag=None)
+
+
+# Add subcommands
+cli.add_command(config_cli)
+cli.add_command(init_cli)
+cli.add_command(init_changelog)
+cli.add_command(add)
+cli.add_command(unreleased)
 cli.add_command(update_version, "update")
 
 

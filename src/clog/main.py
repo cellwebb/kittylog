@@ -43,6 +43,7 @@ def main_business_logic(
     preserve_existing: bool = False,
     replace_unreleased: bool | None = None,
     special_unreleased_mode: bool = False,
+    update_all_entries: bool = False,
 ) -> bool:
     """Main application logic for changelog-updater.
 
@@ -75,6 +76,29 @@ def main_business_logic(
         # In simplified mode by default, process all tags with proper AI-generated content
         all_tags = get_all_tags()
 
+        # If update_all_entries flag is set, process all tags; otherwise process only missing tags
+        if not update_all_entries:
+            # Read existing changelog content
+            existing_content = read_changelog(changelog_file)
+            # Find tags that already exist in changelog
+            existing_tags = find_existing_tags(existing_content)
+
+            # Filter to only process tags that are missing from changelog
+            tags_to_process = [tag for tag in all_tags if tag.lstrip('v') not in existing_tags]
+
+            if not quiet:
+                missing_tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
+                existing_tag_list = ", ".join(existing_tags) if existing_tags else "none"
+                console.print(f"[cyan]Found {len(all_tags)} total tags[/cyan]")
+                console.print(f"[cyan]Existing tags in changelog: {existing_tag_list}[/cyan]")
+                console.print(f"[cyan]Missing tags to process: {missing_tag_list}[/cyan]")
+        else:
+            # Process all tags when update_all_entries is True
+            tags_to_process = all_tags
+            if not quiet:
+                tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
+                console.print(f"[cyan]Updating all {len(tags_to_process)} tags: {tag_list}[/cyan]")
+
         # Read existing changelog content
         existing_content = read_changelog(changelog_file)
 
@@ -93,7 +117,7 @@ def main_business_logic(
 
         # Process each tag with AI-generated content (overwrite existing placeholders)
         try:
-            for tag in all_tags:
+            for tag in tags_to_process:
                 logger.info(f"Processing tag {tag}")
 
                 if not quiet:

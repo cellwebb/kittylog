@@ -811,7 +811,7 @@ All notable changes to this project will be documented in this file.
             result = runner.invoke(
                 cli,
                 [
-                    "update",
+                    "add",
                     "--no-replace-unreleased",  # Disable replace mode for append behavior
                     "--yes",  # Skip confirmation
                     "--quiet",
