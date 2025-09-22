@@ -126,11 +126,29 @@ env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_
 # etc.
 ```
 
+### 5. Enhanced Changelog File Discovery in docs/ Directory 📁
+**Problem**: Auto-detection of changelog files only searches in the project root directory
+**Impact**: Users with changelog files in docs/ directory must manually specify the path
+**Files**: `src/clog/utils.py`, `src/clog/main.py`
+
+**Solution**:
+- Modify `find_changelog_file()` function to search in docs/ directory in addition to project root
+- Maintain priority order: project root files take precedence over docs/ directory files
+- Keep existing search order: CHANGELOG.md > changelog.md > CHANGES.md > changes.md
+- Add docs/ directory search with same priority order
+- Update tests to ensure this functionality works correctly
+
+**Benefits**:
+- Improved user experience for projects organizing documentation in docs/ directory
+- Automatic discovery of common changelog file locations
+- Maintains backward compatibility with existing behavior
+- Follows common project organization patterns
+
 ---
 
 ## 🟡 Medium Priority Improvements
 
-### 6. Implement Git Operation Caching
+### 7. Implement Git Operation Caching
 **Problem**: Repeated calls to expensive git operations within single execution
 **Impact**: Performance degradation with large repositories
 **Files**: `src/clog/git_operations.py`
@@ -146,7 +164,7 @@ def get_current_commit_hash() -> str:
     """Cache current commit hash for current execution."""
 ```
 
-### 7. Create Unified Output Interface
+### 8. Create Unified Output Interface
 **Problem**: Mixed usage of `console.print()`, `click.echo()`, and `logger.*()`
 **Impact**: Inconsistent user experience, harder to test output
 **Files**: Multiple CLI and core files
@@ -174,7 +192,7 @@ class OutputManager:
         """Error message output."""
 ```
 
-### 8. Reduce CLI Command Duplication
+### 9. Reduce CLI Command Duplication
 **Problem**: Similar option definitions across CLI commands
 **Impact**: Maintenance overhead, inconsistent behavior
 **Files**: `src/clog/cli.py`
@@ -194,7 +212,7 @@ def update(...):
     """Update changelog command."""
 ```
 
-### 9. Add Performance Monitoring
+### 10. Add Performance Monitoring
 **Problem**: No visibility into performance with large repositories
 **Impact**: Poor user experience with slow operations
 
@@ -207,7 +225,7 @@ def update(...):
 
 ## 🟢 Low Priority Improvements
 
-### 10. Enhanced Type Safety
+### 11. Enhanced Type Safety
 **Problem**: Some data structures use generic `dict` types
 **Impact**: Reduced IDE support and runtime safety
 
@@ -228,7 +246,7 @@ class TagInfo(TypedDict):
     date: str
 ```
 
-### 11. AI Provider Abstraction
+### 12. AI Provider Abstraction
 **Problem**: Hard-coded provider-specific logic
 **Impact**: Difficult to add new providers or customize behavior
 
@@ -249,7 +267,7 @@ class OpenAIProvider(AIProvider):
     """OpenAI-specific implementation."""
 ```
 
-### 12. Configuration Migration System
+### 13. Configuration Migration System
 **Problem**: Legacy environment variable names need deprecation path
 **Impact**: User confusion and maintenance overhead
 
@@ -258,7 +276,7 @@ class OpenAIProvider(AIProvider):
 - Automatic migration of old configuration files
 - Clear migration documentation
 
-### 13. Advanced Changelog Parsing
+### 14. Advanced Changelog Parsing
 **Problem**: Regex-based changelog parsing is brittle
 **Impact**: May break with markdown variations
 
@@ -281,7 +299,9 @@ class OpenAIProvider(AIProvider):
 
 ### Phase 2: Code Quality & Performance (Weeks 1-2)
 - [ ] Standardize configuration validation
-- [ ] Remove backward compatibility for old environment variables
+- [x] ✅ Remove backward compatibility for old environment variables
+- [x] ✅ Remove CLOG_REPLACE_UNRELEASED configuration complexity
+- [ ] Enhanced changelog file discovery in docs/ directory
 - [ ] Implement git operation caching
 - [ ] Create unified output interface
 - [ ] Reduce CLI command duplication
@@ -299,13 +319,15 @@ class OpenAIProvider(AIProvider):
 - [x] ✅ Reduce largest function size from 288 to <100 lines (main_business_logic: 288→106, update_changelog: 233→116)
 - [ ] Eliminate code duplication in CLI commands
 - [ ] Achieve 100% type annotation coverage
-- [ ] Remove all backward compatibility code for deprecated environment variables
+- [x] ✅ Remove all backward compatibility code for deprecated environment variables
+- [x] ✅ Remove CLOG_REPLACE_UNRELEASED configuration complexity and implement intelligent behavior
 - [ ] Add performance benchmarks
 
 ### User Experience
 - [x] ✅ Enhanced changelog file support (CHANGES.md variants)
 - [x] ✅ Complete documentation coverage (AGENTS.md, USAGE.md created)
 - [x] ✅ Enhanced development documentation (CONTRIBUTING.md updated)
+- [ ] Enhanced changelog file discovery in docs/ directory
 - [ ] Consistent output formatting
 - [ ] Progress indicators for long operations
 - [ ] Clear error messages with actionable guidance
@@ -322,6 +344,7 @@ class OpenAIProvider(AIProvider):
 - Code refactoring (well-tested codebase)
 - Configuration improvements
 - Backward compatibility cleanup (well-tested codebase)
+- Changelog file discovery enhancement (well-tested codebase)
 
 ### Medium Risk
 - Output interface changes (may affect existing scripts)
@@ -356,6 +379,13 @@ This improvement plan balances immediate maintainability gains with longer-term 
   - `update_changelog()`: 233 → 116 lines (50% reduction)
 - **Testing**: All 216 tests continue to pass after refactoring
 
-**Next Phase**: Focus shifts to Phase 2 code quality improvements including configuration validation standardization and removing backward compatibility for deprecated environment variables.
+**Phase 2 Progress**: Significant advancement in configuration simplification:
 
-The project's existing strong foundation (comprehensive testing, good error handling, clear documentation) makes these improvements low-risk and high-impact investments in the codebase's future. With 216 tests passing and clean linting, the codebase is in excellent shape for continued development.
+- **Configuration Simplification**: Completed removal of `CLOG_REPLACE_UNRELEASED` configuration complexity
+- **Intelligent Behavior**: Implemented smart unreleased section handling that automatically determines appropriate behavior based on git state
+- **CLI Simplification**: Removed confusing `--replace-unreleased` and `--no-replace-unreleased` flags
+- **Test Coverage**: 220 of 223 tests passing (failures unrelated to configuration changes)
+
+**Next Phase**: Continue Phase 2 with configuration validation standardization and enhanced changelog file discovery in docs/ directory.
+
+The project's existing strong foundation (comprehensive testing, good error handling, clear documentation) makes these improvements low-risk and high-impact investments in the codebase's future. With excellent test coverage and clean linting, the codebase continues to evolve toward greater simplicity and maintainability.

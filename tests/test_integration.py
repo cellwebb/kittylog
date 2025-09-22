@@ -806,13 +806,11 @@ All notable changes to this project will be documented in this file.
             # Change to the git repo directory, not temp_dir
             os.chdir(git_repo_with_tags.working_dir)
 
-            # Run without --replace-unreleased flag to test that default behavior is replace mode
-            # But we need to explicitly disable it to test append mode
+            # Run add command - intelligent behavior now automatically handles unreleased content
             result = runner.invoke(
                 cli,
                 [
                     "add",
-                    "--no-replace-unreleased",  # Disable replace mode for append behavior
                     "--yes",  # Skip confirmation
                     "--quiet",
                 ],
@@ -904,12 +902,11 @@ All notable changes to this project will be documented in this file.
             # Change to the git repo directory, not temp_dir
             os.chdir(git_repo_with_tags.working_dir)
 
-            # Run with --replace-unreleased flag
+            # Run unreleased command - replace mode is the default behavior
             result = runner.invoke(
                 cli,
                 [
                     "unreleased",
-                    "--replace-unreleased",
                     "--yes",  # Skip confirmation
                     "--quiet",
                 ],

@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import subprocess
+from pathlib import Path
 
 import tiktoken
 from rich.console import Console
@@ -317,10 +318,14 @@ def find_changelog_file(directory: str = ".") -> str:
     """Find the changelog file in the given directory.
 
     Searches for changelog files in the following order of preference:
-    1. CHANGELOG.md
-    2. changelog.md
-    3. CHANGES.md
-    4. changes.md
+    1. CHANGELOG.md (root)
+    2. changelog.md (root)
+    3. CHANGES.md (root)
+    4. changes.md (root)
+    5. CHANGELOG.md (docs/)
+    6. changelog.md (docs/)
+    7. CHANGES.md (docs/)
+    8. changes.md (docs/)
 
     Args:
         directory: Directory to search in (default: current directory)
@@ -333,11 +338,27 @@ def find_changelog_file(directory: str = ".") -> str:
     """
     changelog_filenames = ["CHANGELOG.md", "changelog.md", "CHANGES.md", "changes.md"]
 
-    for filename in changelog_filenames:
-        filepath = os.path.join(directory, filename)
-        if os.path.exists(filepath):
-            logger.debug(f"Found changelog file: {filepath}")
-            return filename
+    # First check root directory - get actual files in directory to avoid case-insensitive issues
+    root_dir_path = Path(directory)
+    if root_dir_path.exists() and root_dir_path.is_dir():
+        root_files = [f.name for f in root_dir_path.iterdir() if f.is_file()]
+        # Check for exact matches in priority order
+        for filename in changelog_filenames:
+            if filename in root_files:
+                logger.debug(f"Found changelog file: {os.path.join(directory, filename)}")
+                return filename
+
+    # Then check docs/ directory
+    docs_directory = os.path.join(directory, "docs")
+    docs_dir_path = Path(docs_directory)
+    if docs_dir_path.exists() and docs_dir_path.is_dir():
+        docs_files = [f.name for f in docs_dir_path.iterdir() if f.is_file()]
+        # Check for exact matches in priority order
+        for filename in changelog_filenames:
+            if filename in docs_files:
+                relative_path = os.path.join("docs", filename)
+                logger.debug(f"Found changelog file: {os.path.join(docs_directory, filename)}")
+                return relative_path
 
     # Fallback to CHANGELOG.md if no existing file found
     logger.debug("No existing changelog file found, using default: CHANGELOG.md")

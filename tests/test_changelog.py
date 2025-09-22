@@ -303,12 +303,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature"
 
+    @patch("clog.git_operations.is_current_commit_tagged")
+    @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_update_changelog_append_unreleased(self, mock_generate, mock_get_commits, temp_dir, sample_commits):
-        """Test that unreleased changes are appended by default."""
+    def test_update_changelog_intelligent_unreleased(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits):
+        """Test that unreleased changes are handled intelligently."""
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
+        mock_get_latest_tag.return_value = "v0.1.0"
+        mock_is_tagged.return_value = False  # Simulate unreleased commits
 
         # Create existing changelog with unreleased content
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -326,30 +330,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 """
         changelog_file.write_text(existing_content)
 
-        # Update with unreleased changes in append mode
+        # Update with unreleased changes - intelligent behavior replaces unreleased section
         result = update_changelog(
             existing_content=existing_content,
             from_tag="v0.1.0",
             to_tag=None,  # Unreleased changes
             model="test:model",
             quiet=True,
-            replace_unreleased=False,
         )
 
-        # Should have both existing and new content in unreleased section
+        # Should replace unreleased section with new content
         assert result.count("## [Unreleased]") == 1
-        assert "Existing change" in result
         assert "New feature" in result
         assert "Bug fix" in result
 
+    @patch("clog.git_operations.is_current_commit_tagged")
+    @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_update_changelog_replace_unreleased(self, mock_generate, mock_get_commits, temp_dir, sample_commits):
-        """Test that unreleased changes replace existing content when replace_unreleased=True."""
+    def test_update_changelog_tagged_version(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits):
+        """Test that tagged versions are handled correctly."""
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
+        mock_get_latest_tag.return_value = "v0.1.0"
+        mock_is_tagged.return_value = True  # Processing tagged version
 
-        # Create existing changelog with unreleased content
+        # Create existing changelog
         changelog_file = temp_dir / "CHANGELOG.md"
         existing_content = """# Changelog
 
@@ -365,18 +371,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 """
         changelog_file.write_text(existing_content)
 
-        # Update with unreleased changes in replace mode
+        # Update with tagged version changes
         result = update_changelog(
             existing_content=existing_content,
             from_tag="v0.1.0",
-            to_tag=None,  # Unreleased changes
+            to_tag="v0.2.0",  # Tagged version
             model="test:model",
             quiet=True,
         )
 
-        # Should have only new content in unreleased section (existing content removed)
-        assert result.count("## [Unreleased]") == 1
-        assert "Existing change" not in result
+        # Should have new version section
+        assert "## [0.2.0]" in result
         assert "New feature" in result
         assert "Bug fix" in result
         # Non-existent file

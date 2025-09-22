@@ -9,14 +9,18 @@ from clog.changelog import update_changelog
 class TestBulletLimiting:
     """Test bullet limiting functionality in changelog processing."""
 
+    @patch("clog.git_operations.is_current_commit_tagged")
+    @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_bullet_limiting_per_section(self, mock_generate, mock_get_commits, temp_dir):
+    def test_bullet_limiting_per_section(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir):
         """Test that bullet points are limited to 6 per section."""
         # Setup mocks
         mock_get_commits.return_value = [
             {"hash": "abc123", "message": "Add new feature", "files": ["feature.py"]},
         ]
+        mock_get_latest_tag.return_value = "v0.1.0"
+        mock_is_tagged.return_value = False  # Simulate unreleased commits
 
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added
@@ -141,14 +145,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "New change 8" not in updated_content
         assert "New change 9" not in updated_content
 
+    @patch("clog.git_operations.is_current_commit_tagged")
+    @patch("clog.git_operations.get_latest_tag")
     @patch("clog.changelog.get_commits_between_tags")
     @patch("clog.changelog.generate_changelog_entry")
-    def test_bullet_limiting_replace_mode(self, mock_generate, mock_get_commits, temp_dir):
+    def test_bullet_limiting_replace_mode(self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir):
         """Test that bullet points are limited to 6 per section in replace mode."""
         # Setup mocks
         mock_get_commits.return_value = [
             {"hash": "abc123", "message": "Add features and fixes", "files": ["feature.py", "fix.py"]},
         ]
+        mock_get_latest_tag.return_value = "v0.1.0"
+        mock_is_tagged.return_value = False  # Simulate unreleased commits
 
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added

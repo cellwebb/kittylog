@@ -285,11 +285,32 @@ def handle_unreleased_section(
     lines: list[str],
     new_entry: str,
     existing_content: str,
-    replace_unreleased: bool,
     current_commit_is_tagged: bool
 ) -> list[str]:
-    """Handle updating the unreleased section of the changelog."""
-    logger.debug(f"Processing unreleased section, replace_unreleased={replace_unreleased}")
+    """Handle updating the unreleased section of the changelog with intelligent behavior."""
+    from clog.git_operations import get_commits_between_tags, get_latest_tag
+
+    logger.debug("Processing unreleased section with intelligent behavior")
+
+    # Check if there are actually unreleased commits
+    latest_tag = get_latest_tag()
+    unreleased_commits = get_commits_between_tags(latest_tag, None)
+
+    # If current commit is tagged and matches latest tag, remove unreleased section
+    if current_commit_is_tagged and not unreleased_commits:
+        logger.debug("Current commit is tagged and up to date - removing unreleased section")
+        unreleased_line = find_unreleased_section(existing_content)
+        if unreleased_line is not None:
+            end_line = find_end_of_unreleased_section(lines, unreleased_line)
+            # Remove entire unreleased section including header
+            del lines[unreleased_line:end_line]
+        return lines
+
+    # If no unreleased commits, don't add unreleased section
+    if not unreleased_commits:
+        logger.debug("No unreleased commits found - skipping unreleased section")
+        return lines
+
     # Find the unreleased section
     unreleased_line = find_unreleased_section(existing_content)
 
@@ -303,63 +324,33 @@ def handle_unreleased_section(
             content_start_line += 1
         logger.debug(f"Content starts at line: {content_start_line}")
 
-        if replace_unreleased:
-            logger.debug("In replace mode - removing existing content and inserting new")
-            # Replace mode: Remove existing content and insert new content
-            # Replace the content between the Unreleased header and the next section
-            # Remove existing content
-            logger.debug(
-                f"Before deletion - lines[{content_start_line}:{end_line}]: {lines[content_start_line:end_line]}"
-            )
-            del lines[content_start_line:end_line]
-            logger.debug(f"Lines after deletion: {lines}")
+        # Always replace unreleased content - this keeps it fresh and up-to-date
+        logger.debug("Replacing existing unreleased content with fresh content")
+        # Replace the content between the Unreleased header and the next section
+        del lines[content_start_line:end_line]
 
-            # Insert new content with bullet limiting
-            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-            logger.debug(f"New entry lines before limiting: {new_entry_lines}")
-            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
-            logger.debug(f"Limited content lines: {limited_content_lines}")
+        # Insert new content with bullet limiting
+        new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+        limited_content_lines = limit_bullets_in_sections(new_entry_lines)
 
-            for line in reversed(limited_content_lines):
-                lines.insert(content_start_line, line)
-            logger.debug(f"Lines after insertion: {lines}")
-        else:
-            logger.debug("In append mode - preserving existing content and appending new")
-            # Append mode: Preserve existing content and append new AI content
-            # Apply bullet limiting to new content only (don't affect existing content)
-            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-
-            # Remove the ## [Unreleased] header from new content since we're appending to existing section
-            content_lines = []
-            for line in new_entry_lines:
-                if not re.match(r"##\s*\[unreleased\]", line, re.IGNORECASE):
-                    content_lines.append(line)
-
-            # Apply bullet limiting to new content
-            limited_new_entry_lines = limit_bullets_in_sections(content_lines)
-
-            # Insert limited new content at the end of the existing unreleased section content
-            # The insertion point should be just before the next section (end_line)
-            insert_point = end_line
-            logger.debug(f"Inserting at position {insert_point}: {limited_new_entry_lines}")
-            for line in reversed(limited_new_entry_lines):
-                lines.insert(insert_point, line)
+        for line in reversed(limited_content_lines):
+            lines.insert(content_start_line, line)
     else:
-        # No existing unreleased section - only create one if current commit is not tagged
-        if not current_commit_is_tagged:
-            insert_line = find_insertion_point(existing_content)
+        # No existing unreleased section - create one if there are unreleased commits
+        logger.debug("Creating new unreleased section")
+        insert_line = find_insertion_point(existing_content)
 
-            # Insert new content with bullet limiting
-            new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
-            limited_content_lines = limit_bullets_in_sections(new_entry_lines)
+        # Insert new content with bullet limiting
+        new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+        limited_content_lines = limit_bullets_in_sections(new_entry_lines)
 
-            # Add a blank line before inserting if needed
-            if insert_line > 0 and lines[insert_line - 1].strip():
-                lines.insert(insert_line, "")
-                insert_line += 1
+        # Add a blank line before inserting if needed
+        if insert_line > 0 and lines[insert_line - 1].strip():
+            lines.insert(insert_line, "")
+            insert_line += 1
 
-            for line in reversed(limited_content_lines):
-                lines.insert(insert_line, line)
+        for line in reversed(limited_content_lines):
+            lines.insert(insert_line, line)
 
     return lines
 
@@ -524,7 +515,7 @@ def update_changelog(
 
     # Route to appropriate handler based on whether this is unreleased or tagged content
     if to_tag is None:
-        lines = handle_unreleased_section(lines, new_entry, existing_content, replace_unreleased, current_commit_is_tagged)
+        lines = handle_unreleased_section(lines, new_entry, existing_content, current_commit_is_tagged)
     else:
         lines = handle_tagged_version(lines, new_entry, tag_name, existing_content)
 

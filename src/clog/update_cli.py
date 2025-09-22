@@ -23,8 +23,6 @@ config = load_config()
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
-@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
 @click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
@@ -51,8 +49,6 @@ def update_version(
     from_tag,
     to_tag,
     show_prompt,
-    replace_unreleased,
-    no_replace_unreleased,
     all,
 ):
     """Update changelog for a specific version or all missing tags if no version specified.
@@ -83,19 +79,6 @@ def update_version(
 
         # If no version is specified, process all tags (update behavior)
         if version is None:
-            # Handle conflicting flags
-            if replace_unreleased and no_replace_unreleased:
-                click.echo("Error: --replace-unreleased and --no-replace-unreleased cannot be used together")
-                sys.exit(2)
-
-            # Determine replace_unreleased value
-            if no_replace_unreleased:
-                replace_unreleased_value = False
-            elif replace_unreleased is not None:
-                replace_unreleased_value = replace_unreleased
-            else:
-                replace_unreleased_value = None
-
             # Run main business logic with update behavior (process all tags)
             success = main_business_logic(
                 changelog_file=file,
@@ -107,7 +90,6 @@ def update_version(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
-                replace_unreleased=replace_unreleased_value,
                 update_all_entries=True,  # Update command processes all entries by default
             )
 
@@ -148,7 +130,6 @@ def update_version(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
-            replace_unreleased=True,  # Always overwrite for specific versions
         )
 
         if not success:

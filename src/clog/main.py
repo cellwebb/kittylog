@@ -41,7 +41,6 @@ def handle_unreleased_mode(
     hint: str,
     show_prompt: bool,
     quiet: bool,
-    replace_unreleased: bool | None = None,
 ) -> str:
     """Handle unreleased changes workflow."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
@@ -66,11 +65,7 @@ def handle_unreleased_mode(
     latest_tag = get_latest_tag()
     logger.debug(f"Latest tag: {latest_tag}")
 
-    # Update changelog for unreleased changes only
-    replace_unreleased_value = (
-        replace_unreleased if replace_unreleased is not None else bool(config.get("replace_unreleased", True))
-    )
-    logger.debug(f"Calling update_changelog with replace_unreleased_value: {replace_unreleased_value}")
+    # Update changelog for unreleased changes only - always replace in special unreleased mode
     updated_content = update_changelog(
         existing_content=changelog_content,
         from_tag=latest_tag,
@@ -79,7 +74,7 @@ def handle_unreleased_mode(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
-        replace_unreleased=replace_unreleased_value,
+        replace_unreleased=True,  # Always replace in special unreleased mode
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
     return updated_content
@@ -242,7 +237,6 @@ def handle_tag_range_mode(
     hint: str,
     show_prompt: bool,
     quiet: bool,
-    replace_unreleased: bool | None,
     special_unreleased_mode: bool = False,
 ) -> str:
     """Handle tag range processing workflow."""
@@ -270,13 +264,7 @@ def handle_tag_range_mode(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
-        replace_unreleased=True
-        if special_unreleased_mode
-        else (
-            replace_unreleased
-            if replace_unreleased is not None
-            else bool(config.get("replace_unreleased", True))
-        ),
+        replace_unreleased=True,  # Always replace - smart behavior is handled in update_changelog
     )
 
     return changelog_content
@@ -292,7 +280,6 @@ def main_business_logic(
     require_confirmation: bool = True,
     quiet: bool = False,
     dry_run: bool = False,
-    replace_unreleased: bool | None = None,
     special_unreleased_mode: bool = False,
     update_all_entries: bool = False,
 ) -> bool:
@@ -336,7 +323,7 @@ def main_business_logic(
     try:
         if special_unreleased_mode:
             changelog_content = handle_unreleased_mode(
-                changelog_file, model, hint, show_prompt, quiet, replace_unreleased
+                changelog_file, model, hint, show_prompt, quiet
             )
         elif from_tag is None and to_tag is None:
             changelog_content = handle_auto_mode(
@@ -348,7 +335,7 @@ def main_business_logic(
             )
         else:
             changelog_content = handle_tag_range_mode(
-                changelog_file, from_tag, to_tag, model, hint, show_prompt, quiet, replace_unreleased, special_unreleased_mode
+                changelog_file, from_tag, to_tag, model, hint, show_prompt, quiet, special_unreleased_mode
             )
     except Exception as e:
         handle_error(e)

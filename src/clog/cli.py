@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
-@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 # Changelog options
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
@@ -59,8 +57,6 @@ def add(
     dry_run,
     verbose,
     log_level,
-    replace_unreleased,
-    no_replace_unreleased,
     all,
     tag,
 ):
@@ -97,7 +93,6 @@ def add(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
-                replace_unreleased=True,  # Always overwrite for specific tags
             )
         else:
             # Default behavior: process all missing tags
@@ -111,7 +106,6 @@ def add(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
-                replace_unreleased=replace_unreleased,
             )
 
         if not success:
@@ -129,8 +123,6 @@ def add(
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
-@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
 @click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
@@ -156,25 +148,10 @@ def update_compat(
     dry_run,
     verbose,
     log_level,
-    replace_unreleased,
-    no_replace_unreleased,
     all,
     version,
 ):
     """Compatibility update command for integration tests."""
-
-    # Handle conflicting flags
-    if replace_unreleased and no_replace_unreleased:
-        click.echo("Error: --replace-unreleased and --no-replace-unreleased cannot be used together")
-        sys.exit(2)
-
-    # Determine replace_unreleased value
-    if no_replace_unreleased:
-        replace_unreleased_value = False
-    elif replace_unreleased is not None:
-        replace_unreleased_value = replace_unreleased
-    else:
-        replace_unreleased_value = None
 
     if all:
         # Update all entries - process all tags
@@ -188,7 +165,6 @@ def update_compat(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
-            replace_unreleased=replace_unreleased_value,
         )
     else:
         # Default behavior: process missing tags only
@@ -202,7 +178,6 @@ def update_compat(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
-            replace_unreleased=replace_unreleased_value,
         )
 
     if not success:
@@ -214,8 +189,6 @@ def update_compat(
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
-@click.option("--replace-unreleased", is_flag=True, help="Replace unreleased content instead of appending")
-@click.option("--no-replace-unreleased", is_flag=True, help="Append to unreleased content instead of replacing")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
 @click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
@@ -242,8 +215,6 @@ def unreleased(
     from_tag,
     to_tag,
     show_prompt,
-    replace_unreleased,
-    no_replace_unreleased,
     all,
 ):
     """Generate unreleased changelog entries from beginning to specified version or HEAD."""
@@ -258,19 +229,6 @@ def unreleased(
         effective_log_level = "ERROR"
     setup_logging(effective_log_level)
 
-    # Handle conflicting flags
-    if replace_unreleased and no_replace_unreleased:
-        click.echo("Error: --replace-unreleased and --no-replace-unreleased cannot be used together")
-        sys.exit(2)
-
-    # Determine replace_unreleased value
-    if no_replace_unreleased:
-        replace_unreleased_value = False
-    elif replace_unreleased is not None:
-        replace_unreleased_value = replace_unreleased
-    else:
-        replace_unreleased_value = None
-
     # Handle the special unreleased mode
     success = main_business_logic(
         changelog_file=file,
@@ -282,7 +240,6 @@ def unreleased(
         require_confirmation=not yes,
         quiet=quiet,
         dry_run=dry_run,
-        replace_unreleased=replace_unreleased_value,
         special_unreleased_mode=True,
     )
 
@@ -313,7 +270,6 @@ def cli(ctx, version):
             dry_run=False,
             verbose=False,
             log_level=None,
-            replace_unreleased=False,
             all=False,
             tag=None,
         )
