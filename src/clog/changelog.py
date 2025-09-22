@@ -62,6 +62,32 @@ def read_changelog(file_path: str) -> str:
         raise
 
 
+def find_existing_tags(content: str) -> set[str]:
+    """Find all existing tags in the changelog content.
+
+    Args:
+        content: The changelog content as a string
+
+    Returns:
+        Set of existing tag names
+    """
+    existing_tags = set()
+    lines = content.split("\n")
+
+    for line in lines:
+        # Match patterns like ## [0.1.0], ## [v0.1.0], ## [Unreleased], etc.
+        match = re.match(r"##\s*\[\s*v?([^\]]+)\s*\]", line, re.IGNORECASE)
+        if match:
+            tag_name = match.group(1).strip()
+            if tag_name.lower() != "unreleased":
+                # Normalize tag name by removing 'v' prefix if present
+                normalized_tag = tag_name.lstrip('v')
+                existing_tags.add(normalized_tag)
+
+    logger.debug(f"Found existing tags: {existing_tags}")
+    return existing_tags
+
+
 def find_unreleased_section(content: str) -> int | None:
     """Find the position of the [Unreleased] section in the changelog.
 
@@ -125,6 +151,11 @@ def find_version_section(content: str, version: str) -> tuple[int | None, int | 
         # Check if this is any section header
         if re.match(r"##\s*\[.*\]", lines[i], re.IGNORECASE):
             return start_line, i
+        # Also check for other types of section headers that might appear in AI output
+        if re.match(r"###\s+[A-Z][a-z]+", lines[i], re.IGNORECASE):
+            # If we find a sub-section header, and we haven't found another version header yet,
+            # continue looking for the real end of this version section
+            continue
 
     # If no next section found, the end of this section is the end of file
     return start_line, len(lines)
@@ -301,6 +332,9 @@ def update_changelog(
     # Format new entries
     # For both tagged releases and unreleased changes, we use the same formatting function
     new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date)
+
+    # Log the AI content for debugging
+    logger.debug(f"AI-generated content for {tag_name}: {ai_content}")
 
     # Find where to insert the new entry
     lines = existing_content.split("\n")

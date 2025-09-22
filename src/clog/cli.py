@@ -62,11 +62,15 @@ cli.add_command(init_cli)
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
-@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+@click.argument("tag", required=False)
 def update(
-    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, args
+    file, from_tag, to_tag, show_prompt, quiet, yes, hint, model, dry_run, verbose, log_level, preserve_existing, replace_unreleased, no_replace_unreleased, tag
 ):
-    """Update changelog with AI-generated content."""
+    """Update changelog with AI-generated content.
+
+    When run without arguments, processes all tags missing from changelog.
+    When run with a specific tag, processes only that tag (overwrites if exists).
+    """
     try:
         effective_log_level = log_level or config["log_level"]
         if verbose and effective_log_level not in ("DEBUG", "INFO"):
@@ -76,27 +80,42 @@ def update(
         setup_logging(effective_log_level)
         logger.info("Starting changelog-updater")
 
-        # Determine the final replace_unreleased value
-        # --no-replace-unreleased takes precedence over --replace-unreleased
-        final_replace_unreleased = None
-        if no_replace_unreleased:
-            final_replace_unreleased = False
-        elif replace_unreleased:
-            final_replace_unreleased = True
+        # If a specific tag is provided, process only that tag
+        if tag:
+            # Normalize tag (remove 'v' prefix if present)
+            normalized_tag = tag.lstrip('v')
+            # Try to add 'v' prefix if not present (to match git tags)
+            git_tag = f"v{normalized_tag}" if not tag.startswith('v') else tag
 
-        success = main_business_logic(
-            changelog_file=file,
-            from_tag=from_tag,
-            to_tag=to_tag,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
-            require_confirmation=not yes,
-            quiet=quiet,
-            dry_run=dry_run,
-            preserve_existing=preserve_existing,
-            replace_unreleased=final_replace_unreleased,
-        )
+            # For specific tags, always overwrite the entry
+            success = main_business_logic(
+                changelog_file=file,
+                from_tag=from_tag,  # Will use get_previous_tag in main logic if None
+                to_tag=git_tag,  # Process the specific tag
+                model=model,
+                hint=hint,
+                show_prompt=show_prompt,
+                require_confirmation=not yes,
+                quiet=quiet,
+                dry_run=dry_run,
+                preserve_existing=preserve_existing,
+                replace_unreleased=True,  # Always overwrite for specific tags
+            )
+        else:
+            # Default behavior: process all missing tags
+            success = main_business_logic(
+                changelog_file=file,
+                from_tag=from_tag,
+                to_tag=to_tag,
+                model=model,
+                hint=hint,
+                show_prompt=show_prompt,
+                require_confirmation=not yes,
+                quiet=quiet,
+                dry_run=dry_run,
+                preserve_existing=preserve_existing,
+                replace_unreleased=replace_unreleased,
+            )
 
         if not success:
             sys.exit(1)
@@ -110,6 +129,56 @@ def update(
 
 # Add the update command
 cli.add_command(update)
+
+
+@click.command()
+@click.argument("version", required=False)
+@click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
+@click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
+@click.option("--model", "-m", default=None, help="Override default model")
+@click.option("--hint", "-h", default="", help="Additional context for the prompt")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
+@click.option(
+    "--log-level",
+    type=click.Choice(Logging.LEVELS, case_sensitive=False),
+    help="Set log level",
+)
+def unreleased(version, dry_run, yes, file, model, hint, quiet, verbose, log_level):
+    """Generate unreleased changelog entries from beginning to specified version or HEAD."""
+    # Import here to avoid circular imports
+    from clog.main import main_business_logic
+
+    # Set up logging
+    effective_log_level = log_level or config["log_level"]
+    if verbose and effective_log_level not in ("DEBUG", "INFO"):
+        effective_log_level = "INFO"
+    if quiet:
+        effective_log_level = "ERROR"
+    setup_logging(effective_log_level)
+
+    # Handle the special unreleased mode
+    success = main_business_logic(
+        changelog_file=file,
+        from_tag=None,  # Start from beginning of history
+        to_tag=version,  # End at specified version (or None for HEAD)
+        model=model,
+        hint=hint,
+        show_prompt=False,
+        require_confirmation=not yes,
+        quiet=quiet,
+        dry_run=dry_run,
+        preserve_existing=False,
+        replace_unreleased=True,  # Always overwrite unreleased content
+        special_unreleased_mode=True,
+    )
+
+    if not success:
+        sys.exit(1)
+
+# Add the unreleased command
+cli.add_command(unreleased, "unreleased")
 
 
 if __name__ == "__main__":

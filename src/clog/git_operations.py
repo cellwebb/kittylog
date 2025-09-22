@@ -68,6 +68,49 @@ def get_latest_tag() -> str | None:
     return tags[-1] if tags else None
 
 
+def get_previous_tag(target_tag: str) -> str | None:
+    """Get the tag that comes before the target tag in version order.
+
+    Args:
+        target_tag: The tag to find the predecessor for
+
+    Returns:
+        The previous tag name, or None if target_tag is the first tag
+    """
+    try:
+        all_tags = get_all_tags()
+        if not all_tags:
+            return None
+
+        # Find the index of the target tag
+        try:
+            target_index = all_tags.index(target_tag)
+        except ValueError:
+            # If exact match not found, try with 'v' prefix variations
+            if target_tag.startswith('v'):
+                alt_tag = target_tag.lstrip('v')
+            else:
+                alt_tag = f'v{target_tag}'
+
+            try:
+                target_index = all_tags.index(alt_tag)
+                target_tag = alt_tag  # Use the matching tag name
+            except ValueError:
+                # Target tag not found in the list
+                return None
+
+        # Return the previous tag if it exists
+        if target_index > 0:
+            return all_tags[target_index - 1]
+        else:
+            # This is the first tag, so start from beginning of history
+            return None
+
+    except Exception as e:
+        logger.debug(f"Could not determine previous tag for {target_tag}: {e}")
+        return None
+
+
 def is_current_commit_tagged() -> bool:
     """Check if the current commit (HEAD) has a tag pointing to it.
 
@@ -248,3 +291,37 @@ def run_git_command(args: list[str], silent: bool = False, timeout: int = 30) ->
     """Run a git command and return the output."""
     command = ["git"] + args
     return run_subprocess(command, silent=silent, timeout=timeout, raise_on_error=False, strip_output=True)
+
+
+def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
+    """Get the git diff between two tags or from beginning to a tag.
+
+    Args:
+        from_tag: Starting tag (exclusive). If None, starts from beginning of history.
+        to_tag: Ending tag (inclusive). If None, goes to HEAD.
+
+    Returns:
+        String containing the git diff output
+    """
+    try:
+        # Build revision range for diff
+        if from_tag and to_tag:
+            rev_range = f"{from_tag}..{to_tag}"
+        elif from_tag:
+            rev_range = f"{from_tag}..HEAD"
+        elif to_tag:
+            # From beginning to specific tag
+            rev_range = to_tag
+        else:
+            # All changes from beginning to HEAD
+            rev_range = "HEAD"
+
+        logger.debug(f"Getting git diff for range: {rev_range}")
+
+        # Get the diff
+        diff_output = run_git_command(["diff", rev_range])
+        return diff_output
+
+    except Exception as e:
+        logger.debug(f"Could not get git diff: {e}")
+        return ""
