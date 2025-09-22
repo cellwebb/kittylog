@@ -92,6 +92,7 @@ class TestUpdateCommand:
 
         # Clean up created file
         import os
+
         if os.path.exists("CHANGES.md"):
             os.unlink("CHANGES.md")
 
@@ -126,6 +127,7 @@ class TestUpdateCommand:
 
         # Clean up created file
         import os
+
         if os.path.exists("CHANGES.md"):
             os.unlink("CHANGES.md")
 

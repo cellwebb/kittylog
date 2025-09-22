@@ -27,6 +27,7 @@ def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
     # Clear git cache before setting up new repo
     from clog.git_operations import clear_git_cache
+
     clear_git_cache()
 
     repo = Repo.init(temp_dir)
