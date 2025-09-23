@@ -1,10 +1,20 @@
-# kittylog Project Overview
+# Qwen Code Context for kittylog
 
-## Project Type
+## Project Overview
 
-This is a Python-based CLI tool for generating changelog entries using AI analysis of git commits and tags. The project follows the "Keep a Changelog" format and supports multiple AI providers.
+**kittylog** is an AI-powered changelog generator that automatically analyzes git tags and commits to create well-structured changelog entries following the [Keep a Changelog](https://keepachangelog.com/) format. The tool uses multiple AI providers to categorize changes into sections like Added, Changed, Fixed, etc.
 
-## Key Technologies
+### Key Features
+
+- **LLM-powered analysis** of commits, file changes, and code patterns to categorize changes
+- **Multi-provider support** for Anthropic, OpenAI, Groq, Cerebras, Ollama models
+- **Smart tag detection** - automatically detects which tags need changelog entries
+- **Keep a Changelog format** with proper Added/Changed/Fixed categorization
+- **Unreleased section** tracking for commits since last tag
+- **Interactive workflow** - review and approve content before saving
+- **Intelligent version detection** - avoids duplicates by comparing with existing changelog
+
+### Technologies Used
 
 - Python 3.10+
 - GitPython for git operations
@@ -13,12 +23,28 @@ This is a Python-based CLI tool for generating changelog entries using AI analys
 - Pydantic for data validation
 - Rich for terminal output formatting
 - pytest for testing
+- ruff for linting and formatting
 
 ## Project Structure
 
 ```
 .
 ├── src/kittylog/           # Main source code
+│   ├── __init__.py
+│   ├── __version__.py      # Version information
+│   ├── ai.py               # AI integration for changelog generation
+│   ├── changelog.py        # Changelog operations and parsing
+│   ├── cli.py              # CLI entry point and command definitions
+│   ├── config.py           # Configuration loading and validation
+│   ├── constants.py        # Application constants
+│   ├── errors.py           # Error handling
+│   ├── git_operations.py   # Git operations for tag-based changelog generation
+│   ├── main.py             # Business logic for changelog workflow
+│   ├── output.py           # Unified output management
+│   ├── postprocess.py      # Changelog content post-processing
+│   ├── prompt.py           # AI prompt construction
+│   ├── utils.py            # Utility functions
+│   └── init_changelog.py   # Changelog initialization functionality
 ├── tests/                  # Test suite
 ├── assets/                 # Documentation assets
 ├── .github/workflows/      # CI/CD workflows
@@ -28,28 +54,24 @@ This is a Python-based CLI tool for generating changelog entries using AI analys
 ├── AGENTS.md               # AI agent documentation
 ├── pyproject.toml          # Project configuration and dependencies
 ├── Makefile                # Development commands
-└── CHANGELOG.md            # Project changelog (maintained by kittylog itself)
+├── CHANGELOG.md            # Project changelog (maintained by kittylog itself)
+└── QWEN.md                 # This file
 ```
-
-## Core Functionality
-
-- Automatically detects git tags missing from the changelog
-- Analyzes commits between tags using AI to categorize changes
-- Generates changelog entries in Keep a Changelog format (Added/Changed/Fixed sections)
-- Supports multiple AI providers (Anthropic, OpenAI, Groq, Cerebras, Ollama)
-- Interactive workflow with preview and confirmation
-- Maintains an "Unreleased" section for commits since last tag
 
 ## Building and Running
 
 ### Installation
 
-```bash
-# Try without installing
+**Try without installing:**
+
+```sh
 uvx kittylog init  # Set up configuration
 uvx kittylog       # Generate changelog
+```
 
-# Install permanently
+**Install permanently:**
+
+```sh
 pipx install kittylog
 kittylog init  # Interactive setup
 ```
@@ -132,6 +154,7 @@ make quickstart         # Quick setup for new contributors
 - Follow Keep a Changelog format for changelog entries
 - Use conventional commit messages
 - All code quality checks are run through pre-commit hooks
+- Use `uv` or `uvx` for package management and tool execution instead of `pip` when possible, including for tools like `ruff`
 
 ## AI Integration
 
@@ -145,6 +168,32 @@ The project uses the `aisuite` library to support multiple AI providers:
 
 Configuration is handled through environment variables or the `~/.kittylog.env` file.
 
+## Core Modules
+
+### CLI (`src/kittylog/cli.py`)
+
+The command-line interface that defines all available commands and options. Uses Click for argument parsing.
+
+### Main Business Logic (`src/kittylog/main.py`)
+
+Orchestrates the changelog update workflow including git operations, AI generation, and file updates.
+
+### AI Integration (`src/kittylog/ai.py`)
+
+Handles AI model integration for generating changelog entries from commit data using aisuite.
+
+### Git Operations (`src/kittylog/git_operations.py`)
+
+Provides Git operations specifically focused on tag-based changelog generation.
+
+### Changelog Operations (`src/kittylog/changelog.py`)
+
+Handles reading, parsing, and updating changelog files using AI-generated content.
+
+### Configuration (`src/kittylog/config.py`)
+
+Loads configuration from environment variables and .env files with proper precedence.
+
 ## Contributing
 
 Contributions are welcome! See CONTRIBUTING.md for detailed guidelines on:
@@ -154,3 +203,33 @@ Contributions are welcome! See CONTRIBUTING.md for detailed guidelines on:
 - Testing practices
 - Adding new AI providers
 - Submitting pull requests
+
+## Environment Variables
+
+The tool can be configured through environment variables or a `~/.kittylog.env` file:
+
+- `KITTYLOG_MODEL` - AI model to use (e.g., "openai:gpt-4", "anthropic:claude-3-5-sonnet-latest")
+- `KITTYLOG_TEMPERATURE` - AI model temperature (0.0-2.0, default: 0.7)
+- `KITTYLOG_MAX_OUTPUT_TOKENS` - Maximum output tokens (default: 1024)
+- `KITTYLOG_RETRIES` - Maximum retry attempts (default: 3)
+- `KITTYLOG_LOG_LEVEL` - Log level (DEBUG, INFO, WARNING, ERROR, default: WARNING)
+
+API keys for different providers:
+
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `GROQ_API_KEY`
+- `OLLAMA_HOST`
+- Provider-specific keys as required
+
+## Testing
+
+The project has comprehensive test coverage with 200+ tests. Tests are written using pytest and can be run with:
+
+```bash
+make test
+# or
+pytest
+```
+
+Tests are isolated from global configuration files to prevent side effects during execution.
