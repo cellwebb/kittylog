@@ -17,7 +17,10 @@ install-dev: ## Install development dependencies
 	pre-commit install
 
 # Testing
-test: ## Run tests
+test: ## Run tests (excluding actual API calls)
+	pytest --ignore=tests/test_actual_provider_integration.py
+
+test-all: ## Run all tests including actual API calls
 	pytest
 
 test-coverage: ## Run tests with coverage report

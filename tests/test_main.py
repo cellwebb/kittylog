@@ -760,6 +760,7 @@ class TestMainLogicConfiguration:
         assert mock_update.call_count == 2
         # Should use the CLI model, not config model
 
+
 class TestMainLogicLogging:
     """Test logging behavior in main business logic."""
 

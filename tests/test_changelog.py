@@ -419,7 +419,6 @@ class TestUpdateChangelog:
         assert "Bug fix" in result
 
 
-
 class TestChangelogIO:
     """Test changelog file I/O operations."""
 

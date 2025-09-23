@@ -214,19 +214,38 @@ def mock_questionary():
 @pytest.fixture(autouse=True)
 def mock_api_calls():
     """Automatically mock API calls in all tests."""
-    with patch("kittylog.ai.ai.Client") as mock_client_class:
-        mock_client = Mock()
+    # Mock httpx.post for all providers
+    with patch("kittylog.ai_providers.httpx.post") as mock_post:
+        # Create mock response for HTTP calls
         mock_response = Mock()
-        mock_choice = Mock()
-        mock_message = Mock()
+        mock_response.raise_for_status.return_value = None  # Don't raise exceptions
 
-        mock_message.content = "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"
-        mock_choice.message = mock_message
-        mock_response.choices = [mock_choice]
-        mock_client.chat.completions.create.return_value = mock_response
-        mock_client_class.return_value = mock_client
+        # Default response that works for most providers
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}}]
+        }
 
-        yield mock_client
+        # For Anthropic provider, which has a different response format
+        anthropic_response = {"content": [{"text": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}]}
+
+        # Configure the mock to return appropriate responses based on URL
+        def side_effect(*args, **kwargs):
+            url = args[0] if args else kwargs.get("url", "")
+            if "anthropic" in url:
+                mock_response.json.return_value = anthropic_response
+            elif "ollama" in url:
+                mock_response.json.return_value = {
+                    "message": {"content": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}
+                }
+            else:
+                mock_response.json.return_value = {
+                    "choices": [{"message": {"content": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}}]
+                }
+            return mock_response
+
+        mock_post.side_effect = side_effect
+
+        yield mock_post
 
 
 @pytest.fixture

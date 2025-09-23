@@ -39,13 +39,6 @@ def classify_error(error: Exception) -> str:
         return "unknown"
 
 
-# Export the functions that tests expect to be able to patch
-# This maintains backward compatibility with existing tests
-build_changelog_prompt = build_changelog_prompt
-clean_changelog_content = clean_changelog_content
-count_tokens = count_tokens
-generate_with_retries = generate_with_retries
-classify_error = classify_error
 
 
 def generate_changelog_entry(

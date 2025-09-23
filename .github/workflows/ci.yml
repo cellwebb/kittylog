@@ -27,6 +27,8 @@ on:
       - "docs/**"
       - "examples/**"
       - "scripts/**"
+      # Integration tests that require API keys
+      - "tests/test_provider_integration.py"
 
 jobs:
   lint:
@@ -80,7 +82,7 @@ jobs:
           uv pip install --system .
 
       - name: Run pytest with coverage
-        run: pytest --cov=kittylog --cov-report=xml -s
+        run: pytest --cov=kittylog --cov-report=xml -s --ignore=tests/test_provider_integration.py
 
       - name: Upload coverage reports to Codecov
         if: matrix.python-version == '3.11' # Only upload coverage once
