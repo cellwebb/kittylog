@@ -25,31 +25,31 @@ classifiers = [
 ]
 dependencies = [
     # AI components - base providers
-    "aisuite",
-    "anthropic",
-    "cerebras_cloud_sdk",
-    "groq", 
-    "ollama",
-    "openai",
-    "tiktoken",
-    
+    "aisuite>=0.1.11",
+    "anthropic>=0.68.0",
+    "cerebras_cloud_sdk==1.49.0",
+    "groq>=0.31.1",
+    "ollama>=0.5.4",
+    "openai>=1.108.1",
+    "tiktoken>=0.11.0",
+
     # Core functionality
-    "pydantic",
-    "python-dotenv",
+    "pydantic>=2.11.9",
+    "python-dotenv>=1.1.1",
     "docstring_parser",  # needed by aisuite but not in their deps
-    
+
     # CLI and formatting
-    "click",
+    "click>=8.3.0",
     "halo",
     "questionary",
-    "rich",
-    
+    "rich>=14.1.0",
+
     # Code formatting
     "black",
     "isort",
-    
+
     # Git operations
-    "GitPython",
+    "GitPython>=3.1.45",
 ]
 
 [project.scripts]

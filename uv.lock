@@ -156,7 +156,7 @@ wheels = [
 
 [[package]]
 name = "cerebras-cloud-sdk"
-version = "1.50.1"
+version = "1.49.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -166,9 +166,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/97/5b/1c11c9698d4d0a17d8255dc9dd439ee7cf7f9083a1250358ef298a6ca4fa/cerebras_cloud_sdk-1.50.1.tar.gz", hash = "sha256:10e91d26a08779cdf0b84deac7d1d899e6cf8eb0c89909dd75803a11e7b51caa", size = 121201 }
+sdist = { url = "https://files.pythonhosted.org/packages/94/3e/d992d8d26c20b2946227fff5ce3dc303b65a7df8943d762b3d284d16bd86/cerebras_cloud_sdk-1.49.0.tar.gz", hash = "sha256:715786b0c3022708c7c2d892578a632a0f07f876fa8460de990d84b85cc81ebd", size = 120714 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/8a/19ea27186bc449ab97e1d1f149b0d712e5d53bb69eb93803792b52abfab1/cerebras_cloud_sdk-1.50.1-py3-none-any.whl", hash = "sha256:2f6c31301762075dd254d66c5f6083375ea4b44efb0d7d3ddd17783df62fd2d6", size = 91779 },
+    { url = "https://files.pythonhosted.org/packages/22/2b/a7f8cc2662543e077f651074cfd74876f312a4c7d697ef8e62fd693d9a3f/cerebras_cloud_sdk-1.49.0-py3-none-any.whl", hash = "sha256:20043304a8a85761b741bf66c828eb1e9b248730b60178fdc23b1ef883756685", size = 91422 },
 ]
 
 [[package]]
@@ -307,83 +307,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/46/61/de6cd827efad202d7057d93e0fed9294b96952e188f7384832791c7b2254/click-8.3.0.tar.gz", hash = "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4", size = 276943 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/db/d3/9dcc0f5797f070ec8edf30fbadfb200e71d9db6b84d211e3b2085a7589a0/click-8.3.0-py3-none-any.whl", hash = "sha256:9b9f285302c6e3064f4330c05f05b81945b2a39544279343e6e7c5f27a9baddc", size = 107295 },
-]
-
-[[package]]
-name = "kittylog"
-source = { editable = "." }
-dependencies = [
-    { name = "aisuite" },
-    { name = "anthropic" },
-    { name = "black" },
-    { name = "cerebras-cloud-sdk" },
-    { name = "click" },
-    { name = "docstring-parser" },
-    { name = "gitpython" },
-    { name = "groq" },
-    { name = "halo" },
-    { name = "isort" },
-    { name = "ollama" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "questionary" },
-    { name = "rich" },
-    { name = "tiktoken" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "build" },
-    { name = "bump-my-version" },
-    { name = "codecov" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "twine" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aisuite" },
-    { name = "anthropic" },
-    { name = "black" },
-    { name = "build", marker = "extra == 'dev'" },
-    { name = "bump-my-version", marker = "extra == 'dev'" },
-    { name = "cerebras-cloud-sdk" },
-    { name = "click" },
-    { name = "codecov", marker = "extra == 'dev'" },
-    { name = "docstring-parser" },
-    { name = "gitpython" },
-    { name = "groq" },
-    { name = "halo" },
-    { name = "isort" },
-    { name = "ollama" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "python-dotenv" },
-    { name = "questionary" },
-    { name = "rich" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "tiktoken" },
-    { name = "twine", marker = "extra == 'dev'" },
-]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-asyncio", specifier = ">=1.2.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 
 [[package]]
@@ -863,6 +786,83 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/70/09/d904a6e96f76ff214be59e7aa6ef7190008f52a0ab6689760a98de0bf37d/keyring-25.6.0.tar.gz", hash = "sha256:0b39998aa941431eb3d9b0d4b2460bc773b9df6fed7621c2dfb291a7e0187a66", size = 62750 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d3/32/da7f44bcb1105d3e88a0b74ebdca50c59121d2ddf71c9e34ba47df7f3a56/keyring-25.6.0-py3-none-any.whl", hash = "sha256:552a3f7af126ece7ed5c89753650eec89c7eaae8617d0aa4d9ad2b75111266bd", size = 39085 },
+]
+
+[[package]]
+name = "kittylog"
+source = { editable = "." }
+dependencies = [
+    { name = "aisuite" },
+    { name = "anthropic" },
+    { name = "black" },
+    { name = "cerebras-cloud-sdk" },
+    { name = "click" },
+    { name = "docstring-parser" },
+    { name = "gitpython" },
+    { name = "groq" },
+    { name = "halo" },
+    { name = "isort" },
+    { name = "ollama" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "questionary" },
+    { name = "rich" },
+    { name = "tiktoken" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "build" },
+    { name = "bump-my-version" },
+    { name = "codecov" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "twine" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aisuite", specifier = ">=0.1.11" },
+    { name = "anthropic", specifier = ">=0.68.0" },
+    { name = "black" },
+    { name = "build", marker = "extra == 'dev'" },
+    { name = "bump-my-version", marker = "extra == 'dev'" },
+    { name = "cerebras-cloud-sdk", specifier = "==1.49.0" },
+    { name = "click", specifier = ">=8.3.0" },
+    { name = "codecov", marker = "extra == 'dev'" },
+    { name = "docstring-parser" },
+    { name = "gitpython", specifier = ">=3.1.45" },
+    { name = "groq", specifier = ">=0.31.1" },
+    { name = "halo" },
+    { name = "isort" },
+    { name = "ollama", specifier = ">=0.5.4" },
+    { name = "openai", specifier = ">=1.108.1" },
+    { name = "pydantic", specifier = ">=2.11.9" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "questionary" },
+    { name = "rich", specifier = ">=14.1.0" },
+    { name = "ruff", marker = "extra == 'dev'" },
+    { name = "tiktoken", specifier = ">=0.11.0" },
+    { name = "twine", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 
 [[package]]
