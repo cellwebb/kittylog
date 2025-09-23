@@ -106,15 +106,9 @@ def update_version(
         existing_tags = find_existing_tags(existing_content)
 
         if normalized_version in existing_tags:
-            if not yes and click.confirm(f"Version {version} already exists in changelog. Overwrite it?"):
-                # Proceed with overwriting
-                click.echo(f"Overwriting existing entry for {version}")
-            elif yes:
-                # Automatic overwrite
-                click.echo(f"Overwriting existing entry for {version} (automatic mode)")
-            else:
-                click.echo("Update cancelled.")
-                return
+            # When updating a specific version, always overwrite existing entry
+            if not quiet:
+                click.echo(f"Updating existing entry for {version}")
 
         # Get previous tag for commit range
         previous_tag = get_previous_tag(git_version)
