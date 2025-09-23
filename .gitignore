@@ -164,11 +164,20 @@ cython_debug/
 # macOS
 .DS_Store
 
+# Agents
+.claude/
+.crush/
+.gemini/
+.llxprt/
+.qwen/
+CLAUDE.md
+CRUSH.md
+GEMINI.md
+LLXPRT.md
+QWEN.md
+
+
 # Project-specific
 *.log
 .kittylog.env
-.claude/settings.local.json
 test_changelog.md
-CRUSH.md
-CLAUDE.md
-LLXPRT.md
