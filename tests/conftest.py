@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for clog tests."""
+"""Pytest configuration and fixtures for kittylog tests."""
 
 import os
 import tempfile
@@ -26,7 +26,7 @@ def temp_dir():
 def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
     # Clear git cache before setting up new repo
-    from clog.git_operations import clear_git_cache
+    from kittylog.git_operations import clear_git_cache
 
     clear_git_cache()
 
@@ -196,14 +196,14 @@ def mock_config():
 @pytest.fixture
 def mock_console():
     """Mock rich console for testing."""
-    with patch("clog.utils.console") as mock:
+    with patch("kittylog.utils.console") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_questionary():
     """Mock questionary for testing CLI interactions."""
-    with patch("clog.init_cli.questionary") as mock:
+    with patch("kittylog.init_cli.questionary") as mock:
         # Set up default responses
         mock.select.return_value.ask.return_value = "Anthropic"
         mock.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
@@ -214,7 +214,7 @@ def mock_questionary():
 @pytest.fixture(autouse=True)
 def mock_api_calls():
     """Automatically mock API calls in all tests."""
-    with patch("clog.ai.ai.Client") as mock_client_class:
+    with patch("kittylog.ai.ai.Client") as mock_client_class:
         mock_client = Mock()
         mock_response = Mock()
         mock_choice = Mock()
@@ -232,7 +232,7 @@ def mock_api_calls():
 @pytest.fixture
 def mock_tiktoken():
     """Mock tiktoken for token counting."""
-    with patch("clog.utils.tiktoken") as mock:
+    with patch("kittylog.utils.tiktoken") as mock:
         mock_encoding = Mock()
         mock_encoding.encode.return_value = [1, 2, 3, 4, 5]  # 5 tokens
         mock.encoding_for_model.return_value = mock_encoding
@@ -245,9 +245,9 @@ def mock_tiktoken():
 def mock_all_git_operations():
     """Mock all git operations for isolated testing."""
     with (
-        patch("clog.git_operations.get_repo") as mock_get_repo,
-        patch("clog.git_operations.get_all_tags") as mock_get_tags,
-        patch("clog.git_operations.get_commits_between_tags") as mock_get_commits,
+        patch("kittylog.git_operations.get_repo") as mock_get_repo,
+        patch("kittylog.git_operations.get_all_tags") as mock_get_tags,
+        patch("kittylog.git_operations.get_commits_between_tags") as mock_get_commits,
     ):
         # Set up defaults
         mock_repo = Mock()

@@ -1,12 +1,13 @@
-# clog Improvement Plan
+# kittylog Improvement Plan
 
 ## Executive Summary
 
-The clog project is a well-designed AI-powered changelog generator with solid architecture and comprehensive testing. This improvement plan addresses identified technical debt, code complexity issues, and user experience enhancements to make the project more maintainable, performant, and user-friendly.
+The kittylog project is a well-designed AI-powered changelog generator with solid architecture and comprehensive testing. This improvement plan addresses identified technical debt, code complexity issues, and user experience enhancements to make the project more maintainable, performant, and user-friendly.
 
 ## Recent Completions ✅
 
 ### Enhanced Changelog File Support (Completed)
+
 - **Added support for `CHANGES.md` and `changes.md`** in addition to existing `CHANGELOG.md` and `changelog.md`
 - **Implemented auto-detection** with priority order: `CHANGELOG.md` > `changelog.md` > `CHANGES.md` > `changes.md`
 - **Updated git diff exclusions** to include all changelog file variants
@@ -14,6 +15,7 @@ The clog project is a well-designed AI-powered changelog generator with solid ar
 - **All tests passing** - 216 tests successfully updated and verified
 
 ### Documentation Improvements (Completed)
+
 - **Created `AGENTS.md`** - Documents AI agent architecture and integration points
 - **Created `USAGE.md`** - Comprehensive command reference and examples
 - **Updated `CONTRIBUTING.md`** - Enhanced development setup instructions and code quality guidelines
@@ -22,12 +24,15 @@ The clog project is a well-designed AI-powered changelog generator with solid ar
 ## Priority Matrix
 
 ### 🔴 High Priority (Immediate Impact)
+
 **Focus: Code maintainability and bug prevention**
 
 ### 🟡 Medium Priority (Quality of Life)
+
 **Focus: Developer experience and performance**
 
 ### 🟢 Low Priority (Future Enhancements)
+
 **Focus: Extensibility and advanced features**
 
 ---
@@ -35,11 +40,13 @@ The clog project is a well-designed AI-powered changelog generator with solid ar
 ## 🔴 High Priority Improvements
 
 ### 1. Refactor Main Business Logic
+
 **Problem**: `main_business_logic()` function is 288 lines with multiple responsibilities
 **Impact**: Hard to test, debug, and maintain
-**Files**: `src/clog/main.py:38-326`
+**Files**: `src/kittylog/main.py:38-326`
 
 **Solution**:
+
 ```python
 def main_business_logic(...) -> bool:
     """Orchestrate changelog update workflow."""
@@ -62,28 +69,33 @@ def handle_auto_mode(...) -> bool:
 ```
 
 **Benefits**:
+
 - Improved testability
 - Clearer error handling
 - Easier debugging
 - Better code documentation
 
 ### 2. Simplify Changelog Update Logic
+
 **Problem**: `update_changelog()` function is 232 lines with complex nested conditionals
 **Impact**: Difficult to understand and modify changelog update behavior
-**Files**: `src/clog/changelog.py:284-516`
+**Files**: `src/kittylog/changelog.py:284-516`
 
 **Solution**:
+
 - Extract `handle_unreleased_section()` (~80 lines)
 - Extract `handle_tagged_version()` (~60 lines)
 - Extract `format_and_insert_content()` (~40 lines)
 - Keep main function as orchestrator (~50 lines)
 
 ### 3. Standardize Configuration Validation
+
 **Problem**: Repetitive environment variable validation patterns
 **Impact**: Code duplication, inconsistent error messages
-**Files**: `src/clog/config.py:128-201`
+**Files**: `src/kittylog/config.py:128-201`
 
 **Solution**:
+
 ```python
 def validate_env_var(
     name: str,
@@ -103,22 +115,26 @@ temperature = validate_env_var(
 ```
 
 ### 4. Remove Backward Compatibility for Old Environment Variables 🧹
+
 **Problem**: The codebase still supports deprecated `CHANGELOG_UPDATER_*` environment variable names
 **Impact**: Technical debt, maintenance overhead, potential user confusion
-**Files**: `src/clog/config.py` (multiple lines), `tests/conftest.py`, `tests/test_config.py`, `tests/test_integration.py`
+**Files**: `src/kittylog/config.py` (multiple lines), `tests/conftest.py`, `tests/test_config.py`, `tests/test_integration.py`
 
 **Solution**:
-- Remove all fallback logic for `CHANGELOG_UPDATER_*` variables in `src/clog/config.py`
+
+- Remove all fallback logic for `CHANGELOG_UPDATER_*` variables in `src/kittylog/config.py`
 - Update tests to only use `CLOG_*` environment variables
 - Clean up test fixtures and mock data that reference old variable names
 
 **Benefits**:
+
 - Simplified configuration loading logic
 - Reduced code complexity and maintenance burden
 - Clearer user experience with only one set of environment variables
 - Smaller codebase footprint
 
 **Current Backward Compatibility Code**:
+
 ```python
 # In config.py, all environment variable lookups follow this pattern:
 env_model = os.getenv("CLOG_MODEL") or os.getenv("CHANGELOG_UPDATER_MODEL")
@@ -127,11 +143,13 @@ env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_
 ```
 
 ### 5. Enhanced Changelog File Discovery in docs/ Directory 📁
+
 **Problem**: Auto-detection of changelog files only searches in the project root directory
 **Impact**: Users with changelog files in docs/ directory must manually specify the path
-**Files**: `src/clog/utils.py`, `src/clog/main.py`
+**Files**: `src/kittylog/utils.py`, `src/kittylog/main.py`
 
 **Solution**:
+
 - Modify `find_changelog_file()` function to search in docs/ directory in addition to project root
 - Maintain priority order: project root files take precedence over docs/ directory files
 - Keep existing search order: CHANGELOG.md > changelog.md > CHANGES.md > changes.md
@@ -139,6 +157,7 @@ env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_
 - Update tests to ensure this functionality works correctly
 
 **Benefits**:
+
 - Improved user experience for projects organizing documentation in docs/ directory
 - Automatic discovery of common changelog file locations
 - Maintains backward compatibility with existing behavior
@@ -149,11 +168,13 @@ env_temperature = os.getenv("CLOG_TEMPERATURE") or os.getenv("CHANGELOG_UPDATER_
 ## 🟡 Medium Priority Improvements
 
 ### 7. Implement Git Operation Caching
+
 **Problem**: Repeated calls to expensive git operations within single execution
 **Impact**: Performance degradation with large repositories
-**Files**: `src/clog/git_operations.py`
+**Files**: `src/kittylog/git_operations.py`
 
 **Solution**:
+
 ```python
 @lru_cache(maxsize=1)
 def get_all_tags() -> list[str]:
@@ -165,11 +186,13 @@ def get_current_commit_hash() -> str:
 ```
 
 ### 8. Create Unified Output Interface
+
 **Problem**: Mixed usage of `console.print()`, `click.echo()`, and `logger.*()`
 **Impact**: Inconsistent user experience, harder to test output
 **Files**: Multiple CLI and core files
 
 **Solution**:
+
 ```python
 class OutputManager:
     """Unified interface for all user-facing output."""
@@ -193,11 +216,13 @@ class OutputManager:
 ```
 
 ### 9. Reduce CLI Command Duplication
+
 **Problem**: Similar option definitions across CLI commands
 **Impact**: Maintenance overhead, inconsistent behavior
-**Files**: `src/clog/cli.py`
+**Files**: `src/kittylog/cli.py`
 
 **Solution**:
+
 ```python
 def common_options(f):
     """Decorator for common CLI options."""
@@ -213,10 +238,12 @@ def update(...):
 ```
 
 ### 10. Add Performance Monitoring
+
 **Problem**: No visibility into performance with large repositories
 **Impact**: Poor user experience with slow operations
 
 **Solution**:
+
 - Add execution time logging for major operations
 - Add progress indicators for long-running tasks
 - Implement configurable timeout limits
@@ -226,10 +253,12 @@ def update(...):
 ## 🟢 Low Priority Improvements
 
 ### 11. Enhanced Type Safety
+
 **Problem**: Some data structures use generic `dict` types
 **Impact**: Reduced IDE support and runtime safety
 
 **Solution**:
+
 ```python
 from typing import TypedDict
 
@@ -247,10 +276,12 @@ class TagInfo(TypedDict):
 ```
 
 ### 12. AI Provider Abstraction
+
 **Problem**: Hard-coded provider-specific logic
 **Impact**: Difficult to add new providers or customize behavior
 
 **Solution**:
+
 ```python
 class AIProvider(Protocol):
     def generate_changelog(
@@ -268,19 +299,23 @@ class OpenAIProvider(AIProvider):
 ```
 
 ### 13. Configuration Migration System
+
 **Problem**: Legacy environment variable names need deprecation path
 **Impact**: User confusion and maintenance overhead
 
 **Solution**:
+
 - Implement deprecation warnings for old variable names
 - Automatic migration of old configuration files
 - Clear migration documentation
 
 ### 14. Advanced Changelog Parsing
+
 **Problem**: Regex-based changelog parsing is brittle
 **Impact**: May break with markdown variations
 
 **Solution**:
+
 - Evaluate `mistletoe` or `markdown-it-py` for robust parsing
 - Implement fallback to regex for edge cases
 - Add validation for Keep a Changelog format compliance
@@ -290,6 +325,7 @@ class OpenAIProvider(AIProvider):
 ## Implementation Strategy
 
 ### Phase 1: Documentation & Foundation (100% Complete) ✅
+
 - [x] ✅ Enhanced changelog file support (`CHANGES.md`, `changes.md`)
 - [x] ✅ Created `AGENTS.md` documentation
 - [x] ✅ Created `USAGE.md` comprehensive command reference
@@ -298,6 +334,7 @@ class OpenAIProvider(AIProvider):
 - [x] ✅ Simplify `update_changelog()` function (233→116 lines)
 
 ### Phase 2: Code Quality & Performance (Weeks 1-2)
+
 - [x] ✅ Standardize configuration validation
 - [x] ✅ Remove backward compatibility for old environment variables
 - [x] ✅ Remove CLOG_REPLACE_UNRELEASED configuration complexity
@@ -308,6 +345,7 @@ class OpenAIProvider(AIProvider):
 - [ ] Add performance monitoring
 
 ### Phase 3: Advanced Architecture (Weeks 3-4)
+
 - [ ] Enhanced type safety with TypedDict
 - [ ] AI provider abstraction layer
 - [ ] Configuration migration system
@@ -316,6 +354,7 @@ class OpenAIProvider(AIProvider):
 ## Success Metrics
 
 ### Code Quality
+
 - [x] ✅ Reduce largest function size from 288 to <100 lines (main_business_logic: 288→106, update_changelog: 233→116)
 - [ ] Eliminate code duplication in CLI commands
 - [ ] Achieve 100% type annotation coverage
@@ -324,6 +363,7 @@ class OpenAIProvider(AIProvider):
 - [ ] Add performance benchmarks
 
 ### User Experience
+
 - [x] ✅ Enhanced changelog file support (CHANGES.md variants)
 - [x] ✅ Complete documentation coverage (AGENTS.md, USAGE.md created)
 - [x] ✅ Enhanced development documentation (CONTRIBUTING.md updated)
@@ -333,6 +373,7 @@ class OpenAIProvider(AIProvider):
 - [ ] Clear error messages with actionable guidance
 
 ### Performance
+
 - [ ] <50% execution time for cached git operations
 - [ ] Support repositories with 1000+ tags
 - [ ] Memory usage remains constant regardless of repository size
@@ -340,6 +381,7 @@ class OpenAIProvider(AIProvider):
 ## Risk Assessment
 
 ### Low Risk
+
 - Documentation fixes
 - Code refactoring (well-tested codebase)
 - Configuration improvements
@@ -347,21 +389,25 @@ class OpenAIProvider(AIProvider):
 - Changelog file discovery enhancement (well-tested codebase)
 
 ### Medium Risk
+
 - Output interface changes (may affect existing scripts)
 - Performance optimizations (could introduce regressions)
 
 ### High Risk
+
 - AI provider abstraction (major architectural change)
 - Changelog parsing changes (could break existing files)
 
 ## Dependencies and Prerequisites
 
 ### Required
+
 - No external dependencies for Phase 1
 - Existing test suite provides safety net
 - Linting and formatting already configured
 
 ### Optional
+
 - Consider adding `mistletoe` for markdown parsing
 - May need `cachetools` for more sophisticated caching
 - Performance monitoring could use `psutil`

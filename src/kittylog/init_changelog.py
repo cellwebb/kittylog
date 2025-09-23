@@ -5,8 +5,8 @@ from pathlib import Path
 
 import click
 
-from clog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
-from clog.git_operations import get_all_tags
+from kittylog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
+from kittylog.git_operations import get_all_tags
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def init_changelog(yes, file):
     """Initialize changelog if missing and offer to fill missing tag entries."""
     # Auto-detect changelog file if using default
     if file == "CHANGELOG.md":
-        from clog.utils import find_changelog_file
+        from kittylog.utils import find_changelog_file
 
         file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {file}")

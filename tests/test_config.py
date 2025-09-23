@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from clog.config import load_config, validate_config
-from clog.errors import ConfigError
+from kittylog.config import load_config, validate_config
+from kittylog.errors import ConfigError
 
 
 class TestLoadConfig:
@@ -26,12 +26,12 @@ class TestLoadConfig:
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
         # Set environment variables
-        monkeypatch.setenv("CLOG_MODEL", "anthropic:claude-3-5-haiku-latest")
-        monkeypatch.setenv("CLOG_TEMPERATURE", "0.5")
-        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "2048")
-        monkeypatch.setenv("CLOG_RETRIES", "5")
-        monkeypatch.setenv("CLOG_LOG_LEVEL", "DEBUG")
-        monkeypatch.setenv("CLOG_WARNING_LIMIT_TOKENS", "8192")
+        monkeypatch.setenv("KITTYLOG_MODEL", "anthropic:claude-3-5-haiku-latest")
+        monkeypatch.setenv("KITTYLOG_TEMPERATURE", "0.5")
+        monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "2048")
+        monkeypatch.setenv("KITTYLOG_RETRIES", "5")
+        monkeypatch.setenv("KITTYLOG_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("KITTYLOG_WARNING_LIMIT_TOKENS", "8192")
 
         config = load_config()
 
@@ -45,10 +45,10 @@ class TestLoadConfig:
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
         home_dir = isolated_config_test["home"]
-        user_env_file = home_dir / ".clog.env"
+        user_env_file = home_dir / ".kittylog.env"
 
-        user_env_file.write_text("""CLOG_MODEL=openai:gpt-4
-CLOG_TEMPERATURE=0.3
+        user_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
+KITTYLOG_TEMPERATURE=0.3
 OPENAI_API_KEY=sk-test123
 """)
 
@@ -62,10 +62,10 @@ OPENAI_API_KEY=sk-test123
     def test_load_config_from_project_env_file(self, isolated_config_test):
         """Test loading config from project-level .env file."""
         cwd = isolated_config_test["cwd"]
-        project_env_file = cwd / ".clog.env"
+        project_env_file = cwd / ".kittylog.env"
 
-        project_env_file.write_text("""CLOG_MODEL=groq:llama-4
-CLOG_MAX_OUTPUT_TOKENS=512
+        project_env_file.write_text("""KITTYLOG_MODEL=groq:llama-4
+KITTYLOG_MAX_OUTPUT_TOKENS=512
 """)
 
         config = load_config()
@@ -79,20 +79,20 @@ CLOG_MAX_OUTPUT_TOKENS=512
         cwd = isolated_config_test["cwd"]
 
         # Create user-level config
-        user_env_file = home_dir / ".clog.env"
-        user_env_file.write_text("""CLOG_MODEL=anthropic:claude-3-5-haiku-latest
-CLOG_TEMPERATURE=0.3
-CLOG_MAX_OUTPUT_TOKENS=1024
+        user_env_file = home_dir / ".kittylog.env"
+        user_env_file.write_text("""KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest
+KITTYLOG_TEMPERATURE=0.3
+KITTYLOG_MAX_OUTPUT_TOKENS=1024
 """)
 
         # Create project-level config (should override user config)
-        project_env_file = cwd / ".clog.env"
-        project_env_file.write_text("""CLOG_MODEL=openai:gpt-4
-CLOG_TEMPERATURE=0.5
+        project_env_file = cwd / ".kittylog.env"
+        project_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
+KITTYLOG_TEMPERATURE=0.5
 """)
 
         # Set environment variable (should override everything)
-        monkeypatch.setenv("CLOG_MODEL", "groq:llama-4")
+        monkeypatch.setenv("KITTYLOG_MODEL", "groq:llama-4")
 
         config = load_config()
 
@@ -106,9 +106,9 @@ CLOG_TEMPERATURE=0.5
     def test_load_config_invalid_values(self, isolated_config_test, monkeypatch):
         """Test handling of invalid configuration values."""
         # Set invalid values
-        monkeypatch.setenv("CLOG_TEMPERATURE", "invalid")
-        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "not_a_number")
-        monkeypatch.setenv("CLOG_RETRIES", "-1")
+        monkeypatch.setenv("KITTYLOG_TEMPERATURE", "invalid")
+        monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "not_a_number")
+        monkeypatch.setenv("KITTYLOG_RETRIES", "-1")
 
         config = load_config()
 
@@ -238,18 +238,18 @@ class TestConfigurationIntegration:
         cwd = isolated_config_test["cwd"]
 
         # Create user config
-        user_env_file = home_dir / ".clog.env"
+        user_env_file = home_dir / ".kittylog.env"
         user_env_file.write_text("""# User configuration
-CLOG_MODEL=anthropic:claude-3-5-haiku-latest
-CLOG_TEMPERATURE=0.3
+KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest
+KITTYLOG_TEMPERATURE=0.3
 ANTHROPIC_API_KEY=sk-ant-user123
 """)
 
         # Create project config
-        project_env_file = cwd / ".clog.env"
+        project_env_file = cwd / ".kittylog.env"
         project_env_file.write_text("""# Project overrides
-CLOG_TEMPERATURE=0.7
-CLOG_MAX_OUTPUT_TOKENS=2048
+KITTYLOG_TEMPERATURE=0.7
+KITTYLOG_MAX_OUTPUT_TOKENS=2048
 """)
 
         # Load and validate config
@@ -270,9 +270,9 @@ CLOG_MAX_OUTPUT_TOKENS=2048
         cwd = isolated_config_test["cwd"]
 
         # Create config with invalid values
-        project_env_file = cwd / ".clog.env"
-        project_env_file.write_text("""CLOG_TEMPERATURE=10.0
-CLOG_MAX_OUTPUT_TOKENS=-1
+        project_env_file = cwd / ".kittylog.env"
+        project_env_file.write_text("""KITTYLOG_TEMPERATURE=10.0
+KITTYLOG_MAX_OUTPUT_TOKENS=-1
 """)
 
         # Load config (should handle invalid values gracefully)
@@ -286,15 +286,15 @@ CLOG_MAX_OUTPUT_TOKENS=-1
         """Test configuration files with comments and empty lines."""
         home_dir = isolated_config_test["home"]
 
-        user_env_file = home_dir / ".clog.env"
+        user_env_file = home_dir / ".kittylog.env"
         user_env_file.write_text("""# Changelog Updater Configuration
 # AI Provider Settings
 
-CLOG_MODEL=anthropic:claude-3-5-haiku-latest
+KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest
 
 # Generation Settings
-CLOG_TEMPERATURE=0.5
-CLOG_MAX_OUTPUT_TOKENS=1024
+KITTYLOG_TEMPERATURE=0.5
+KITTYLOG_MAX_OUTPUT_TOKENS=1024
 
 # API Keys
 ANTHROPIC_API_KEY=sk-ant-test123
@@ -329,10 +329,10 @@ class TestConfigUtils:
     def test_config_type_conversion(self, isolated_config_test, monkeypatch):
         """Test that string values from env are properly converted to correct types."""
         # Set string values that should be converted
-        monkeypatch.setenv("CLOG_TEMPERATURE", "0.8")
-        monkeypatch.setenv("CLOG_MAX_OUTPUT_TOKENS", "2048")
-        monkeypatch.setenv("CLOG_RETRIES", "5")
-        monkeypatch.setenv("CLOG_WARNING_LIMIT_TOKENS", "32768")
+        monkeypatch.setenv("KITTYLOG_TEMPERATURE", "0.8")
+        monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "2048")
+        monkeypatch.setenv("KITTYLOG_RETRIES", "5")
+        monkeypatch.setenv("KITTYLOG_WARNING_LIMIT_TOKENS", "32768")
 
         config = load_config()
 

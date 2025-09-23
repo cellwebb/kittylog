@@ -1,4 +1,4 @@
-# Contributing to clog
+# Contributing to kittylog
 
 We love your input! We want to make contributing to this project as easy and transparent as possible, whether it's:
 
@@ -21,9 +21,10 @@ For a quick setup, you can run `make quickstart` which will install dependencies
 
 - All code should be formatted with `ruff format` (replaces black and isort)
 - Code should pass `ruff check` linting
-- Type checking should pass `mypy src/clog`
+- Type checking should pass `mypy src/kittylog`
 
 You can run all code quality checks with:
+
 - `make lint` - runs ruff check and mypy
 - `make format` - formats code with ruff
 - `make pre-commit` - runs all pre-commit hooks
@@ -35,9 +36,10 @@ You can run all code quality checks with:
 - Run the full test suite before submitting PRs
 - Use `pytest` for testing
 - Tests are isolated from global configuration files
-- Configuration-related tests mock the CLOG_ENV_PATH constant to prevent interference from existing global config files
+- Configuration-related tests mock the KITTYLOG_ENV_PATH constant to prevent interference from existing global config files
 
 Run tests with:
+
 - `make test` - runs pytest
 - `make test-coverage` - runs tests with coverage report
 - `make test-integration` - runs integration tests only
@@ -45,7 +47,7 @@ Run tests with:
 
 ## Adding New AI Providers
 
-The clog tool uses [aisuite](https://github.com/mikep/aisuite) to interface with different AI providers. To add a new provider:
+The kittylog tool uses [aisuite](https://github.com/mikep/aisuite) to interface with different AI providers. To add a new provider:
 
 1. Add the provider SDK to `pyproject.toml` dependencies
 2. Test the integration with aisuite

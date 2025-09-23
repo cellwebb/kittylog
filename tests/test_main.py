@@ -3,23 +3,23 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from clog.errors import AIError, ChangelogError, GitError
-from clog.main import main_business_logic
+from kittylog.errors import AIError, ChangelogError, GitError
+from kittylog.main import main_business_logic
 
 
 class TestMainBusinessLogic:
     """Test main_business_logic function."""
 
-    @patch("clog.main.write_changelog")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.find_existing_tags")
-    @patch("clog.main.read_changelog")
-    @patch("clog.main.get_all_tags")
-    @patch("clog.ai.generate_changelog_entry")
-    @patch("clog.main.get_previous_tag")
-    @patch("clog.main.get_latest_tag")
-    @patch("clog.main.is_current_commit_tagged")
-    @patch("clog.main.get_commits_between_tags")
+    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.find_existing_tags")
+    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.ai.generate_changelog_entry")
+    @patch("kittylog.main.get_previous_tag")
+    @patch("kittylog.main.get_latest_tag")
+    @patch("kittylog.main.is_current_commit_tagged")
+    @patch("kittylog.main.get_commits_between_tags")
     def test_main_logic_auto_detect_success(
         self,
         mock_get_commits_between_tags,
@@ -70,8 +70,8 @@ class TestMainBusinessLogic:
         assert mock_update.call_count == 4  # Three tags (v0.1.0, v0.2.0, v0.3.0) + unreleased changes
         assert mock_write.call_count == 1
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
     def test_main_logic_no_new_tags(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test when no new tags are found."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -89,10 +89,10 @@ class TestMainBusinessLogic:
         assert result is True
         # We can't easily mock console.print calls, so we'll skip this assertion
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.write_changelog")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.main.get_previous_tag")
     def test_main_logic_specific_tags(
         self, mock_get_previous_tag, mock_write, mock_update, mock_get_all_tags, temp_dir
     ):
@@ -123,17 +123,17 @@ class TestMainBusinessLogic:
         )
         mock_write.assert_called_once()
 
-    @patch("clog.main.update_changelog")
+    @patch("kittylog.main.update_changelog")
     @patch("click.confirm")
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.get_previous_tag")
     def test_main_logic_dry_run(self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir):
         """Test dry run mode."""
         mock_update.return_value = "Updated changelog content"
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_previous_tag.return_value = "v0.1.0"
 
-        with patch("clog.main.write_changelog") as mock_write:
+        with patch("kittylog.main.write_changelog") as mock_write:
             result = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
@@ -148,10 +148,10 @@ class TestMainBusinessLogic:
         # Should not write in dry run mode
         mock_write.assert_not_called()
 
-    @patch("clog.main.update_changelog")
+    @patch("kittylog.main.update_changelog")
     @patch("click.confirm")
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.get_previous_tag")
     def test_main_logic_user_confirmation_yes(
         self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir
     ):
@@ -161,7 +161,7 @@ class TestMainBusinessLogic:
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_previous_tag.return_value = "v0.1.0"
 
-        with patch("clog.main.write_changelog") as mock_write:
+        with patch("kittylog.main.write_changelog") as mock_write:
             result = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
@@ -175,10 +175,10 @@ class TestMainBusinessLogic:
         mock_confirm.assert_called_once()
         mock_write.assert_called_once()
 
-    @patch("clog.main.update_changelog")
+    @patch("kittylog.main.update_changelog")
     @patch("click.confirm")
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.get_previous_tag")
     def test_main_logic_user_confirmation_no(
         self, mock_get_previous_tag, mock_get_all_tags, mock_confirm, mock_update, temp_dir
     ):
@@ -188,7 +188,7 @@ class TestMainBusinessLogic:
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_previous_tag.return_value = "v0.1.0"
 
-        with patch("clog.main.write_changelog") as mock_write:
+        with patch("kittylog.main.write_changelog") as mock_write:
             result = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
@@ -202,8 +202,8 @@ class TestMainBusinessLogic:
         mock_confirm.assert_called_once()
         mock_write.assert_not_called()
 
-    @patch("clog.git_operations.get_tags_since_last_changelog")
-    @patch("clog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.get_all_tags")
     def test_main_logic_git_error(self, mock_get_all_tags, mock_get_tags, temp_dir):
         """Test handling of Git errors."""
         mock_get_all_tags.side_effect = GitError("Not a git repository")
@@ -218,9 +218,9 @@ class TestMainBusinessLogic:
 
         assert result is False
 
-    @patch("clog.git_operations.get_tags_since_last_changelog")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.get_all_tags")
     def test_main_logic_ai_error(self, mock_get_all_tags, mock_update, mock_get_tags, temp_dir):
         """Test handling of AI errors."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
@@ -236,10 +236,10 @@ class TestMainBusinessLogic:
 
         assert result is False
 
-    @patch("clog.git_operations.get_tags_since_last_changelog")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.write_changelog")
-    @patch("clog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.main.get_all_tags")
     def test_main_logic_changelog_error(self, mock_get_all_tags, mock_write, mock_update, mock_get_tags, git_repo):
         """Test handling of changelog errors."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
@@ -260,15 +260,15 @@ class TestMainBusinessLogic:
 class TestMainLogicMultipleTags:
     """Test main logic with multiple tags."""
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.read_changelog")
-    @patch("clog.main.find_existing_tags")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.write_changelog")
-    @patch("clog.main.get_previous_tag")
-    @patch("clog.main.get_latest_tag")
-    @patch("clog.main.is_current_commit_tagged")
-    @patch("clog.main.get_commits_between_tags")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.main.find_existing_tags")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.main.get_previous_tag")
+    @patch("kittylog.main.get_latest_tag")
+    @patch("kittylog.main.is_current_commit_tagged")
+    @patch("kittylog.main.get_commits_between_tags")
     def test_multiple_tags_success(
         self,
         mock_get_commits,
@@ -325,10 +325,10 @@ class TestMainLogicMultipleTags:
         assert update_calls[3][1]["from_tag"] == "v0.4.0"
         assert update_calls[3][1]["to_tag"] is None  # Unreleased
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.get_previous_tag")
     def test_multiple_tags_partial_failure(
         self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, temp_dir
     ):
@@ -354,16 +354,16 @@ class TestMainLogicMultipleTags:
 class TestMainLogicEdgeCases:
     """Test edge cases in main business logic."""
 
-    @patch("clog.main.get_latest_tag")
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.get_latest_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
     def test_only_from_tag_specified(self, mock_get_tags, mock_get_all_tags, mock_get_latest_tag, temp_dir):
         """Test when only from_tag is specified (to_tag=None means HEAD)."""
         mock_get_all_tags.return_value = ["v0.1.0"]
         mock_get_latest_tag.return_value = "v0.2.0"
         mock_get_tags.return_value = ("v0.1.0", [])
 
-        with patch("clog.main.update_changelog") as mock_update:
+        with patch("kittylog.main.update_changelog") as mock_update:
             mock_update.return_value = "Updated content"
 
             result = main_business_logic(
@@ -381,16 +381,16 @@ class TestMainLogicEdgeCases:
             assert call_args["from_tag"] == "v0.1.0"
             assert call_args["to_tag"] == "v0.2.0"
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.get_previous_tag")
-    @patch("clog.main.read_changelog")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.get_previous_tag")
+    @patch("kittylog.main.read_changelog")
     def test_only_to_tag_specified(self, mock_read, mock_get_previous_tag, mock_get_all_tags, temp_dir):
         """Test when only to_tag is specified (from_tag=None means beginning)."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
         mock_get_previous_tag.return_value = "v0.1.0"
         mock_read.return_value = "# Changelog"
 
-        with patch("clog.main.update_changelog") as mock_update, patch("clog.main.write_changelog"):
+        with patch("kittylog.main.update_changelog") as mock_update, patch("kittylog.main.write_changelog"):
             mock_update.return_value = "Updated content"
 
             result = main_business_logic(
@@ -408,7 +408,7 @@ class TestMainLogicEdgeCases:
             assert call_args["from_tag"] == "v0.1.0"  # Previous tag is found automatically
             assert call_args["to_tag"] == "v0.2.0"
 
-    @patch("clog.main.get_all_tags")
+    @patch("kittylog.main.get_all_tags")
     def test_empty_file_path(self, mock_get_all_tags, git_repo):
         """Test with empty file path."""
         mock_get_all_tags.return_value = ["v0.1.0"]  # Need at least one tag
@@ -426,7 +426,7 @@ class TestMainLogicEdgeCases:
 
     def test_no_model_specified(self, temp_dir):
         """Test when no model is specified and no default available."""
-        with patch("clog.main.config", {"model": None}):
+        with patch("kittylog.main.config", {"model": None}):
             result = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 model=None,
@@ -440,10 +440,10 @@ class TestMainLogicEdgeCases:
 class TestMainLogicConfiguration:
     """Test main logic configuration handling."""
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.get_previous_tag")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.get_previous_tag")
     def test_config_precedence(self, mock_get_previous_tag, mock_update, mock_get_tags, mock_get_all_tags, git_repo):
         """Test that CLI arguments override config defaults."""
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
@@ -452,7 +452,7 @@ class TestMainLogicConfiguration:
         mock_update.return_value = "Updated content"
 
         with patch(
-            "clog.main.config",
+            "kittylog.main.config",
             {
                 "model": "anthropic:claude-3-5-haiku-latest",
                 "temperature": 0.7,
@@ -470,15 +470,15 @@ class TestMainLogicConfiguration:
         call_args = mock_update.call_args[1]
         assert call_args["model"] == "openai:gpt-4"
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.main.read_changelog")
-    @patch("clog.main.find_existing_tags")
-    @patch("clog.main.update_changelog")
-    @patch("clog.main.write_changelog")
-    @patch("clog.main.get_previous_tag")
-    @patch("clog.main.get_latest_tag")
-    @patch("clog.main.is_current_commit_tagged")
-    @patch("clog.main.get_commits_between_tags")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.main.find_existing_tags")
+    @patch("kittylog.main.update_changelog")
+    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.main.get_previous_tag")
+    @patch("kittylog.main.get_latest_tag")
+    @patch("kittylog.main.is_current_commit_tagged")
+    @patch("kittylog.main.get_commits_between_tags")
     def test_replace_unreleased_config_default(
         self,
         mock_get_commits,
@@ -503,7 +503,7 @@ class TestMainLogicConfiguration:
         mock_update.side_effect = ["Updated v0.1.0", "Updated v0.2.0", "Updated unreleased"]
 
         with patch(
-            "clog.main.config",
+            "kittylog.main.config",
             {
                 "model": "anthropic:claude-3-5-haiku-latest",
             },
@@ -523,8 +523,8 @@ class TestMainLogicConfiguration:
 class TestMainLogicLogging:
     """Test logging behavior in main logic."""
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
     def test_quiet_mode_suppresses_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that quiet mode suppresses non-error output."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -541,8 +541,8 @@ class TestMainLogicLogging:
         # In quiet mode, should still show important messages but fewer of them
         # We can't easily mock console.print calls, so we'll skip this assertion
 
-    @patch("clog.main.get_all_tags")
-    @patch("clog.git_operations.get_tags_since_last_changelog")
+    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_tags_since_last_changelog")
     def test_verbose_mode_shows_output(self, mock_get_tags_since_last_changelog, mock_get_all_tags, git_repo):
         """Test that verbose mode shows detailed output."""
         mock_get_all_tags.return_value = ["v0.1.0"]

@@ -12,8 +12,8 @@ from functools import lru_cache
 import git
 from git import InvalidGitRepositoryError, Repo
 
-from clog.errors import GitError
-from clog.utils import run_subprocess
+from kittylog.errors import GitError
+from kittylog.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -251,7 +251,7 @@ def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md") -> tuple
     """
     # Auto-detect changelog file if using default
     if changelog_file == "CHANGELOG.md":
-        from clog.utils import find_changelog_file
+        from kittylog.utils import find_changelog_file
 
         changelog_file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {changelog_file}")
@@ -365,7 +365,7 @@ def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
         logger.debug(f"Getting git diff for range: {rev_range}")
 
         # Get the diff, excluding changelog files
-        from clog.utils import get_changelog_file_patterns
+        from kittylog.utils import get_changelog_file_patterns
 
         exclude_patterns = get_changelog_file_patterns()
         diff_command = ["diff", rev_range, "--", "."] + exclude_patterns

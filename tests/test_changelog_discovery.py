@@ -1,6 +1,6 @@
 """Tests for changelog file discovery functionality."""
 
-from clog.utils import find_changelog_file
+from kittylog.utils import find_changelog_file
 
 
 class TestFindChangelogFile:

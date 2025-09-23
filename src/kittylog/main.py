@@ -8,23 +8,23 @@ import logging
 
 import click
 
-from clog.changelog import (
+from kittylog.changelog import (
     create_changelog_header,
     find_existing_tags,
     read_changelog,
     update_changelog,
     write_changelog,
 )
-from clog.config import load_config
-from clog.errors import AIError, GitError, handle_error
-from clog.git_operations import (
+from kittylog.config import load_config
+from kittylog.errors import AIError, GitError, handle_error
+from kittylog.git_operations import (
     get_all_tags,
     get_commits_between_tags,
     get_latest_tag,
     get_previous_tag,
     is_current_commit_tagged,
 )
-from clog.output import get_output_manager
+from kittylog.output import get_output_manager
 
 logger = logging.getLogger(__name__)
 config = load_config()
@@ -294,7 +294,7 @@ def main_business_logic(
 
     # Auto-detect changelog file if using default
     if changelog_file == "CHANGELOG.md":
-        from clog.utils import find_changelog_file
+        from kittylog.utils import find_changelog_file
 
         changelog_file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {changelog_file}")

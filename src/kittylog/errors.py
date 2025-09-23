@@ -5,7 +5,7 @@ import sys
 from collections.abc import Callable
 from typing import TypeVar
 
-from clog.output import get_output_manager
+from kittylog.output import get_output_manager
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")

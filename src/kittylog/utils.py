@@ -10,8 +10,8 @@ import tiktoken
 from rich.console import Console
 from rich.theme import Theme
 
-from clog.constants import Logging, Utility
-from clog.errors import ChangelogUpdaterError
+from kittylog.constants import Logging, Utility
+from kittylog.errors import ChangelogUpdaterError
 
 logger = logging.getLogger(__name__)
 

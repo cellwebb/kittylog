@@ -1,8 +1,8 @@
-# clog Usage
+# kittylog Usage
 
 ## Main Commands
 
-### `clog` (default command)
+### `kittylog` (default command)
 
 Process git tags to generate changelog entries
 
@@ -22,7 +22,7 @@ Process git tags to generate changelog entries
 - `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
 - `tag`: Specific tag to process (optional argument)
 
-### `clog update`
+### `kittylog update`
 
 Update changelog for a specific version or all missing tags
 
@@ -42,7 +42,7 @@ Update changelog for a specific version or all missing tags
 - `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
 - `version`: Specific version to update (optional argument)
 
-### `clog unreleased`
+### `kittylog unreleased`
 
 Generate unreleased changelog entries
 
@@ -64,9 +64,9 @@ Generate unreleased changelog entries
 
 ## Configuration Commands
 
-### `clog config`
+### `kittylog config`
 
-Manage clog configuration in $HOME/.clog.env
+Manage kittylog configuration in $HOME/.kittylog.env
 
 **Subcommands:**
 
@@ -75,9 +75,9 @@ Manage clog configuration in $HOME/.clog.env
 - `get <key>`: Get a config value by key
 - `unset <key>`: Remove a config key
 
-### `clog init`
+### `kittylog init`
 
-Interactively set up $HOME/.clog.env for clog
+Interactively set up $HOME/.kittylog.env for kittylog
 
 No arguments or options - runs interactive setup wizard.
 
@@ -85,38 +85,38 @@ No arguments or options - runs interactive setup wizard.
 
 ```bash
 # Basic usage - process missing tags
-clog
+kittylog
 
 # Process all tags (not just missing ones)
-clog --all
+kittylog --all
 
 # Auto-accept changes without confirmation
-clog -y
+kittylog -y
 
 # Preview without saving
-clog --dry-run
+kittylog --dry-run
 
 # Process specific tag range
-clog --from-tag v1.0.0 --to-tag v1.2.0
+kittylog --from-tag v1.0.0 --to-tag v1.2.0
 
 # Update specific version
-clog update v1.1.0
+kittylog update v1.1.0
 
 # Generate unreleased changes only
-clog unreleased
+kittylog unreleased
 
 # Replace existing unreleased content
-clog
+kittylog
 
 # Show AI prompt
-clog --show-prompt
+kittylog --show-prompt
 
 # Add hints for AI
-clog -h "Focus on breaking changes"
+kittylog -h "Focus on breaking changes"
 
 # Use different changelog file
-clog -f CHANGES.md
+kittylog -f CHANGES.md
 
 # Use different AI model
-clog -m "openai:gpt-4"
+kittylog -m "openai:gpt-4"
 ```

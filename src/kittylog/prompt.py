@@ -203,7 +203,7 @@ def clean_changelog_content(content: str) -> str:
     content = re.sub(r"^\*\s+", "- ", content, flags=re.MULTILINE)
 
     # Clean up the content using our new postprocessing module
-    from clog.postprocess import postprocess_changelog_content
+    from kittylog.postprocess import postprocess_changelog_content
 
     content = postprocess_changelog_content(content)
 

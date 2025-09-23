@@ -106,14 +106,14 @@ jobs:
           uv pip install --system .
 
       - name: Run pytest with coverage
-        run: pytest --cov=clog --cov-report=xml -s
+        run: pytest --cov=kittylog --cov-report=xml -s
 
       - name: Upload coverage reports to Codecov
         if: matrix.python-version == '3.11' # Only upload coverage once
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: cellwebb/clog
+          slug: cellwebb/kittylog
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() && matrix.python-version == '3.11' }}

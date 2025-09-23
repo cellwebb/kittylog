@@ -3,7 +3,7 @@ requires = ["hatchling", "packaging>=23.1"]
 build-backend = "hatchling.build"
 
 [project]
-name = "clog"
+name = "kittylog"
 dynamic = ["version"]
 description = "AI-powered changelog updater that uses git tags to update CHANGELOG.md files"
 readme = "README.md"
@@ -53,7 +53,7 @@ dependencies = [
 ]
 
 [project.scripts]
-clog = "clog.cli:cli"
+kittylog = "kittylog.cli:cli"
 
 [project.optional-dependencies]
 dev = [
@@ -74,29 +74,29 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cellwebb/clog"
-Documentation = "https://github.com/cellwebb/clog#readme"
-Repository = "https://github.com/cellwebb/clog.git"
-Issues = "https://github.com/cellwebb/clog/issues"
-Changelog = "https://github.com/cellwebb/clog/blob/main/CHANGELOG.md"
-Source = "https://github.com/cellwebb/clog"
+Homepage = "https://github.com/cellwebb/kittylog"
+Documentation = "https://github.com/cellwebb/kittylog#readme"
+Repository = "https://github.com/cellwebb/kittylog.git"
+Issues = "https://github.com/cellwebb/kittylog/issues"
+Changelog = "https://github.com/cellwebb/kittylog/blob/main/CHANGELOG.md"
+Source = "https://github.com/cellwebb/kittylog"
 
 [tool.black]
 line-length = 120
 target-version = ["py310", "py311", "py312", "py313"]
 
 [tool.coverage.run]
-source_pkgs = ["clog"]
+source_pkgs = ["kittylog"]
 branch = true
 parallel = true
 omit = [
-  "src/clog/__version__.py",
-  "src/clog/main.py",
+  "src/kittylog/__version__.py",
+  "src/kittylog/main.py",
 ]
 
 [tool.coverage.paths]
-clog = ["src/clog", "*/clog/src/clog"]
-tests = ["tests", "*/clog/tests"]
+kittylog = ["src/kittylog", "*/kittylog/src/kittylog"]
+tests = ["tests", "*/kittylog/tests"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -112,14 +112,14 @@ exclude_lines = [
 ]
 
 [tool.hatch.version]
-path = "src/clog/__version__.py"
+path = "src/kittylog/__version__.py"
 
 [tool.hatch.build]
 only-packages = true
 skip-excluded = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/clog"]
+packages = ["src/kittylog"]
 include-files = []
 
 [tool.hatch.build.targets.sdist]
@@ -131,7 +131,7 @@ exclude = [
     "*.tests.*",
 ]
 include = [
-    "src/clog/",
+    "src/kittylog/",
 ]
 
 [tool.ruff]

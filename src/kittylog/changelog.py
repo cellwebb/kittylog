@@ -9,9 +9,9 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from clog.ai import generate_changelog_entry
-from clog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date
-from clog.postprocess import postprocess_changelog_content, remove_unreleased_sections
+from kittylog.ai import generate_changelog_entry
+from kittylog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date
+from kittylog.postprocess import postprocess_changelog_content, remove_unreleased_sections
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ def handle_unreleased_section(
     lines: list[str], new_entry: str, existing_content: str, current_commit_is_tagged: bool
 ) -> list[str]:
     """Handle updating the unreleased section of the changelog with intelligent behavior."""
-    from clog.git_operations import get_commits_between_tags, get_latest_tag
+    from kittylog.git_operations import get_commits_between_tags, get_latest_tag
 
     logger.debug("Processing unreleased section with intelligent behavior")
 
@@ -436,7 +436,7 @@ def update_changelog(
         The updated changelog content
     """
     # Import git operations function early to avoid scoping issues
-    from clog.git_operations import is_current_commit_tagged
+    from kittylog.git_operations import is_current_commit_tagged
 
     logger.info(f"Updating changelog from {from_tag or 'beginning'} to {to_tag}")
 

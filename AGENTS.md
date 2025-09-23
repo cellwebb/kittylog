@@ -1,6 +1,6 @@
-# Agents in clog
+# Agents in kittylog
 
-The clog project uses AI agents to analyze git commit history and generate changelog entries in the "Keep a Changelog" format.
+The kittylog project uses AI agents to analyze git commit history and generate changelog entries in the "Keep a Changelog" format.
 
 ## Key Agents
 

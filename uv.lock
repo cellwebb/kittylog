@@ -310,7 +310,7 @@ wheels = [
 ]
 
 [[package]]
-name = "clog"
+name = "kittylog"
 source = { editable = "." }
 dependencies = [
     { name = "aisuite" },

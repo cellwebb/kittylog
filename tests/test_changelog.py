@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from clog.changelog import (
+from kittylog.changelog import (
     create_changelog_header,
     find_end_of_unreleased_section,
     find_insertion_point,
@@ -227,9 +227,9 @@ class TestFormatChangelogEntry:
 class TestUpdateChangelog:
     """Test update_changelog function."""
 
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
-    @patch("clog.changelog.get_tag_date")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.get_tag_date")
     def test_update_changelog_success(self, mock_get_date, mock_generate, mock_get_commits, temp_dir, sample_commits):
         """Test successful changelog update."""
         # Setup mocks
@@ -267,7 +267,7 @@ class TestUpdateChangelog:
         assert "### Fixed" in result
         assert "Bug fix" in result
 
-    @patch("clog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.get_commits_between_tags")
     def test_update_changelog_no_commits(self, mock_get_commits, temp_dir):
         """Test update when no commits found."""
         mock_get_commits.return_value = []
@@ -296,17 +296,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 """
         assert result == expected_content
 
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
     def test_update_changelog_empty_file(self, mock_generate, mock_get_commits, temp_dir, sample_commits):
         """Test update with empty/new changelog file."""
         mock_get_commits.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature"
 
-    @patch("clog.git_operations.is_current_commit_tagged")
-    @patch("clog.git_operations.get_latest_tag")
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
     def test_update_changelog_intelligent_unreleased(
         self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
     ):
@@ -346,10 +346,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
         assert "New feature" in result
         assert "Bug fix" in result
 
-    @patch("clog.git_operations.is_current_commit_tagged")
-    @patch("clog.git_operations.get_latest_tag")
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
     def test_update_changelog_tagged_version(
         self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
     ):
@@ -444,7 +444,7 @@ class TestWriteChangelog:
 class TestPreviewChangelogEntry:
     """Test preview_changelog_entry function."""
 
-    @patch("clog.changelog.get_tag_date")
+    @patch("kittylog.changelog.get_tag_date")
     def test_preview_changelog_entry(self, mock_get_date, sample_commits):
         """Test generating a preview of changelog entry."""
         mock_get_date.return_value = datetime(2024, 1, 20)
@@ -460,9 +460,9 @@ class TestPreviewChangelogEntry:
 class TestChangelogIntegration:
     """Integration tests for changelog operations."""
 
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
-    @patch("clog.changelog.get_tag_date")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.get_tag_date")
     def test_full_changelog_workflow(self, mock_get_date, mock_generate, mock_get_commits, temp_dir, sample_commits):
         """Test complete changelog update workflow."""
         # Setup mocks

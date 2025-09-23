@@ -11,11 +11,11 @@ import aisuite as ai
 from rich.console import Console
 from rich.panel import Panel
 
-from clog.config import load_config
-from clog.constants import EnvDefaults
-from clog.errors import AIError
-from clog.prompt import build_changelog_prompt, clean_changelog_content
-from clog.utils import count_tokens
+from kittylog.config import load_config
+from kittylog.constants import EnvDefaults
+from kittylog.errors import AIError
+from kittylog.prompt import build_changelog_prompt, clean_changelog_content
+from kittylog.utils import count_tokens
 
 logger = logging.getLogger(__name__)
 config = load_config()

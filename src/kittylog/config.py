@@ -1,4 +1,4 @@
-"""Configuration loading for clog.
+"""Configuration loading for kittylog.
 
 Handles environment variable and .env file precedence for application settings.
 """
@@ -10,8 +10,8 @@ from typing import Any, TypeVar
 
 from dotenv import dotenv_values
 
-from clog.constants import EnvDefaults, Logging
-from clog.errors import ConfigError
+from kittylog.constants import EnvDefaults, Logging
+from kittylog.errors import ConfigError
 
 T = TypeVar("T")
 
@@ -90,14 +90,14 @@ def validate_config_value(value: Any, validator: Callable[[Any], bool], config_k
 
 
 def load_config() -> dict[str, str | int | float | bool | None]:
-    """Load configuration from $HOME/.clog.env, then ./.clog.env or ./.env, then environment variables."""
+    """Load configuration from $HOME/.kittylog.env, then ./.kittylog.env or ./.env, then environment variables."""
 
     # Load config files in order of precedence
     # Variables in later files will override earlier ones
     config_vars: dict[str, str | None] = {}
 
     # Load user config file (lowest precedence)
-    user_config = Path.home() / ".clog.env"
+    user_config = Path.home() / ".kittylog.env"
     if user_config.exists():
         config_vars.update(dotenv_values(user_config))
 
@@ -106,8 +106,8 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     if project_env.exists():
         config_vars.update(dotenv_values(project_env))
 
-    # Load project .clog.env file (highest precedence)
-    project_config_env = Path(".clog.env")
+    # Load project .kittylog.env file (highest precedence)
+    project_config_env = Path(".kittylog.env")
     if project_config_env.exists():
         config_vars.update(dotenv_values(project_config_env))
     api_keys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OLLAMA_HOST"]
@@ -142,12 +142,12 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     config: dict[str, str | int | float | bool | None] = {}
 
     # Read environment variables (these have highest precedence)
-    env_model = os.getenv("CLOG_MODEL")
-    env_temperature = os.getenv("CLOG_TEMPERATURE")
-    env_max_output_tokens = os.getenv("CLOG_MAX_OUTPUT_TOKENS")
-    env_max_retries = os.getenv("CLOG_RETRIES")
-    env_log_level = os.getenv("CLOG_LOG_LEVEL")
-    env_warning_limit_tokens = os.getenv("CLOG_WARNING_LIMIT_TOKENS")
+    env_model = os.getenv("KITTYLOG_MODEL")
+    env_temperature = os.getenv("KITTYLOG_TEMPERATURE")
+    env_max_output_tokens = os.getenv("KITTYLOG_MAX_OUTPUT_TOKENS")
+    env_max_retries = os.getenv("KITTYLOG_RETRIES")
+    env_log_level = os.getenv("KITTYLOG_LOG_LEVEL")
+    env_warning_limit_tokens = os.getenv("KITTYLOG_WARNING_LIMIT_TOKENS")
 
     # Apply validated environment variables with defaults for invalid values
     config["model"] = env_model
@@ -202,27 +202,27 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     # Apply file values as fallbacks (only if env vars weren't set or were None)
     # For file variables, convert them normally so validate_config can catch errors
     if config["model"] is None:
-        config["model"] = config_vars.get("CLOG_MODEL")
+        config["model"] = config_vars.get("KITTYLOG_MODEL")
 
     if config["temperature"] is None:
-        config_temperature_str = config_vars.get("CLOG_TEMPERATURE")
+        config_temperature_str = config_vars.get("KITTYLOG_TEMPERATURE")
         config["temperature"] = _safe_float(config_temperature_str, EnvDefaults.TEMPERATURE) or EnvDefaults.TEMPERATURE
 
     if config["max_output_tokens"] is None:
-        config_max_output_tokens_str = config_vars.get("CLOG_MAX_OUTPUT_TOKENS")
+        config_max_output_tokens_str = config_vars.get("KITTYLOG_MAX_OUTPUT_TOKENS")
         config["max_output_tokens"] = (
             _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS) or EnvDefaults.MAX_OUTPUT_TOKENS
         )
 
     if config["max_retries"] is None:
-        config_max_retries_str = config_vars.get("CLOG_RETRIES")
+        config_max_retries_str = config_vars.get("KITTYLOG_RETRIES")
         config["max_retries"] = _safe_int(config_max_retries_str, EnvDefaults.MAX_RETRIES) or EnvDefaults.MAX_RETRIES
 
     if config["log_level"] is None:
-        config["log_level"] = config_vars.get("CLOG_LOG_LEVEL") or Logging.DEFAULT_LEVEL
+        config["log_level"] = config_vars.get("KITTYLOG_LOG_LEVEL") or Logging.DEFAULT_LEVEL
 
     if config["warning_limit_tokens"] is None:
-        config_warning_limit_tokens_str = config_vars.get("CLOG_WARNING_LIMIT_TOKENS")
+        config_warning_limit_tokens_str = config_vars.get("KITTYLOG_WARNING_LIMIT_TOKENS")
         config["warning_limit_tokens"] = (
             _safe_int(config_warning_limit_tokens_str, EnvDefaults.WARNING_LIMIT_TOKENS)
             or EnvDefaults.WARNING_LIMIT_TOKENS

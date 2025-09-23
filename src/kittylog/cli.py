@@ -8,17 +8,17 @@ import sys
 
 import click
 
-from clog import __version__
-from clog.config import load_config
-from clog.config_cli import config as config_cli
-from clog.constants import Logging
-from clog.errors import handle_error
-from clog.init_changelog import init_changelog
-from clog.init_cli import init as init_cli
-from clog.main import main_business_logic
-from clog.output import get_output_manager, set_output_mode
-from clog.update_cli import update_version
-from clog.utils import setup_logging
+from kittylog import __version__
+from kittylog.config import load_config
+from kittylog.config_cli import config as config_cli
+from kittylog.constants import Logging
+from kittylog.errors import handle_error
+from kittylog.init_changelog import init_changelog
+from kittylog.init_cli import init as init_cli
+from kittylog.main import main_business_logic
+from kittylog.output import get_output_manager, set_output_mode
+from kittylog.update_cli import update_version
+from kittylog.utils import setup_logging
 
 config = load_config()
 logger = logging.getLogger(__name__)
@@ -226,7 +226,7 @@ def unreleased(
 ):
     """Generate unreleased changelog entries from beginning to specified version or HEAD."""
     # Import here to avoid circular imports
-    from clog.main import main_business_logic
+    from kittylog.main import main_business_logic
 
     # Set up logging
     setup_command_logging(log_level, verbose, quiet)

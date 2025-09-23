@@ -3,7 +3,7 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from clog.utils import (
+from kittylog.utils import (
     clean_changelog_content,
     count_tokens,
     format_commit_for_display,
@@ -17,7 +17,7 @@ from clog.utils import (
 class TestCountTokens:
     """Test count_tokens function."""
 
-    @patch("clog.utils.tiktoken")
+    @patch("kittylog.utils.tiktoken")
     def test_count_tokens_success(self, mock_tiktoken):
         """Test successful token counting."""
         mock_encoding = Mock()
@@ -30,7 +30,7 @@ class TestCountTokens:
         mock_tiktoken.encoding_for_model.assert_called_once_with("gpt-4")
         mock_encoding.encode.assert_called_once_with("test text")
 
-    @patch("clog.utils.tiktoken")
+    @patch("kittylog.utils.tiktoken")
     def test_count_tokens_fallback_encoding(self, mock_tiktoken):
         """Test fallback to cl100k_base encoding when model not found."""
         mock_tiktoken.encoding_for_model.side_effect = KeyError("Model not found")
@@ -43,7 +43,7 @@ class TestCountTokens:
         assert count == 3
         mock_tiktoken.get_encoding.assert_called_once_with("cl100k_base")
 
-    @patch("clog.utils.tiktoken")
+    @patch("kittylog.utils.tiktoken")
     def test_count_tokens_error_handling(self, mock_tiktoken):
         """Test error handling in token counting."""
         mock_tiktoken.encoding_for_model.side_effect = Exception("General error")
@@ -55,7 +55,7 @@ class TestCountTokens:
 
     def test_count_tokens_empty_text(self):
         """Test token counting with empty text."""
-        with patch("clog.utils.tiktoken") as mock_tiktoken:
+        with patch("kittylog.utils.tiktoken") as mock_tiktoken:
             mock_encoding = Mock()
             mock_encoding.encode.return_value = []
             mock_tiktoken.encoding_for_model.return_value = mock_encoding
@@ -230,7 +230,7 @@ Is there anything else you'd like me to adjust?"""
 class TestSetupLogging:
     """Test setup_logging function."""
 
-    @patch("clog.utils.logging")
+    @patch("kittylog.utils.logging")
     def test_setup_logging_debug(self, mock_logging):
         """Test setting up debug logging."""
         setup_logging("DEBUG")
@@ -239,7 +239,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.DEBUG
 
-    @patch("clog.utils.logging")
+    @patch("kittylog.utils.logging")
     def test_setup_logging_info(self, mock_logging):
         """Test setting up info logging."""
         setup_logging("INFO")
@@ -247,7 +247,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.INFO
 
-    @patch("clog.utils.logging")
+    @patch("kittylog.utils.logging")
     def test_setup_logging_warning(self, mock_logging):
         """Test setting up warning logging (default)."""
         setup_logging("WARNING")
@@ -255,7 +255,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.WARNING
 
-    @patch("clog.utils.logging")
+    @patch("kittylog.utils.logging")
     def test_setup_logging_invalid_level(self, mock_logging):
         """Test handling of invalid log level."""
         setup_logging("INVALID")
@@ -400,7 +400,7 @@ class TestUtilsIntegration:
         assert "and 4 more files" in short_format  # Files truncated
         assert "2024-01-15" in short_format
 
-    @patch("clog.utils.tiktoken")
+    @patch("kittylog.utils.tiktoken")
     def test_token_counting_with_changelog_content(self, mock_tiktoken):
         """Test token counting with realistic changelog content."""
         mock_encoding = Mock()

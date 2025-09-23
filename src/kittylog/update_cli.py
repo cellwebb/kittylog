@@ -6,13 +6,13 @@ from pathlib import Path
 
 import click
 
-from clog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
-from clog.config import load_config
-from clog.constants import Logging
-from clog.errors import handle_error
-from clog.git_operations import get_previous_tag
-from clog.main import main_business_logic
-from clog.utils import setup_logging
+from kittylog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
+from kittylog.config import load_config
+from kittylog.constants import Logging
+from kittylog.errors import handle_error
+from kittylog.git_operations import get_previous_tag
+from kittylog.main import main_business_logic
+from kittylog.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 config = load_config()
@@ -53,7 +53,7 @@ def update_version(
 ):
     """Update changelog for a specific version or all missing tags if no version specified.
 
-    Example: clog update v0.1.0
+    Example: kittylog update v0.1.0
     """
     try:
         # Set up logging
@@ -64,7 +64,7 @@ def update_version(
             effective_log_level = "ERROR"
         setup_logging(effective_log_level)
 
-        logger.info("Starting clog update")
+        logger.info("Starting kittylog update")
 
         # Check if changelog exists, create if not
         changelog_path = Path(file)

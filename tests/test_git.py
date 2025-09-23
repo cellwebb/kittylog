@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from clog.errors import GitError
-from clog.git_operations import (
+from kittylog.errors import GitError
+from kittylog.git_operations import (
     get_all_tags,
     get_commits_between_tags,
     get_latest_tag,
@@ -215,7 +215,7 @@ class TestIsCurrentCommitTagged:
 class TestGitErrorHandling:
     """Test git error handling."""
 
-    @patch("clog.git_operations.Repo")
+    @patch("kittylog.git_operations.Repo")
     def test_git_error_not_in_repo(self, mock_repo):
         """Test error when not in a git repository."""
         from git import InvalidGitRepositoryError
@@ -225,7 +225,7 @@ class TestGitErrorHandling:
         with pytest.raises(GitError):
             get_all_tags()
 
-    @patch("clog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_repo")
     def test_git_error_general_exception(self, mock_get_repo):
         """Test handling of general git exceptions."""
         mock_get_repo.side_effect = Exception("Git error")

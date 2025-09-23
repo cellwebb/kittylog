@@ -2,7 +2,7 @@
 
 import pytest
 
-from clog.errors import (
+from kittylog.errors import (
     AIError,
     ChangelogError,
     ChangelogUpdaterError,

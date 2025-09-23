@@ -6,13 +6,13 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from clog.cli import cli
+from kittylog.cli import cli
 
 
 class TestEndToEndWorkflow:
     """End-to-end integration tests."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_complete_workflow_new_changelog(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test complete workflow creating a new changelog."""
         # Setup AI mock
@@ -35,8 +35,8 @@ class TestEndToEndWorkflow:
         mock_client_class.return_value = mock_client
 
         # Create config
-        config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file = temp_dir / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         runner = CliRunner()
 
@@ -68,7 +68,7 @@ class TestEndToEndWorkflow:
         assert "### Fixed" in content
         assert "Login validation errors" in content
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_complete_workflow_update_existing(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test complete workflow updating existing changelog."""
         # Setup AI mock
@@ -90,8 +90,8 @@ class TestEndToEndWorkflow:
         mock_client_class.return_value = mock_client
 
         # Create config
-        config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file = temp_dir / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Create existing changelog
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -136,7 +136,7 @@ All notable changes to this project will be documented in this file.
 
     def test_dry_run_workflow(self, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
-        with patch("clog.ai.ai.Client") as mock_client_class:
+        with patch("kittylog.ai.ai.Client") as mock_client_class:
             # Setup AI mock
             mock_client = Mock()
             mock_response = Mock()
@@ -150,8 +150,8 @@ All notable changes to this project will be documented in this file.
             mock_client_class.return_value = mock_client
 
             # Create config
-            config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-            config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
             runner = CliRunner()
             os.chdir(temp_dir)
@@ -192,18 +192,18 @@ class TestConfigIntegration:
         monkeypatch.setattr(Path, "home", lambda: fake_home)
 
         # Mock the init command's path for testing
-        import clog.init_cli
+        import kittylog.init_cli
 
-        clog.init_cli.init._mock_env_path = fake_home / ".clog.env"
+        kittylog.init_cli.init._mock_env_path = fake_home / ".kittylog.env"
 
         # Also mock environment variables to ensure they don't interfere
-        monkeypatch.delenv("CLOG_MODEL", raising=False)
-        monkeypatch.delenv("CLOG_TEMPERATURE", raising=False)
+        monkeypatch.delenv("KITTYLOG_MODEL", raising=False)
+        monkeypatch.delenv("KITTYLOG_TEMPERATURE", raising=False)
 
         runner = CliRunner()
 
         # Clear any existing config
-        config_file = fake_home / ".clog.env"
+        config_file = fake_home / ".kittylog.env"
         if config_file.exists():
             config_file.unlink()
 
@@ -212,15 +212,15 @@ class TestConfigIntegration:
             # Return empty dict for any config file to prevent loading existing configs
             return {}
 
-        monkeypatch.setattr("clog.config.dotenv_values", mock_dotenv_values)
+        monkeypatch.setattr("kittylog.config.dotenv_values", mock_dotenv_values)
 
-        # Also mock the CLOG_ENV_PATH in config_cli to point to our fake home
-        import clog.config_cli
+        # Also mock the KITTYLOG_ENV_PATH in config_cli to point to our fake home
+        import kittylog.config_cli
 
-        monkeypatch.setattr(clog.config_cli, "CLOG_ENV_PATH", fake_home / ".clog.env")
+        monkeypatch.setattr(kittylog.config_cli, "KITTYLOG_ENV_PATH", fake_home / ".kittylog.env")
 
         # Mock questionary for init
-        with patch("clog.init_cli.questionary") as mock_questionary:
+        with patch("kittylog.init_cli.questionary") as mock_questionary:
             mock_questionary.select.return_value.ask.return_value = "Anthropic"
             mock_questionary.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
             mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
@@ -228,16 +228,16 @@ class TestConfigIntegration:
             # Run init
             result = runner.invoke(cli, ["init"])
             assert result.exit_code == 0
-            assert "Welcome to clog initialization" in result.output
+            assert "Welcome to kittylog initialization" in result.output
 
         # Check config file was created
-        config_file = fake_home / ".clog.env"
+        config_file = fake_home / ".kittylog.env"
         assert config_file.exists()
 
         # Test config show
         result = runner.invoke(cli, ["config", "show"])
         assert result.exit_code == 0
-        assert "CLOG_MODEL" in result.output
+        assert "KITTYLOG_MODEL" in result.output
 
         # Check the content of the config file directly
         with open(config_file) as f:
@@ -245,17 +245,17 @@ class TestConfigIntegration:
         assert "anthropic:claude-3-5-haiku-latest" in config_content
 
         # Test config get
-        result = runner.invoke(cli, ["config", "get", "CLOG_MODEL"])
+        result = runner.invoke(cli, ["config", "get", "KITTYLOG_MODEL"])
         assert result.exit_code == 0
         assert "anthropic:claude-3-5-haiku-latest" in result.output
 
         # Test config set
-        result = runner.invoke(cli, ["config", "set", "CLOG_TEMPERATURE", "0.5"])
+        result = runner.invoke(cli, ["config", "set", "KITTYLOG_TEMPERATURE", "0.5"])
         assert result.exit_code == 0
-        assert "Set CLOG_TEMPERATURE" in result.output
+        assert "Set KITTYLOG_TEMPERATURE" in result.output
 
         # Verify the setting
-        result = runner.invoke(cli, ["config", "get", "CLOG_TEMPERATURE"])
+        result = runner.invoke(cli, ["config", "get", "KITTYLOG_TEMPERATURE"])
         assert result.exit_code == 0
         assert "0.5" in result.output
 
@@ -283,8 +283,8 @@ class TestErrorHandlingIntegration:
     def test_missing_api_key_error(self, git_repo_with_tags, temp_dir):
         """Test error when API key is missing."""
         # Create config without API key in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -294,7 +294,7 @@ class TestErrorHandlingIntegration:
             # Change to the git repo directory, not temp_dir
             os.chdir(git_repo_with_tags.working_dir)
 
-            with patch("clog.ai.ai.Client") as mock_client_class:
+            with patch("kittylog.ai.ai.Client") as mock_client_class:
                 # Simulate authentication error
                 mock_client_class.side_effect = Exception("authentication failed")
 
@@ -323,8 +323,8 @@ class TestErrorHandlingIntegration:
     def test_invalid_tag_error(self, git_repo_with_tags, temp_dir):
         """Test error with invalid git tags."""
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -361,7 +361,7 @@ class TestErrorHandlingIntegration:
 class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_multiple_tags_auto_detection(self, mock_client_class, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
         # Store original directory for cleanup
@@ -411,8 +411,8 @@ class TestMultiTagIntegration:
 """)
 
             # Create config
-            config_file = temp_dir / ".clog.env"
-            config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file = temp_dir / ".kittylog.env"
+            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
             # Create docs directory
             docs_dir = temp_dir / "docs"
@@ -485,8 +485,8 @@ class TestMultiTagIntegration:
         mock_client_class.return_value = mock_client
 
         # Create config
-        config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nCLOG_LOG_LEVEL=DEBUG\n")
+        config_file = temp_dir / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nKITTYLOG_LOG_LEVEL=DEBUG\n")
 
         runner = CliRunner()
         os.chdir(temp_dir)
@@ -512,7 +512,7 @@ class TestMultiTagIntegration:
 class TestCLIOptionsIntegration:
     """Integration tests for various CLI options."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_hint_option_integration(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that hint option is properly passed through."""
         mock_client = Mock()
@@ -527,11 +527,11 @@ class TestCLIOptionsIntegration:
         mock_client_class.return_value = mock_client
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -569,7 +569,7 @@ class TestCLIOptionsIntegration:
         # This is tested more thoroughly in unit tests
         mock_client.chat.completions.create.assert_called_once()
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_model_override_integration(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that model override works properly."""
         mock_client = Mock()
@@ -584,12 +584,12 @@ class TestCLIOptionsIntegration:
         mock_client_class.return_value = mock_client
 
         # Create config
-        config_file = temp_dir / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file = temp_dir / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Config has one model
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -632,7 +632,7 @@ class TestCLIOptionsIntegration:
 class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_custom_changelog_path(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
         mock_client = Mock()
@@ -647,11 +647,11 @@ class TestFilePathIntegration:
         mock_client_class.return_value = mock_client
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         # Create docs directory
         docs_dir = Path(git_repo_with_tags.working_dir) / "docs"
@@ -698,7 +698,7 @@ class TestFilePathIntegration:
 
     def test_relative_path_handling(self, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
-        with patch("clog.ai.ai.Client") as mock_client_class:
+        with patch("kittylog.ai.ai.Client") as mock_client_class:
             mock_client = Mock()
             mock_response = Mock()
             mock_choice = Mock()
@@ -710,8 +710,8 @@ class TestFilePathIntegration:
             mock_client.chat.completions.create.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-            config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
             # Create subdirectory
             subdir = Path(git_repo_with_tags.working_dir) / "project"
@@ -757,7 +757,7 @@ class TestFilePathIntegration:
 class TestUnreleasedBulletLimitingIntegration:
     """Integration tests for bullet limiting in unreleased section handling."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_unreleased_section_bullet_limiting_append_mode(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when appending to existing unreleased section."""
         mock_client = Mock()
@@ -795,8 +795,8 @@ All notable changes to this project will be documented in this file.
         changelog_file.write_text(changelog_content)
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -891,8 +891,8 @@ All notable changes to this project will be documented in this file.
         changelog_file.write_text(changelog_content)
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".clog.env"
-        config_file.write_text("CLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup

@@ -21,7 +21,7 @@ test: ## Run tests
 	pytest
 
 test-coverage: ## Run tests with coverage report
-	pytest --cov=clog --cov-report=html --cov-report=term-missing
+	pytest --cov=kittylog --cov-report=html --cov-report=term-missing
 
 test-watch: ## Run tests in watch mode
 	pytest-watch
@@ -32,7 +32,7 @@ test-integration: ## Run integration tests only
 # Code Quality
 lint: ## Run linting
 	ruff check .
-	mypy src/clog
+	mypy src/kittylog
 
 format: ## Format code
 	ruff format .

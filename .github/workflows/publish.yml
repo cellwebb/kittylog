@@ -40,12 +40,12 @@ jobs:
       - name: Verify version matches code
         run: |
           # Get version from code
-          CODE_VERSION=$(grep '__version__' src/clog/__version__.py | sed 's/.*"\(.*\)".*/\1/')
+          CODE_VERSION=$(grep '__version__' src/kittylog/__version__.py | sed 's/.*"\(.*\)".*/\1/')
           TAG_VERSION=${{ steps.get_version.outputs.version }}
 
           if [ "$CODE_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::Version mismatch! Code has $CODE_VERSION but tag is v$TAG_VERSION"
-            echo "Please ensure src/clog/__version__.py matches the tag version"
+            echo "Please ensure src/kittylog/__version__.py matches the tag version"
             exit 1
           fi
 

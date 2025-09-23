@@ -1,6 +1,6 @@
 """Tests for changelog postprocessing module."""
 
-from clog.postprocess import (
+from kittylog.postprocess import (
     clean_duplicate_sections,
     ensure_newlines_around_section_headers,
     postprocess_changelog_content,

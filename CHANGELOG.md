@@ -175,8 +175,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- Add `clog init-changelog` command to automatically create and initialize missing changelog files with proper Keep a Changelog structure
-- Introduce `clog update ` command for generating changelog entries for specific versions
+- Add `kittylog init-changelog` command to automatically create and initialize missing changelog files with proper Keep a Changelog structure
+- Introduce `kittylog update ` command for generating changelog entries for specific versions
 - Implement post-processing utilities to clean and format AI-generated changelog content, ensuring compliance with Keep a Changelog standards
 
 ### Changed
@@ -261,7 +261,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Rename main Click group function to cli for better clarity and consistency in command-line interface
 - Improve changelog update logic with enhanced tag handling and debug output
-- Refactor init_cli to use a constant path for .clog.env, enabling easier monkeypatching during tests
+- Refactor init_cli to use a constant path for .kittylog.env, enabling easier monkeypatching during tests
 - Enhance commit display formatting in utils with smarter truncation logic
 
 ### Fixed
@@ -308,8 +308,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Introduce AI-powered changelog generation with support for multiple providers (Anthropic, Cerebras, Groq, OpenAI, Ollama)
-- Add `clog init-changelog` command to automatically create and structure missing changelog files
-- Add `clog update` command to generate changelog entries for specific versions or tags
+- Add `kittylog init-changelog` command to automatically create and structure missing changelog files
+- Add `kittylog update` command to generate changelog entries for specific versions or tags
 - Implement automatic detection of new git tags since the last changelog update
 - Add interactive CLI configuration using questionary for streamlined setup
 - Include post-processing utilities to ensure Keep a Changelog compliance and clean formatting

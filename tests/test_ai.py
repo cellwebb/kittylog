@@ -4,21 +4,21 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from clog.ai import (
+from kittylog.ai import (
     _classify_error,
     _generate_with_retries,
     generate_changelog_entry,
 )
-from clog.errors import AIError
+from kittylog.errors import AIError
 
 
 class TestGenerateChangelogEntry:
     """Test generate_changelog_entry function."""
 
-    @patch("clog.ai.build_changelog_prompt")
-    @patch("clog.ai.count_tokens")
-    @patch("clog.ai._generate_with_retries")
-    @patch("clog.ai.clean_changelog_content")
+    @patch("kittylog.ai.build_changelog_prompt")
+    @patch("kittylog.ai.count_tokens")
+    @patch("kittylog.ai._generate_with_retries")
+    @patch("kittylog.ai.clean_changelog_content")
     def test_generate_changelog_entry_success(
         self, mock_clean, mock_generate, mock_count_tokens, mock_build_prompt, sample_commits, mock_config
     ):
@@ -29,7 +29,7 @@ class TestGenerateChangelogEntry:
         mock_generate.return_value = "Raw AI content"
         mock_clean.return_value = "Cleaned AI content"
 
-        with patch("clog.ai.config", mock_config):
+        with patch("kittylog.ai.config", mock_config):
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
@@ -42,8 +42,8 @@ class TestGenerateChangelogEntry:
         mock_generate.assert_called_once()
         mock_clean.assert_called_once_with("Raw AI content")
 
-    @patch("clog.ai.build_changelog_prompt")
-    @patch("clog.ai.count_tokens")
+    @patch("kittylog.ai.build_changelog_prompt")
+    @patch("kittylog.ai.count_tokens")
     def test_generate_changelog_entry_with_defaults(
         self, mock_count_tokens, mock_build_prompt, sample_commits, mock_config
     ):
@@ -52,9 +52,9 @@ class TestGenerateChangelogEntry:
         mock_count_tokens.return_value = 100
 
         with (
-            patch("clog.ai.config", mock_config),
-            patch("clog.ai._generate_with_retries") as mock_generate,
-            patch("clog.ai.clean_changelog_content") as mock_clean,
+            patch("kittylog.ai.config", mock_config),
+            patch("kittylog.ai._generate_with_retries") as mock_generate,
+            patch("kittylog.ai.clean_changelog_content") as mock_clean,
         ):
             mock_generate.return_value = "AI content"
             mock_clean.return_value = "Clean content"
@@ -74,7 +74,7 @@ class TestGenerateChangelogEntry:
 
     def test_generate_changelog_entry_no_model(self, sample_commits):
         """Test error when no model is specified."""
-        with patch("clog.ai.config", {"model": None}):
+        with patch("kittylog.ai.config", {"model": None}):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,
@@ -83,9 +83,9 @@ class TestGenerateChangelogEntry:
                 )
             assert "No model specified" in str(exc_info.value)
 
-    @patch("clog.ai.build_changelog_prompt")
-    @patch("clog.ai.count_tokens")
-    @patch("clog.ai._generate_with_retries")
+    @patch("kittylog.ai.build_changelog_prompt")
+    @patch("kittylog.ai.count_tokens")
+    @patch("kittylog.ai._generate_with_retries")
     def test_generate_changelog_entry_ai_error(
         self, mock_generate, mock_count_tokens, mock_build_prompt, sample_commits, mock_config
     ):
@@ -94,7 +94,7 @@ class TestGenerateChangelogEntry:
         mock_count_tokens.return_value = 100
         mock_generate.side_effect = Exception("AI service error")
 
-        with patch("clog.ai.config", mock_config):
+        with patch("kittylog.ai.config", mock_config):
             with pytest.raises(AIError):
                 generate_changelog_entry(
                     commits=sample_commits,
@@ -105,7 +105,7 @@ class TestGenerateChangelogEntry:
 class TestGenerateWithRetries:
     """Test _generate_with_retries function."""
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_generate_with_retries_success(self, mock_client_class):
         """Test successful generation on first try."""
         # Setup mock
@@ -133,7 +133,7 @@ class TestGenerateWithRetries:
         assert result == "Generated content"
         mock_client.chat.completions.create.assert_called_once()
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_generate_with_retries_empty_response(self, mock_client_class):
         """Test handling of empty response."""
         mock_client = Mock()
@@ -158,8 +158,8 @@ class TestGenerateWithRetries:
                 quiet=True,
             )
 
-    @patch("clog.ai.ai.Client")
-    @patch("clog.ai.time.sleep")
+    @patch("kittylog.ai.ai.Client")
+    @patch("kittylog.ai.time.sleep")
     def test_generate_with_retries_retry_logic(self, mock_sleep, mock_client_class):
         """Test retry logic with transient errors."""
         mock_client = Mock()
@@ -192,7 +192,7 @@ class TestGenerateWithRetries:
         assert mock_client.chat.completions.create.call_count == 2
         mock_sleep.assert_called_once_with(1)  # 2^0 = 1 second wait
 
-    @patch("clog.ai.ai.Client")
+    @patch("kittylog.ai.ai.Client")
     def test_generate_with_retries_non_retryable_error(self, mock_client_class):
         """Test handling of non-retryable errors."""
         mock_client = Mock()
@@ -213,8 +213,8 @@ class TestGenerateWithRetries:
         # Should not retry authentication errors
         assert mock_client.chat.completions.create.call_count == 1
 
-    @patch("clog.ai.ai.Client")
-    @patch("clog.ai.time.sleep")
+    @patch("kittylog.ai.ai.Client")
+    @patch("kittylog.ai.time.sleep")
     def test_generate_with_retries_max_retries_exceeded(self, mock_sleep, mock_client_class):
         """Test when max retries is exceeded."""
         mock_client = Mock()
@@ -294,10 +294,10 @@ class TestClassifyError:
 class TestAIIntegration:
     """Integration tests for AI operations."""
 
-    @patch("clog.ai.ai.Client")
-    @patch("clog.ai.build_changelog_prompt")
-    @patch("clog.ai.count_tokens")
-    @patch("clog.ai.clean_changelog_content")
+    @patch("kittylog.ai.ai.Client")
+    @patch("kittylog.ai.build_changelog_prompt")
+    @patch("kittylog.ai.count_tokens")
+    @patch("kittylog.ai.clean_changelog_content")
     def test_full_ai_workflow(
         self, mock_clean, mock_count_tokens, mock_build_prompt, mock_client_class, sample_commits, mock_config
     ):
@@ -327,7 +327,7 @@ class TestAIIntegration:
 
         mock_clean.return_value = mock_message.content
 
-        with patch("clog.ai.config", mock_config):
+        with patch("kittylog.ai.config", mock_config):
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
@@ -368,7 +368,7 @@ class TestAIIntegration:
 
     def test_ai_error_propagation(self, sample_commits):
         """Test that AI errors are properly propagated."""
-        with patch("clog.ai.config", {"model": None}):
+        with patch("kittylog.ai.config", {"model": None}):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,

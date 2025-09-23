@@ -3,16 +3,16 @@
 from datetime import datetime
 from unittest.mock import patch
 
-from clog.changelog import update_changelog
+from kittylog.changelog import update_changelog
 
 
 class TestBulletLimiting:
     """Test bullet limiting functionality in changelog processing."""
 
-    @patch("clog.git_operations.is_current_commit_tagged")
-    @patch("clog.git_operations.get_latest_tag")
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
     def test_bullet_limiting_per_section(
         self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
     ):
@@ -147,10 +147,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "New change 8" not in updated_content
         assert "New change 9" not in updated_content
 
-    @patch("clog.git_operations.is_current_commit_tagged")
-    @patch("clog.git_operations.get_latest_tag")
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
     def test_bullet_limiting_replace_mode(
         self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
     ):
@@ -251,9 +251,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "Fix 7" not in updated_content
         assert "Fix 8" not in updated_content
 
-    @patch("clog.changelog.get_commits_between_tags")
-    @patch("clog.changelog.generate_changelog_entry")
-    @patch("clog.changelog.get_tag_date")
+    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.get_tag_date")
     def test_bullet_limiting_standard_mode(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test that bullet points are limited to 6 per section in standard mode."""
         # Setup mocks

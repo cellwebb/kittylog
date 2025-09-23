@@ -35,7 +35,7 @@ comment:
   require_head: true
 
 ignore:
-  - "src/clog/main.py" # Ignore main.py from coverage calculations
+  - "src/kittylog/main.py" # Ignore main.py from coverage calculations
   - "tests/**/*" # Exclude test files from coverage calculation
   - "**/__version__.py" # Version file doesn't need test coverage
   - "examples/**/*" # Example files are for demonstration

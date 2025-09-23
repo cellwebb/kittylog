@@ -4,8 +4,8 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from clog.cli import cli
-from clog.update_cli import update_version as update
+from kittylog.cli import cli
+from kittylog.update_cli import update_version as update
 
 
 class TestMainCLI:
@@ -34,7 +34,7 @@ class TestMainCLI:
 class TestUpdateCommand:
     """Test update CLI command."""
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_basic(self, mock_main_logic):
         """Test basic update command."""
         mock_main_logic.return_value = True
@@ -52,7 +52,7 @@ class TestUpdateCommand:
         assert call_args["require_confirmation"] is True
         assert call_args["quiet"] is False
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_with_all_options(self, mock_main_logic):
         """Test update command with all options."""
         mock_main_logic.return_value = True
@@ -96,7 +96,7 @@ class TestUpdateCommand:
         if os.path.exists("CHANGES.md"):
             os.unlink("CHANGES.md")
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_short_options(self, mock_main_logic):
         """Test update command with short options."""
         mock_main_logic.return_value = True
@@ -131,7 +131,7 @@ class TestUpdateCommand:
         if os.path.exists("CHANGES.md"):
             os.unlink("CHANGES.md")
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_failure_exit_code(self, mock_main_logic):
         """Test update command exit code on failure."""
         mock_main_logic.return_value = False
@@ -141,10 +141,10 @@ class TestUpdateCommand:
 
         assert result.exit_code == 1
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_exception_handling(self, mock_main_logic):
         """Test update command exception handling."""
-        from clog.errors import ChangelogUpdaterError
+        from kittylog.errors import ChangelogUpdaterError
 
         mock_main_logic.side_effect = ChangelogUpdaterError("Test error")
 
@@ -154,7 +154,7 @@ class TestUpdateCommand:
         assert result.exit_code == 1
         assert "Test error" in result.output
 
-    @patch("clog.update_cli.main_business_logic")
+    @patch("kittylog.update_cli.main_business_logic")
     def test_update_keyboard_interrupt(self, mock_main_logic):
         """Test update command handling of keyboard interrupt."""
         mock_main_logic.side_effect = KeyboardInterrupt()
@@ -181,7 +181,7 @@ class TestConfigCommand:
         assert "get" in result.output
         assert "unset" in result.output
 
-    @patch("clog.config_cli.CLOG_ENV_PATH")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     def test_config_show_no_file(self, mock_path):
         """Test config show when no config file exists."""
         mock_path.exists.return_value = False
@@ -190,15 +190,15 @@ class TestConfigCommand:
         result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
-        assert "No $HOME/.clog.env found" in result.output
+        assert "No $HOME/.kittylog.env found" in result.output
 
-    @patch("clog.config_cli.CLOG_ENV_PATH")
-    @patch("clog.config_cli.load_dotenv")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
+    @patch("kittylog.config_cli.load_dotenv")
     @patch("builtins.open")
     def test_config_show_with_file(self, mock_open, mock_load_dotenv, mock_path):
         """Test config show with existing config file."""
         mock_path.exists.return_value = True
-        mock_file_content = "CLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n"
+        mock_file_content = "KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n"
         mock_open.return_value.__enter__.return_value.read.return_value = mock_file_content
         mock_open.return_value.__enter__.return_value.__iter__ = Mock(
             return_value=iter(mock_file_content.splitlines(True))
@@ -208,11 +208,11 @@ class TestConfigCommand:
         result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
-        assert "CLOG_MODEL=anthropic:claude-3-5-haiku-latest" in result.output
+        assert "KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest" in result.output
         assert "ANTHROPIC_API_KEY=sk-ant-test123" in result.output
 
-    @patch("clog.config_cli.set_key")
-    @patch("clog.config_cli.CLOG_ENV_PATH")
+    @patch("kittylog.config_cli.set_key")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     def test_config_set(self, mock_path, mock_set_key):
         """Test config set command."""
         mock_path.touch = Mock()
@@ -225,8 +225,8 @@ class TestConfigCommand:
         mock_set_key.assert_called_once()
         assert "Set TEST_KEY" in result.output
 
-    @patch("clog.config_cli.load_dotenv")
-    @patch("clog.config_cli.CLOG_ENV_PATH")
+    @patch("kittylog.config_cli.load_dotenv")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     @patch("os.getenv")
     def test_config_get_existing_key(self, mock_getenv, mock_path, mock_load_dotenv):
         """Test config get for existing key."""
@@ -238,8 +238,8 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "test_value" in result.output
 
-    @patch("clog.config_cli.load_dotenv")
-    @patch("clog.config_cli.CLOG_ENV_PATH")
+    @patch("kittylog.config_cli.load_dotenv")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     @patch("os.getenv")
     def test_config_get_nonexistent_key(self, mock_getenv, mock_path, mock_load_dotenv):
         """Test config get for non-existent key."""
@@ -251,7 +251,7 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "NONEXISTENT not set" in result.output
 
-    @patch("clog.config_cli.CLOG_ENV_PATH")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     def test_config_unset_no_file(self, mock_path):
         """Test config unset when no config file exists."""
         mock_path.exists.return_value = False
@@ -260,15 +260,15 @@ class TestConfigCommand:
         result = runner.invoke(cli, ["config", "unset", "TEST_KEY"])
 
         assert result.exit_code == 0
-        assert "No $HOME/.clog.env found" in result.output
+        assert "No $HOME/.kittylog.env found" in result.output
 
 
 class TestInitCommand:
     """Test init CLI command."""
 
-    @patch("clog.init_cli.questionary")
-    @patch("clog.init_cli.set_key")
-    @patch("clog.init_cli.CLOG_ENV_PATH")
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_new_config(self, mock_path, mock_set_key, mock_questionary):
         """Test init command creating new config."""
         mock_path.exists.return_value = False
@@ -283,16 +283,16 @@ class TestInitCommand:
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        assert "Welcome to clog initialization" in result.output
-        assert "Created $HOME/.clog.env" in result.output
+        assert "Welcome to kittylog initialization" in result.output
+        assert "Created $HOME/.kittylog.env" in result.output
 
         # Verify file operations
         mock_path.touch.assert_called_once()
         assert mock_set_key.call_count == 2  # model + API key
 
-    @patch("clog.init_cli.questionary")
-    @patch("clog.init_cli.set_key")
-    @patch("clog.init_cli.CLOG_ENV_PATH")
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_existing_config(self, mock_path, mock_set_key, mock_questionary):
         """Test init command with existing config."""
         mock_path.exists.return_value = True
@@ -305,10 +305,10 @@ class TestInitCommand:
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        assert "$HOME/.clog.env already exists" in result.output
+        assert "$HOME/.kittylog.env already exists" in result.output
 
-    @patch("clog.init_cli.questionary")
-    @patch("clog.init_cli.CLOG_ENV_PATH")
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_cancelled(self, mock_path, mock_questionary):
         """Test init command when user cancels."""
         mock_path.exists.return_value = False
@@ -320,9 +320,9 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "cancelled" in result.output
 
-    @patch("clog.init_cli.questionary")
-    @patch("clog.init_cli.set_key")
-    @patch("clog.init_cli.CLOG_ENV_PATH")
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_no_api_key(self, mock_path, mock_set_key, mock_questionary):
         """Test init command without providing API key."""
         mock_path.exists.return_value = False
@@ -363,8 +363,8 @@ class TestCLIIntegration:
 
     def test_cli_error_handling(self):
         """Test CLI error handling."""
-        with patch("clog.update_cli.main_business_logic") as mock_logic:
-            from clog.errors import GitError
+        with patch("kittylog.update_cli.main_business_logic") as mock_logic:
+            from kittylog.errors import GitError
 
             mock_logic.side_effect = GitError("Not a git repository")
 
@@ -396,8 +396,8 @@ class TestCLIValidation:
 
     def test_invalid_model_format(self):
         """Test handling of invalid model format."""
-        with patch("clog.update_cli.main_business_logic") as mock_logic:
-            from clog.errors import ConfigError
+        with patch("kittylog.update_cli.main_business_logic") as mock_logic:
+            from kittylog.errors import ConfigError
 
             mock_logic.side_effect = ConfigError("Invalid model format")
 
