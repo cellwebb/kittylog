@@ -208,8 +208,7 @@ def create_changelog_header(include_unreleased: bool = True) -> str:
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 """
 
@@ -547,9 +546,7 @@ def update_changelog(
 
     # Route to appropriate handler based on whether this is unreleased or tagged content
     if to_tag is None and not no_unreleased:
-        lines = handle_unreleased_section(
-            lines, new_entry, existing_content, current_commit_is_tagged
-        )
+        lines = handle_unreleased_section(lines, new_entry, existing_content, current_commit_is_tagged)
     elif to_tag is not None:
         lines = handle_tagged_version(lines, new_entry, tag_name, existing_content)
     # If no_unreleased is True and to_tag is None, we skip processing unreleased sections
