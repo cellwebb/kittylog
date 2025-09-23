@@ -4,6 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/kittylog.svg)](https://badge.fury.io/py/kittylog)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
 [![codecov](https://codecov.io/gh/cellwebb/kittylog/branch/main/graph/badge.svg)](https://codecov.io/gh/cellwebb/kittylog)
+[![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **LLM-powered changelog generation from git tags and commits.** Automatically analyzes your repository history to create well-structured changelog entries following the [Keep a Changelog](https://keepachangelog.com/) format.

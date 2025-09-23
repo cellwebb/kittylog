@@ -20,6 +20,7 @@ Process git tags to generate changelog entries
 - `-q, --quiet`: Suppress non-error output
 - `-v, --verbose`: Increase output verbosity to INFO
 - `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
+- `--no-unreleased`: Skip creating unreleased section
 - `tag`: Specific tag to process (optional argument)
 
 ### `kittylog update`
@@ -40,27 +41,8 @@ Update changelog for a specific version or all missing tags
 - `-q, --quiet`: Suppress non-error output
 - `-v, --verbose`: Increase output verbosity to INFO
 - `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
+- `--no-unreleased`: Skip creating unreleased section
 - `version`: Specific version to update (optional argument)
-
-### `kittylog unreleased`
-
-Generate unreleased changelog entries
-
-**Options:**
-
-- `--version`: Same as main command options
-- `-d, --dry-run`: Preview changes without modifying the changelog file
-- `-y, --yes`: Skip confirmation prompts
-- `-a, --all`: Update all entries (not just missing ones)
-- `-f, --file`: Path to changelog file (default: CHANGELOG.md)
-- `-s, --from-tag`: Start from specific tag
-- `-t, --to-tag`: Update up to specific tag
-- `-p, --show-prompt`: Show the prompt sent to the LLM
-- `-h, --hint`: Additional context for the prompt
-- `-m, --model`: Override default model
-- `-q, --quiet`: Suppress non-error output
-- `-v, --verbose`: Increase output verbosity to INFO
-- `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
 
 ## Configuration Commands
 
@@ -102,11 +84,8 @@ kittylog --from-tag v1.0.0 --to-tag v1.2.0
 # Update specific version
 kittylog update v1.1.0
 
-# Generate unreleased changes only
-kittylog unreleased
-
-# Replace existing unreleased content
-kittylog
+# Skip creating unreleased section
+kittylog --no-unreleased
 
 # Show AI prompt
 kittylog --show-prompt
