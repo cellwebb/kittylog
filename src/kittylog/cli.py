@@ -40,6 +40,7 @@ def changelog_options(f):
     f = click.option("--to-tag", "-t", default=None, help="Update up to specific tag")(f)
     f = click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")(f)
     f = click.option("--hint", "-h", default="", help="Additional context for the prompt")(f)
+    f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
     return f
 
 
@@ -100,6 +101,7 @@ def add(
     log_level,
     all,
     tag,
+    no_unreleased,
 ):
     """Add missing changelog entries or update a specific tag entry.
 
@@ -129,6 +131,7 @@ def add(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
+                no_unreleased=no_unreleased,
             )
         else:
             # Default behavior: process all missing tags
@@ -142,6 +145,7 @@ def add(
                 require_confirmation=not yes,
                 quiet=quiet,
                 dry_run=dry_run,
+                no_unreleased=no_unreleased,
             )
 
         if not success:
@@ -172,6 +176,7 @@ def update_compat(
     log_level,
     all,
     version,
+    no_unreleased,
 ):
     """Compatibility update command for integration tests."""
 
@@ -187,6 +192,7 @@ def update_compat(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
+            no_unreleased=no_unreleased,
         )
     else:
         # Default behavior: process missing tags only
@@ -200,6 +206,7 @@ def update_compat(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
+            no_unreleased=no_unreleased,
         )
 
     if not success:
@@ -223,6 +230,7 @@ def unreleased(
     to_tag,
     show_prompt,
     all,
+    no_unreleased,
 ):
     """Generate unreleased changelog entries from beginning to specified version or HEAD."""
     # Import here to avoid circular imports
@@ -243,6 +251,7 @@ def unreleased(
         quiet=quiet,
         dry_run=dry_run,
         special_unreleased_mode=True,
+        no_unreleased=no_unreleased,
     )
 
     if not success:

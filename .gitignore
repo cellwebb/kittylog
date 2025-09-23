@@ -170,3 +170,4 @@ cython_debug/
 .kittylog.env
 .claude/settings.local.json
 test_changelog.md
+CRUSH.md

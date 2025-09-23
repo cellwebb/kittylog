@@ -36,6 +36,7 @@ def handle_unreleased_mode(
     hint: str,
     show_prompt: bool,
     quiet: bool,
+    no_unreleased: bool,
 ) -> str:
     """Handle unreleased changes workflow."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
@@ -43,7 +44,7 @@ def handle_unreleased_mode(
 
     # If changelog doesn't exist, create header
     if not existing_content.strip():
-        changelog_content = create_changelog_header()
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
         logger.info("Created new changelog header")
     else:
         changelog_content = existing_content
@@ -70,6 +71,7 @@ def handle_unreleased_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         replace_unreleased=True,  # Always replace in special unreleased mode
+        no_unreleased=no_unreleased,
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
     return updated_content
@@ -83,6 +85,7 @@ def handle_auto_mode(
     quiet: bool,
     update_all_entries: bool,
     special_unreleased_mode: bool = False,
+    no_unreleased: bool = False,
 ) -> str:
     """Handle automatic tag detection workflow."""
     # In simplified mode by default, process all tags with proper AI-generated content
@@ -118,7 +121,7 @@ def handle_auto_mode(
 
     # If changelog doesn't exist, create header
     if not existing_content.strip():
-        changelog_content = create_changelog_header()
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
         logger.info("Created new changelog header")
     else:
         changelog_content = existing_content
@@ -151,6 +154,7 @@ def handle_auto_mode(
             show_prompt=show_prompt,
             quiet=quiet,
             replace_unreleased=True,  # Always replace for tagged versions
+            no_unreleased=no_unreleased,
         )
 
     # Check if we have unreleased changes
@@ -186,6 +190,7 @@ def handle_auto_mode(
             show_prompt=show_prompt,
             quiet=quiet,
             replace_unreleased=True,  # Always overwrite unreleased content
+            no_unreleased=no_unreleased,
         )
 
     return changelog_content
@@ -198,6 +203,7 @@ def handle_single_tag_mode(
     hint: str,
     show_prompt: bool,
     quiet: bool,
+    no_unreleased: bool,
 ) -> str:
     """Handle single tag processing workflow."""
     # When only to_tag is specified, find the previous tag to use as from_tag
@@ -205,7 +211,7 @@ def handle_single_tag_mode(
 
     # If changelog doesn't exist, create header
     if not changelog_content.strip():
-        changelog_content = create_changelog_header()
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
         logger.info("Created new changelog header")
 
     # Get previous tag to determine the range
@@ -225,6 +231,7 @@ def handle_single_tag_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         replace_unreleased=True,  # Always replace for specific tags
+        no_unreleased=no_unreleased,
     )
 
     return changelog_content
@@ -239,6 +246,7 @@ def handle_tag_range_mode(
     show_prompt: bool,
     quiet: bool,
     special_unreleased_mode: bool = False,
+    no_unreleased: bool = False,
 ) -> str:
     """Handle tag range processing workflow."""
     # Process specific tag range
@@ -268,6 +276,7 @@ def handle_tag_range_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         replace_unreleased=True,  # Always replace - smart behavior is handled in update_changelog
+        no_unreleased=no_unreleased,
     )
 
     return changelog_content
@@ -285,6 +294,7 @@ def main_business_logic(
     dry_run: bool = False,
     special_unreleased_mode: bool = False,
     update_all_entries: bool = False,
+    no_unreleased: bool = False,
 ) -> bool:
     """Main application logic for changelog-updater.
 
@@ -327,16 +337,33 @@ def main_business_logic(
     # Determine which workflow to use based on input parameters
     try:
         if special_unreleased_mode:
-            changelog_content = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet)
+            changelog_content = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet, no_unreleased)
         elif from_tag is None and to_tag is None:
             changelog_content = handle_auto_mode(
-                changelog_file, model, hint, show_prompt, quiet, update_all_entries, special_unreleased_mode
+                changelog_file,
+                model,
+                hint,
+                show_prompt,
+                quiet,
+                update_all_entries,
+                special_unreleased_mode,
+                no_unreleased,
             )
         elif to_tag is not None and from_tag is None:
-            changelog_content = handle_single_tag_mode(changelog_file, to_tag, model, hint, show_prompt, quiet)
+            changelog_content = handle_single_tag_mode(
+                changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased
+            )
         else:
             changelog_content = handle_tag_range_mode(
-                changelog_file, from_tag, to_tag, model, hint, show_prompt, quiet, special_unreleased_mode
+                changelog_file,
+                from_tag,
+                to_tag,
+                model,
+                hint,
+                show_prompt,
+                quiet,
+                special_unreleased_mode,
+                no_unreleased,
             )
     except Exception as e:
         handle_error(e)

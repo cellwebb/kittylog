@@ -88,7 +88,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog
         updated_content = update_changelog(
-            existing_content=changelog_content, from_tag="v0.1.0", to_tag=None, model="test:model", quiet=True
+            existing_content=changelog_content,
+            from_tag="v0.1.0",
+            to_tag=None,
+            model="test:model",
+            quiet=True,
+            no_unreleased=False,
         )
 
         # Count bullets in each section
@@ -227,7 +232,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog in replace mode
         updated_content = update_changelog(
-            existing_content=changelog_content, from_tag="v0.1.0", to_tag=None, model="test:model", quiet=True
+            existing_content=changelog_content,
+            from_tag="v0.1.0",
+            to_tag=None,
+            model="test:model",
+            quiet=True,
+            no_unreleased=False,
         )
 
         # Count bullets in each section
@@ -331,7 +341,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
         # Update the changelog in standard mode (tag to tag)
         updated_content = update_changelog(
-            existing_content=changelog_content, from_tag="v0.1.0", to_tag="v0.2.0", model="test:model", quiet=True
+            existing_content=changelog_content,
+            from_tag="v0.1.0",
+            to_tag="v0.2.0",
+            model="test:model",
+            quiet=True,
+            no_unreleased=False,
         )
 
         # Count bullets in each section

@@ -327,7 +327,12 @@ def handle_unreleased_section(
         del lines[content_start_line:end_line]
 
         # Insert new content with bullet limiting
-        new_entry_lines = [line for line in new_entry.split("\n") if line.strip()]
+        # Filter out any lines that might be Unreleased headers to prevent duplicates
+        new_entry_lines = [
+            line
+            for line in new_entry.split("\n")
+            if line.strip() and not re.match(r"^##\s*\[\s*Unreleased\s*\]", line, re.IGNORECASE)
+        ]
         limited_content_lines = limit_bullets_in_sections(new_entry_lines)
 
         for line in reversed(limited_content_lines):
@@ -384,7 +389,7 @@ def handle_tagged_version(lines: list[str], new_entry: str, tag_name: str, exist
     return lines
 
 
-def format_and_clean_content(content: str) -> str:
+def format_and_clean_content(content: str, no_unreleased: bool = False) -> str:
     """Apply formatting and cleanup rules to changelog content."""
     # Clean up any excessive blank lines and ensure proper spacing
     content = re.sub(r"\n{3,}", "\n\n", content)
@@ -397,7 +402,10 @@ def format_and_clean_content(content: str) -> str:
 
     # Remove empty [Unreleased] sections (only when there's no content between header and next section)
     # This regex looks for ## [Unreleased] followed by only whitespace until the next ## section
-    content = re.sub(r"##\s*\[Unreleased\]\s*\n(\s*\n)*(?=##\s*\[)", "", content, flags=re.IGNORECASE)
+    if no_unreleased:
+        content = re.sub(r"##\s*\[Unreleased\]\s*\n(\s*\n)*(?=##\s*\[)", "", content, flags=re.IGNORECASE)
+        # Also remove any standalone [Unreleased] sections
+        content = re.sub(r"##\s*\[Unreleased\]\s*\n\s*\n", "", content, flags=re.IGNORECASE)
 
     # Ensure there's a space before each version section (after the first one)
     content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", content)
@@ -418,6 +426,7 @@ def update_changelog(
     show_prompt: bool = False,
     quiet: bool = False,
     replace_unreleased: bool = True,
+    no_unreleased: bool = False,
 ) -> str:
     """Update changelog with entries for new tags.
 
@@ -431,6 +440,7 @@ def update_changelog(
         show_prompt: Whether to show the prompt
         quiet: Whether to suppress output
         replace_unreleased: Whether to replace or append unreleased content (default True)
+        no_unreleased: Whether to skip creating unreleased sections (default False)
 
     Returns:
         The updated changelog content
@@ -446,10 +456,15 @@ def update_changelog(
         changelog_path = file_path or "CHANGELOG.md"
         existing_content = read_changelog(changelog_path)
 
+    # If no_unreleased is True, remove any existing Unreleased sections
+    if no_unreleased:
+        lines = existing_content.split("\n")
+        lines = remove_unreleased_sections(lines)
+        existing_content = "\n".join(lines)
+
     # If file is empty or very short, create header
     if len(existing_content.strip()) < 50:
-        # Always include Unreleased section when creating a new header
-        existing_content = create_changelog_header()
+        existing_content = create_changelog_header(include_unreleased=not no_unreleased)
 
     # Get commits for this tag range
     commits = get_commits_between_tags(from_tag, to_tag)
@@ -466,6 +481,11 @@ def update_changelog(
     # Generate AI content for this version
     # For unreleased changes, use "Unreleased" as the tag name
     tag_name = to_tag or "Unreleased"
+
+    # If no_unreleased is True and we're processing unreleased content, skip processing
+    if no_unreleased and to_tag is None:
+        return existing_content
+
     ai_content = generate_changelog_entry(
         commits=commits,
         tag=tag_name,
@@ -490,8 +510,9 @@ def update_changelog(
 
     # Format new entries
     # For both tagged releases and unreleased changes, we use the same formatting function
-    # For unreleased changes in append mode, don't include the Unreleased header
-    include_header = not (to_tag is None and not replace_unreleased)
+    # For unreleased changes, don't include the Unreleased header in the formatted entry
+    # because it will be inserted into content that already has the header
+    include_header = to_tag is not None
     new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date, include_header)
 
     # Log the AI content for debugging
@@ -506,7 +527,7 @@ def update_changelog(
     # If the current commit is tagged AND we're processing a specific version (not unreleased),
     # remove any Unreleased sections from the existing content, but only if there's no existing Unreleased section
     # or if we're actually processing the Unreleased section itself
-    if current_commit_is_tagged and to_tag is not None:
+    if current_commit_is_tagged and to_tag is not None and not no_unreleased:
         # Only remove unreleased sections if there isn't already an unreleased section in the content
         # This preserves existing unreleased sections when adding new version sections
         has_unreleased = find_unreleased_section(existing_content) is not None
@@ -514,14 +535,15 @@ def update_changelog(
             lines = remove_unreleased_sections(lines)
 
     # Route to appropriate handler based on whether this is unreleased or tagged content
-    if to_tag is None:
+    if to_tag is None and not no_unreleased:
         lines = handle_unreleased_section(lines, new_entry, existing_content, current_commit_is_tagged)
-    else:
+    elif to_tag is not None:
         lines = handle_tagged_version(lines, new_entry, tag_name, existing_content)
+    # If no_unreleased is True and to_tag is None, we skip processing unreleased sections
 
     # Join back together and apply formatting/cleanup
     updated_content = "\n".join(lines)
-    updated_content = format_and_clean_content(updated_content)
+    updated_content = format_and_clean_content(updated_content, no_unreleased=no_unreleased)
 
     return updated_content
 

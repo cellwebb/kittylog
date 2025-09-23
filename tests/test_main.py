@@ -63,6 +63,7 @@ class TestMainBusinessLogic:
             require_confirmation=False,
             show_prompt=False,
             quiet=True,
+            no_unreleased=False,
         )
 
         assert result is True
@@ -84,6 +85,7 @@ class TestMainBusinessLogic:
             model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
+            no_unreleased=False,
         )
 
         assert result is True
@@ -108,6 +110,7 @@ class TestMainBusinessLogic:
             model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
+            no_unreleased=False,
         )
 
         assert result is True
@@ -120,6 +123,7 @@ class TestMainBusinessLogic:
             show_prompt=False,
             quiet=True,
             replace_unreleased=True,
+            no_unreleased=False,
         )
         mock_write.assert_called_once()
 
@@ -214,6 +218,7 @@ class TestMainBusinessLogic:
             model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
+            no_unreleased=False,
         )
 
         assert result is False
@@ -345,6 +350,7 @@ class TestMainLogicMultipleTags:
             model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
+            no_unreleased=False,
         )
 
         assert result is False
@@ -463,6 +469,7 @@ class TestMainLogicConfiguration:
                 model="openai:gpt-4",  # Should override config
                 require_confirmation=False,
                 quiet=True,
+                no_unreleased=False,
             )
 
         assert result is True
@@ -535,6 +542,7 @@ class TestMainLogicLogging:
             model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
+            no_unreleased=False,
         )
 
         assert result is True
@@ -553,6 +561,7 @@ class TestMainLogicLogging:
             model="cerebras:qwen-3-coder-480b",
             quiet=False,
             require_confirmation=False,
+            no_unreleased=False,
         )
 
         assert result is True

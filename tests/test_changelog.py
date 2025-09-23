@@ -259,6 +259,7 @@ class TestUpdateChangelog:
             hint="",
             show_prompt=False,
             quiet=True,
+            no_unreleased=False,
         )
 
         assert "## [0.2.0] - 2024-01-20" in result
@@ -281,6 +282,8 @@ class TestUpdateChangelog:
             from_tag="v0.1.0",
             to_tag="v0.2.0",
             model="test:model",
+            quiet=True,
+            no_unreleased=False,
         )
 
         # Should add header if content is too short
@@ -351,6 +354,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
             to_tag=None,  # Unreleased changes
             model="test:model",
             quiet=True,
+            no_unreleased=False,
         )
 
         # Should replace unreleased section with new content
@@ -394,6 +398,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
             to_tag="v0.2.0",  # Tagged version
             model="test:model",
             quiet=True,
+            no_unreleased=False,
         )
 
         # Should have new version section
@@ -409,6 +414,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
             to_tag="v1.0.0",
             model="test:model",
             quiet=True,
+            no_unreleased=False,
         )
 
         # Should create header for new file
@@ -517,6 +523,7 @@ All notable changes to this project will be documented in this file.
             hint="Focus on user-facing features",
             show_prompt=False,
             quiet=True,
+            no_unreleased=False,
         )
 
         # Verify structure

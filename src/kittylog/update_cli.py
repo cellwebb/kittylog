@@ -31,6 +31,7 @@ config = load_config()
 @click.option("--model", "-m", default=None, help="Override default model")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
+@click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")
 @click.option(
     "--log-level",
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
@@ -50,6 +51,7 @@ def update_version(
     to_tag,
     show_prompt,
     all,
+    no_unreleased,
 ):
     """Update changelog for a specific version or all missing tags if no version specified.
 
