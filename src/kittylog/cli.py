@@ -159,105 +159,6 @@ def add(
         sys.exit(1)
 
 
-@click.command()
-@common_options
-@click.argument("version", required=False)
-def update_compat(
-    file,
-    from_tag,
-    to_tag,
-    show_prompt,
-    quiet,
-    yes,
-    hint,
-    model,
-    dry_run,
-    verbose,
-    log_level,
-    all,
-    version,
-    no_unreleased,
-):
-    """Compatibility update command for integration tests."""
-
-    if all:
-        # Update all entries - process all tags
-        success = main_business_logic(
-            changelog_file=file,
-            from_tag=from_tag,
-            to_tag=to_tag,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
-            require_confirmation=not yes,
-            quiet=quiet,
-            dry_run=dry_run,
-            no_unreleased=no_unreleased,
-        )
-    else:
-        # Default behavior: process missing tags only
-        success = main_business_logic(
-            changelog_file=file,
-            from_tag=from_tag,
-            to_tag=to_tag,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
-            require_confirmation=not yes,
-            quiet=quiet,
-            dry_run=dry_run,
-            no_unreleased=no_unreleased,
-        )
-
-    if not success:
-        sys.exit(1)
-
-
-@click.command()
-@common_options
-@click.argument("version", required=False)
-def unreleased(
-    version,
-    dry_run,
-    yes,
-    file,
-    model,
-    hint,
-    quiet,
-    verbose,
-    log_level,
-    from_tag,
-    to_tag,
-    show_prompt,
-    all,
-    no_unreleased,
-):
-    """Generate unreleased changelog entries from beginning to specified version or HEAD."""
-    # Import here to avoid circular imports
-    from kittylog.main import main_business_logic
-
-    # Set up logging
-    setup_command_logging(log_level, verbose, quiet)
-
-    # Handle the special unreleased mode
-    success = main_business_logic(
-        changelog_file=file,
-        from_tag=from_tag,
-        to_tag=to_tag,
-        model=model,
-        hint=hint,
-        show_prompt=show_prompt,
-        require_confirmation=not yes,
-        quiet=quiet,
-        dry_run=dry_run,
-        special_unreleased_mode=True,
-        no_unreleased=no_unreleased,
-    )
-
-    if not success:
-        sys.exit(1)
-
-
 @click.group(invoke_without_command=True)
 @click.option("--version", is_flag=True, help="Show the version of the Changelog Updater tool")
 @click.pass_context
@@ -292,7 +193,6 @@ cli.add_command(config_cli)
 cli.add_command(init_cli)
 cli.add_command(init_changelog)
 cli.add_command(add)
-cli.add_command(unreleased)
 cli.add_command(update_version, "update")
 
 

@@ -157,8 +157,7 @@ def remove_unreleased_sections(lines: list[str]) -> list[str]:
                 stripped_next_line = next_line.strip()
                 # If we find another section header, break and continue processing
                 if re.match(r"^##\s*\[.*\]", stripped_next_line):
-                    processed_lines.append(next_line)
-                    i += 1
+                    # Don't increment i here, let the outer loop handle it
                     break
                 # Skip all content lines until we find the next section header
                 i += 1

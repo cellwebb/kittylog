@@ -110,14 +110,24 @@ def find_end_of_unreleased_section(lines: list[str], unreleased_start: int) -> i
     for i in range(unreleased_start + 1, len(lines)):
         # Check if this is a version section header
         if re.match(r"##\s*\[v?\d+\.\d+\.\d+", lines[i], re.IGNORECASE):
-            return i
+            # Return the line index of the previous empty line if exists, otherwise return this line
+            # Look back for empty lines between sections
+            j = i - 1
+            while j > unreleased_start and not lines[j].strip():
+                j -= 1
+            return j + 1
 
         # Check if this is a section header with bracketed content like [Unreleased] or [version]
         # but not just any markdown heading
         if re.match(r"##\s*\[.*\]", lines[i], re.IGNORECASE):
             # Additional check - make sure it's not the unreleased section we're looking for
             if not re.match(r"##\s*\[unreleased\]", lines[i], re.IGNORECASE):
-                return i
+                # Return the line index of the previous empty line if exists, otherwise return this line
+                # Look back for empty lines between sections
+                j = i - 1
+                while j > unreleased_start and not lines[j].strip():
+                    j -= 1
+                return j + 1
 
     # If no next section found, return the end of file
     return len(lines)
@@ -282,7 +292,10 @@ def format_changelog_entry(
 
 
 def handle_unreleased_section(
-    lines: list[str], new_entry: str, existing_content: str, current_commit_is_tagged: bool
+    lines: list[str],
+    new_entry: str,
+    existing_content: str,
+    current_commit_is_tagged: bool,
 ) -> list[str]:
     """Handle updating the unreleased section of the changelog with intelligent behavior."""
     from kittylog.git_operations import get_commits_between_tags, get_latest_tag
@@ -321,7 +334,7 @@ def handle_unreleased_section(
             content_start_line += 1
         logger.debug(f"Content starts at line: {content_start_line}")
 
-        # Always replace unreleased content - this keeps it fresh and up-to-date
+        # Replace existing unreleased content with fresh content - this keeps it fresh and up-to-date
         logger.debug("Replacing existing unreleased content with fresh content")
         # Replace the content between the Unreleased header and the next section
         del lines[content_start_line:end_line]
@@ -425,7 +438,6 @@ def update_changelog(
     hint: str = "",
     show_prompt: bool = False,
     quiet: bool = False,
-    replace_unreleased: bool = True,
     no_unreleased: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Update changelog with entries for new tags.
@@ -439,7 +451,6 @@ def update_changelog(
         hint: Additional context for AI
         show_prompt: Whether to show the prompt
         quiet: Whether to suppress output
-        replace_unreleased: Whether to replace or append unreleased content (default True)
         no_unreleased: Whether to skip creating unreleased sections (default False)
 
     Returns:
@@ -462,10 +473,6 @@ def update_changelog(
         lines = remove_unreleased_sections(lines)
         existing_content = "\n".join(lines)
 
-    # If file is empty or very short, create header
-    if len(existing_content.strip()) < 50:
-        existing_content = create_changelog_header(include_unreleased=not no_unreleased)
-
     # Get commits for this tag range
     commits = get_commits_between_tags(from_tag, to_tag)
 
@@ -474,6 +481,10 @@ def update_changelog(
         return existing_content, None
 
     logger.info(f"Found {len(commits)} commits between {from_tag or 'beginning'} and {to_tag}")
+
+    # If file is empty or very short, create header
+    if len(existing_content.strip()) < 50:
+        existing_content = create_changelog_header(include_unreleased=not no_unreleased)
 
     # Get git diff for better context
     diff_content = get_git_diff(from_tag, to_tag)
@@ -536,7 +547,9 @@ def update_changelog(
 
     # Route to appropriate handler based on whether this is unreleased or tagged content
     if to_tag is None and not no_unreleased:
-        lines = handle_unreleased_section(lines, new_entry, existing_content, current_commit_is_tagged)
+        lines = handle_unreleased_section(
+            lines, new_entry, existing_content, current_commit_is_tagged
+        )
     elif to_tag is not None:
         lines = handle_tagged_version(lines, new_entry, tag_name, existing_content)
     # If no_unreleased is True and to_tag is None, we skip processing unreleased sections

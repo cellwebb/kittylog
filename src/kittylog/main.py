@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Business logic for changelog-updater.
+"""Business logic for kittylog.
 
 Orchestrates the changelog update workflow including git operations, AI generation, and file updates.
 """
@@ -70,7 +70,6 @@ def handle_unreleased_mode(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
-        replace_unreleased=True,  # Always replace in special unreleased mode
         no_unreleased=no_unreleased,
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
@@ -108,6 +107,26 @@ def handle_auto_mode(
             output.info(f"Found {len(all_tags)} total tags")
             output.info(f"Existing tags in changelog: {existing_tag_list}")
             output.info(f"Missing tags to process: {missing_tag_list}")
+
+        # If no tags to process and no unreleased changes, return early
+        if not tags_to_process:
+            has_unreleased_changes = False
+            latest_tag = get_latest_tag()
+            if latest_tag and not is_current_commit_tagged():
+                # If the current commit isn't tagged, we have unreleased changes
+                # But only if there are actually commits since the last tag
+                unreleased_commits = get_commits_between_tags(latest_tag, None)
+                if len(unreleased_commits) > 0:
+                    has_unreleased_changes = True
+            elif not latest_tag and not is_current_commit_tagged():
+                # If no tags exist in repo at all, check if we have commits
+                all_commits = get_commits_between_tags(None, None)
+                if all_commits:
+                    has_unreleased_changes = True
+
+            # Only process unreleased changes if there are any or if in special mode
+            if not has_unreleased_changes and not special_unreleased_mode:
+                return existing_content, None
     else:
         # Process all tags when update_all_entries is True
         tags_to_process = all_tags
@@ -153,7 +172,6 @@ def handle_auto_mode(
             hint=hint,
             show_prompt=show_prompt,
             quiet=quiet,
-            replace_unreleased=True,  # Always replace for tagged versions
             no_unreleased=no_unreleased,
         )
 
@@ -189,7 +207,6 @@ def handle_auto_mode(
             hint=hint,
             show_prompt=show_prompt,
             quiet=quiet,
-            replace_unreleased=True,  # Always overwrite unreleased content
             no_unreleased=no_unreleased,
         )
 
@@ -233,7 +250,6 @@ def handle_single_tag_mode(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
-        replace_unreleased=True,  # Always replace for specific tags
         no_unreleased=no_unreleased,
     )
 
@@ -278,7 +294,6 @@ def handle_tag_range_mode(
         hint=hint,
         show_prompt=show_prompt,
         quiet=quiet,
-        replace_unreleased=True,  # Always replace - smart behavior is handled in update_changelog
         no_unreleased=no_unreleased,
     )
 
@@ -299,7 +314,7 @@ def main_business_logic(
     update_all_entries: bool = False,
     no_unreleased: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
-    """Main application logic for changelog-updater.
+    """Main application logic for kittylog.
 
     Returns True on success, False on failure.
     """
@@ -341,7 +356,9 @@ def main_business_logic(
     token_usage = None
     try:
         if special_unreleased_mode:
-            changelog_content, token_usage = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet, no_unreleased)
+            changelog_content, token_usage = handle_unreleased_mode(
+                changelog_file, model, hint, show_prompt, quiet, no_unreleased
+            )
         elif from_tag is None and to_tag is None:
             changelog_content, token_usage = handle_auto_mode(
                 changelog_file,
@@ -394,7 +411,9 @@ def main_business_logic(
 
         # Display token usage if available
         if token_usage:
-            output.info(f"Token usage: {token_usage['prompt_tokens']} input + {token_usage['completion_tokens']} output = {token_usage['total_tokens']} total")
+            output.info(
+                f"Token usage: {token_usage['prompt_tokens']} input + {token_usage['completion_tokens']} output = {token_usage['total_tokens']} total"
+            )
 
         proceed = click.confirm("\nSave the updated changelog?", default=True)
         if not proceed:

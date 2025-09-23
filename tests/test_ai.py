@@ -37,7 +37,7 @@ class TestGenerateChangelogEntry:
                 quiet=True,
             )
 
-        assert result == "Cleaned AI content"
+        assert result[0] == "Cleaned AI content"
         mock_build_prompt.assert_called_once()
         mock_generate.assert_called_once()
         mock_clean.assert_called_once_with("Raw AI content")
@@ -338,10 +338,10 @@ class TestAIIntegration:
             )
 
         # Verify the workflow
-        assert "### Added" in result
-        assert "User authentication system" in result
-        assert "### Fixed" in result
-        assert "login validation errors" in result
+        assert "### Added" in result[0]
+        assert "User authentication system" in result[0]
+        assert "### Fixed" in result[0]
+        assert "login validation errors" in result[0]
 
         # Verify prompt building was called correctly
         mock_build_prompt.assert_called_once_with(

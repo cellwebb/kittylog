@@ -912,11 +912,11 @@ All notable changes to this project will be documented in this file.
             # Change to the git repo directory, not temp_dir
             os.chdir(git_repo_with_tags.working_dir)
 
-            # Run unreleased command - replace mode is the default behavior
+            # Run add command - will automatically handle unreleased content
             result = runner.invoke(
                 cli,
                 [
-                    "unreleased",
+                    "add",
                     "--yes",  # Skip confirmation
                     "--quiet",
                 ],

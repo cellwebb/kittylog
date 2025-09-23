@@ -17,7 +17,7 @@ class TestMainCLI:
         result = runner.invoke(cli, ["--help"])
 
         assert result.exit_code == 0
-        assert "Changelog Updater" in result.output
+        assert "kittylog" in result.output
         assert "update" in result.output
         assert "config" in result.output
         assert "init" in result.output
@@ -28,7 +28,7 @@ class TestMainCLI:
         result = runner.invoke(cli, ["--version"])
 
         assert result.exit_code == 0
-        assert "changelog-updater" in result.output
+        assert "kittylog" in result.output
 
 
 class TestUpdateCommand:
@@ -37,7 +37,7 @@ class TestUpdateCommand:
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_basic(self, mock_main_logic):
         """Test basic update command."""
-        mock_main_logic.return_value = True
+        mock_main_logic.return_value = (True, None)
 
         runner = CliRunner()
         result = runner.invoke(update)
@@ -55,7 +55,7 @@ class TestUpdateCommand:
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_with_all_options(self, mock_main_logic):
         """Test update command with all options."""
-        mock_main_logic.return_value = True
+        mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
         result = runner.invoke(
@@ -99,7 +99,7 @@ class TestUpdateCommand:
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_short_options(self, mock_main_logic):
         """Test update command with short options."""
-        mock_main_logic.return_value = True
+        mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
         result = runner.invoke(
@@ -134,19 +134,20 @@ class TestUpdateCommand:
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_failure_exit_code(self, mock_main_logic):
         """Test update command exit code on failure."""
-        mock_main_logic.return_value = False
+        mock_main_logic.return_value = (False, None)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update"])
+        result = runner.invoke(update)
 
         assert result.exit_code == 1
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_exception_handling(self, mock_main_logic):
         """Test update command exception handling."""
-        from kittylog.errors import ChangelogUpdaterError
+        from kittylog.errors import KittylogError
 
-        mock_main_logic.side_effect = ChangelogUpdaterError("Test error")
+        mock_main_logic.return_value = (False, None)
+        mock_main_logic.side_effect = KittylogError("Test error")
 
         runner = CliRunner()
         result = runner.invoke(update)
@@ -160,7 +161,7 @@ class TestUpdateCommand:
         mock_main_logic.side_effect = KeyboardInterrupt()
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update"])
+        result = runner.invoke(update)
 
         assert result.exit_code == 1
         assert "cancelled" in result.output.lower() or "aborted" in result.output.lower()
@@ -192,8 +193,8 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "No $HOME/.kittylog.env found" in result.output
 
-    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     @patch("kittylog.config_cli.load_dotenv")
+    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
     @patch("builtins.open")
     def test_config_show_with_file(self, mock_open, mock_load_dotenv, mock_path):
         """Test config show with existing config file."""
@@ -339,6 +340,19 @@ class TestInitCommand:
         # Should only set model, not API key
         assert mock_set_key.call_count == 1
 
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_with_no_config_dir(self, mock_path):
+        """Test init command when config directory doesn't exist."""
+        mock_path.exists.return_value = False
+        mock_path.parent.exists.return_value = False
+        mock_path.parent.mkdir = Mock()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        # Should handle gracefully
+        assert result.exit_code in [0, 1]
+
 
 class TestCLIIntegration:
     """Integration tests for CLI functionality."""
@@ -366,6 +380,7 @@ class TestCLIIntegration:
         with patch("kittylog.update_cli.main_business_logic") as mock_logic:
             from kittylog.errors import GitError
 
+            mock_logic.return_value = (False, None)
             mock_logic.side_effect = GitError("Not a git repository")
 
             runner = CliRunner()
@@ -399,6 +414,7 @@ class TestCLIValidation:
         with patch("kittylog.update_cli.main_business_logic") as mock_logic:
             from kittylog.errors import ConfigError
 
+            mock_logic.return_value = (False, None)
             mock_logic.side_effect = ConfigError("Invalid model format")
 
             runner = CliRunner()

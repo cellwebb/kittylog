@@ -123,7 +123,7 @@ def generate_changelog_entry(
         token_usage = {
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens
+            "total_tokens": total_tokens,
         }
         return cleaned_content, token_usage
 
