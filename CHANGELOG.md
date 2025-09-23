@@ -5,8 +5,107 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.9] - 2025-09-22
+## [0.2.3] - 2025-09-22
+
+### Added
+
+- Implement unified output interface with new `OutputManager` class for consistent messaging across the application
+- Add standardized methods for info, success, warning, error, and debug messages
+- Introduce global output management supporting quiet and verbose modes
+
+### Changed
+
+- Replace direct Rich console usage with the new unified output interface throughout the codebase
+- Update CLI and error handling modules to use centralized output management
+- Improve output consistency and overall maintainability of user-facing messages
+
+## [0.2.2] - 2025-09-22
+
+### Added
+
+- Add caching for git operations (`get_repo`, `get_all_tags`, `get_current_commit_hash`) to improve performance
+- Expand changelog file discovery to include the `docs/` directory with proper priority ordering
+- Introduce reusable CLI option decorators (`workflow_options`, `changelog_options`, `model_options`, `logging_options`) to reduce duplication
+- Add `common_options` decorator that combines all shared options for consistent command interfaces
+- Implement standardized environment variable validation using a new `validate_env_var` function
+- Add `setup_command_logging` function to unify verbosity and logging level handling across CLI commands
+
+### Changed
+
+- Remove `--replace-unreleased` and `--no-replace-unreleased` flags, now always replace unreleased section content
+- Update configuration loading to use stricter and more consistent validation logic
+- Modify internal CLI structure to use shared decorators, improving maintainability and consistency
+- Improve changelog generation behavior to automatically remove unreleased section when commit is tagged and up-to-date
+- Skip creating unreleased section when no unreleased commits are present
+- Refactor utility imports and file discovery logic for better modularity and clarity
+
 ### Fixed
+
+- Fix potential test interference by adding cleanup of generated `CHANGES.md` files after CLI update tests
+- Prevent state contamination between tests by clearing git operation caches in test fixtures
+
+## [0.2.1] - 2025-09-22
+
+### Changed
+
+- Remove deprecated `--preserve-existing` CLI option from all commands
+- Refactor core changelog processing logic into modular handler functions for unreleased, auto, single tag, and tag range workflows
+- Simplify `main_business_logic()` function from 288 to 106 lines to improve maintainability
+- Reorganize codebase architecture to route changelog operations through specialized workflow handlers
+- Update documentation to reflect removal of `--preserve-existing` flag and new modular structure
+
+### Fixed
+
+- Improve code quality and reduce complexity in changelog update functions
+- Eliminate outdated backward compatibility code for deprecated CLI options
+- Maintain full test coverage with all 216 tests passing after refactoring
+- Fix broken internal links in project documentation
+- Resolve inconsistent command option listings across usage guides
+
+## [0.2.0] - 2025-09-22
+
+### Added
+
+- Add auto-detection of changelog files with preferred filenames (CHANGELOG.md, changelog.md, CHANGES.md, changes.md)
+- Add exclusion patterns for changelog file variants to prevent duplication in git diff operations
+- Introduce new comprehensive documentation files: USAGE.md for command-line usage and AGENTS.md for AI agent architecture
+
+### Changed
+
+- Replace black and isort with ruff format for code formatting and linting
+- Reorganize README.md to reference new dedicated documentation files instead of inline technical details
+- Simplify configuration interface by removing backward compatibility for deprecated CHANGELOG*UPDATER*\* environment variables
+- Update development workflow with new make commands for testing and code quality assurance
+
+### Removed
+
+- Remove support for legacy CHANGELOG*UPDATER*\* environment variable prefixes
+- Remove detailed command-line options and AI architecture sections from README.md
+
+### Fixed
+
+- Fix test patch decorators to correctly mock get_tags_since_last_changelog from the git_operations module
+
+## [0.1.10] - 2025-09-22
+
+### Changed
+
+- Improve type safety in changelog processing by adding explicit type annotations and ensuring boolean consistency
+- Remove redundant exception handling in git operations to prevent masking of underlying errors
+- Reformat codebase and reorganize imports for better readability and maintainability
+- Remove outdated implementation status documentation and placeholder changelog file
+
+### Fixed
+
+- Resolve test isolation issues causing order-dependent failures
+- Fix AI mocking conflicts in test fixtures to ensure proper override behavior
+- Correct git repository context handling in tests for more reliable operations
+- Address file path and repository detection problems in the test suite
+
+## [0.1.9] - 2025-09-22
+
+### Fixed
+
 - Resolve test isolation issues causing failures when tests were run in specific orders
 - Fix AI mocking conflicts in test fixtures to ensure test-specific responses override global mocks
 - Correct git repository context problems in multiple test cases to enable proper git operations
