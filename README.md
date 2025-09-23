@@ -1,12 +1,15 @@
 # kittylog
 
+[![Quality Checks](https://github.com/cellwebb/kittylog/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/kittylog/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/kittylog.svg)](https://badge.fury.io/py/kittylog)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
+[![codecov](https://codecov.io/gh/cellwebb/kittylog/branch/main/graph/badge.svg)](https://codecov.io/gh/cellwebb/kittylog)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Features
 
-- **AI-Powered Changelog Generation:** Automatically generates clear, comprehensive changelog entries using large language models.
+- **LLM-Powered Changelog Generation:** Automatically generates clear, comprehensive changelog entries using large language models.
 - **Git Tag Integration:** Uses git tags to automatically detect version changes and generate appropriate changelog sections.
 - **Unreleased Changes Support:** Automatically tracks changes since the last git tag in an "Unreleased" section.
 - **Dogfooding:** This project uses `kittylog` to maintain its own `CHANGELOG.md` file!
@@ -39,13 +42,6 @@ kittylog
 # 3. Generate changelog entries using AI
 # 4. Show preview and ask for confirmation
 # 5. Update your CHANGELOG.md file
-```
-
-To create a pull request with your changelog updates:
-
-```sh
-# Create a pull request with changelog updates
-kittylog -p
 ```
 
 ![Simple kittylog Usage](assets/kittylog-usage.png)
