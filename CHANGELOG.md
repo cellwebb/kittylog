@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-09-22
+
+### Added
+
+- Add intelligent handling of the "Unreleased" changelog section that automatically replaces existing content with newly generated entries
+- Implement token usage tracking for AI operations, returning statistics for prompt, completion, and total tokens consumed during changelog generation
+
+### Changed
+
+- Rename project references from "changelog-updater" to "kittylog" across the entire codebase, including CLI output, error classes, and documentation
+- Refactor README installation and usage sections for improved clarity and streamlined presentation
+- Simplify CI workflow by removing unnecessary paths-ignore configuration for push triggers, ensuring consistent quality checks on all pushes
+- Improve changelog generation logic with better section boundary detection and content insertion
+- Enhance error handling and validation in changelog processing operations
+- Update Makefile commands and help text to reflect the new kittylog naming convention
+
+### Removed
+
+- Remove redundant CLI commands and streamline the changelog update workflow
+- Eliminate extensive paths-ignore list from CI push triggers for simpler workflow logic
+
 ## [0.3.2] - 2025-09-22
 
 ### Added
