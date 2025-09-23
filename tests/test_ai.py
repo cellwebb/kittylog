@@ -33,7 +33,7 @@ class TestGenerateChangelogEntry:
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 quiet=True,
             )
 

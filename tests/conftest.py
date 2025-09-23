@@ -184,7 +184,7 @@ def mock_ai_client():
 def mock_config():
     """Mock configuration for testing."""
     return {
-        "model": "anthropic:claude-3-5-haiku-latest",
+        "model": "cerebras:qwen-3-coder-480b",
         "temperature": 0.7,
         "max_output_tokens": 1024,
         "max_retries": 3,

@@ -305,16 +305,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_commits_between_tags")
     @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")
     def test_update_changelog_intelligent_unreleased(
-        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
+        self, mock_generate, mock_get_git_diff, mock_get_commits_changelog, mock_get_commits_git_ops, mock_get_latest_tag, mock_is_tagged, temp_dir, sample_commits
     ):
         """Test that unreleased changes are handled intelligently."""
-        mock_get_commits.return_value = sample_commits
+        mock_get_commits_changelog.return_value = sample_commits
+        mock_get_commits_git_ops.return_value = sample_commits
         mock_generate.return_value = "### Added\n- New feature\n\n### Fixed\n- Bug fix"
         mock_get_latest_tag.return_value = "v0.1.0"
         mock_is_tagged.return_value = False  # Simulate unreleased commits
+        mock_get_git_diff.return_value = "diff --git a/test.py b/test.py"
 
         # Create existing changelog with unreleased content
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -501,7 +505,7 @@ All notable changes to this project will be documented in this file.
             file_path=str(changelog_file),
             from_tag="v0.1.0",
             to_tag="v0.2.0",
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             hint="Focus on user-facing features",
             show_prompt=False,
             quiet=True,

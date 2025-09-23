@@ -108,7 +108,7 @@ class TestUpdateCommand:
                 "-f",
                 "CHANGES.md",
                 "-m",
-                "anthropic:claude-3-5-haiku-latest",
+                "cerebras:qwen-3-coder-480b",
                 "-h",
                 "Test hint",
                 "-y",
@@ -120,7 +120,7 @@ class TestUpdateCommand:
 
         call_args = mock_main_logic.call_args[1]
         assert call_args["changelog_file"] == "CHANGES.md"
-        assert call_args["model"] == "anthropic:claude-3-5-haiku-latest"
+        assert call_args["model"] == "cerebras:qwen-3-coder-480b"
         assert call_args["hint"] == "Test hint"
         assert call_args["require_confirmation"] is False  # --yes flag sets this to False
         assert call_args["quiet"] is True
@@ -198,7 +198,7 @@ class TestConfigCommand:
     def test_config_show_with_file(self, mock_open, mock_load_dotenv, mock_path):
         """Test config show with existing config file."""
         mock_path.exists.return_value = True
-        mock_file_content = "KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n"
+        mock_file_content = "KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n"
         mock_open.return_value.__enter__.return_value.read.return_value = mock_file_content
         mock_open.return_value.__enter__.return_value.__iter__ = Mock(
             return_value=iter(mock_file_content.splitlines(True))
@@ -208,7 +208,7 @@ class TestConfigCommand:
         result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
-        assert "KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest" in result.output
+        assert "KITTYLOG_MODEL=cerebras:qwen-3-coder-480b" in result.output
         assert "ANTHROPIC_API_KEY=sk-ant-test123" in result.output
 
     @patch("kittylog.config_cli.set_key")

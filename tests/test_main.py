@@ -57,7 +57,7 @@ class TestMainBusinessLogic:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             from_tag=None,
             to_tag=None,
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             hint="",
             dry_run=False,
             require_confirmation=False,
@@ -81,7 +81,7 @@ class TestMainBusinessLogic:
             changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
             from_tag=None,
             to_tag=None,
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
         )
@@ -105,7 +105,7 @@ class TestMainBusinessLogic:
             changelog_file=str(temp_dir / "CHANGELOG.md"),
             from_tag="v0.1.0",
             to_tag="v0.2.0",
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
         )
@@ -115,7 +115,7 @@ class TestMainBusinessLogic:
             file_path=str(temp_dir / "CHANGELOG.md"),
             from_tag="v0.1.0",
             to_tag="v0.2.0",
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             hint="",
             show_prompt=False,
             quiet=True,
@@ -138,7 +138,7 @@ class TestMainBusinessLogic:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
                 to_tag="v0.2.0",
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 dry_run=True,
                 quiet=False,
             )
@@ -166,7 +166,7 @@ class TestMainBusinessLogic:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
                 to_tag="v0.2.0",
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 require_confirmation=True,  # Require confirmation
                 quiet=False,
             )
@@ -193,7 +193,7 @@ class TestMainBusinessLogic:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
                 to_tag="v0.2.0",
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 require_confirmation=True,
                 quiet=False,
             )
@@ -211,7 +211,7 @@ class TestMainBusinessLogic:
 
         result = main_business_logic(
             changelog_file=str(temp_dir / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
         )
@@ -229,7 +229,7 @@ class TestMainBusinessLogic:
 
         result = main_business_logic(
             changelog_file=str(temp_dir / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
         )
@@ -249,7 +249,7 @@ class TestMainBusinessLogic:
 
         result = main_business_logic(
             changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
         )
@@ -305,7 +305,7 @@ class TestMainLogicMultipleTags:
 
         result = main_business_logic(
             changelog_file=str(temp_dir / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
         )
@@ -342,7 +342,7 @@ class TestMainLogicMultipleTags:
 
         result = main_business_logic(
             changelog_file=str(temp_dir / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             require_confirmation=False,
             quiet=True,
         )
@@ -370,7 +370,7 @@ class TestMainLogicEdgeCases:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag="v0.1.0",
                 to_tag=None,  # Should use HEAD
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 require_confirmation=False,
                 quiet=True,
             )
@@ -397,7 +397,7 @@ class TestMainLogicEdgeCases:
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 from_tag=None,
                 to_tag="v0.2.0",
-                model="anthropic:claude-3-5-haiku-latest",
+                model="cerebras:qwen-3-coder-480b",
                 require_confirmation=False,
                 quiet=True,
             )
@@ -416,7 +416,7 @@ class TestMainLogicEdgeCases:
         # Empty file path causes an error when writing
         result = main_business_logic(
             changelog_file="",
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
         )
@@ -454,7 +454,7 @@ class TestMainLogicConfiguration:
         with patch(
             "kittylog.main.config",
             {
-                "model": "anthropic:claude-3-5-haiku-latest",
+                "model": "cerebras:qwen-3-coder-480b",
                 "temperature": 0.7,
             },
         ):
@@ -505,7 +505,7 @@ class TestMainLogicConfiguration:
         with patch(
             "kittylog.main.config",
             {
-                "model": "anthropic:claude-3-5-haiku-latest",
+                "model": "cerebras:qwen-3-coder-480b",
             },
         ):
             result = main_business_logic(
@@ -532,7 +532,7 @@ class TestMainLogicLogging:
 
         result = main_business_logic(
             changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=True,
             require_confirmation=False,
         )
@@ -550,7 +550,7 @@ class TestMainLogicLogging:
 
         result = main_business_logic(
             changelog_file=str(Path(git_repo.working_dir) / "CHANGELOG.md"),
-            model="anthropic:claude-3-5-haiku-latest",
+            model="cerebras:qwen-3-coder-480b",
             quiet=False,
             require_confirmation=False,
         )

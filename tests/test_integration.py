@@ -12,6 +12,7 @@ from kittylog.cli import cli
 class TestEndToEndWorkflow:
     """End-to-end integration tests."""
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_complete_workflow_new_changelog(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test complete workflow creating a new changelog."""
@@ -36,7 +37,7 @@ class TestEndToEndWorkflow:
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         runner = CliRunner()
 
@@ -68,6 +69,7 @@ class TestEndToEndWorkflow:
         assert "### Fixed" in content
         assert "Login validation errors" in content
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_complete_workflow_update_existing(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test complete workflow updating existing changelog."""
@@ -91,7 +93,7 @@ class TestEndToEndWorkflow:
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Create existing changelog
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -134,6 +136,7 @@ All notable changes to this project will be documented in this file.
         assert "Critical security issue" in updated_content
         assert "## [0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     def test_dry_run_workflow(self, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
         with patch("kittylog.ai.ai.Client") as mock_client_class:
@@ -151,7 +154,7 @@ All notable changes to this project will be documented in this file.
 
             # Create config
             config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
             runner = CliRunner()
             os.chdir(temp_dir)
@@ -284,7 +287,7 @@ class TestErrorHandlingIntegration:
         """Test error when API key is missing."""
         # Create config without API key in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -324,7 +327,7 @@ class TestErrorHandlingIntegration:
         """Test error with invalid git tags."""
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -361,6 +364,7 @@ class TestErrorHandlingIntegration:
 class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_multiple_tags_auto_detection(self, mock_client_class, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
@@ -412,7 +416,7 @@ class TestMultiTagIntegration:
 
             # Create config
             config_file = temp_dir / ".kittylog.env"
-            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
             # Create docs directory
             docs_dir = temp_dir / "docs"
@@ -486,7 +490,7 @@ class TestMultiTagIntegration:
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nKITTYLOG_LOG_LEVEL=DEBUG\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nKITTYLOG_LOG_LEVEL=DEBUG\n")
 
         runner = CliRunner()
         os.chdir(temp_dir)
@@ -512,6 +516,7 @@ class TestMultiTagIntegration:
 class TestCLIOptionsIntegration:
     """Integration tests for various CLI options."""
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_hint_option_integration(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that hint option is properly passed through."""
@@ -528,10 +533,10 @@ class TestCLIOptionsIntegration:
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -569,6 +574,7 @@ class TestCLIOptionsIntegration:
         # This is tested more thoroughly in unit tests
         mock_client.chat.completions.create.assert_called_once()
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_model_override_integration(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that model override works properly."""
@@ -585,11 +591,11 @@ class TestCLIOptionsIntegration:
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Config has one model
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -632,6 +638,7 @@ class TestCLIOptionsIntegration:
 class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_custom_changelog_path(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
@@ -648,10 +655,10 @@ class TestFilePathIntegration:
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         # Create docs directory
         docs_dir = Path(git_repo_with_tags.working_dir) / "docs"
@@ -696,6 +703,7 @@ class TestFilePathIntegration:
         content = custom_file.read_text()
         assert "Custom path test" in content
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     def test_relative_path_handling(self, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
         with patch("kittylog.ai.ai.Client") as mock_client_class:
@@ -711,7 +719,7 @@ class TestFilePathIntegration:
             mock_client_class.return_value = mock_client
 
             config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+            config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
             # Create subdirectory
             subdir = Path(git_repo_with_tags.working_dir) / "project"
@@ -757,6 +765,7 @@ class TestFilePathIntegration:
 class TestUnreleasedBulletLimitingIntegration:
     """Integration tests for bullet limiting in unreleased section handling."""
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     @patch("kittylog.ai.ai.Client")
     def test_unreleased_section_bullet_limiting_append_mode(self, mock_client_class, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when appending to existing unreleased section."""
@@ -796,7 +805,7 @@ All notable changes to this project will be documented in this file.
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -854,6 +863,7 @@ All notable changes to this project will be documented in this file.
         # Should have exactly 6 bullets (3 existing + 3 new from the 8 AI bullets)
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
+    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
     def test_unreleased_section_bullet_limiting_replace_mode(self, mock_api_calls, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when replacing existing unreleased section."""
         print("DEBUG: Test started")
@@ -892,7 +902,7 @@ All notable changes to this project will be documented in this file.
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-5-haiku-latest\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
