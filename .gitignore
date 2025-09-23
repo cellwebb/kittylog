@@ -177,6 +177,8 @@ GEMINI.md
 LLXPRT.md
 QWEN.md
 
+# MCP Servers
+.serena/
 
 # Project-specific
 *.log
