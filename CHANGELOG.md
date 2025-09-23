@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-09-22
+
+### Changed
+
+- Replace "AI-Powered" terminology with "LLM-Powered" for greater technical accuracy in changelog feature description
+- Remove redundant pull request creation example from documentation to avoid duplication
+- Reorder and update README badges to improve project visibility and visual hierarchy
+
+### Fixed
+
+- Update badge links and formatting in README to ensure proper display and functionality
+
+## [0.3.0] - 2025-09-22
+
+### Added
+
+- Add GitHub Actions workflows for continuous integration and automated PyPI publishing
+- Introduce Codecov configuration with project and patch coverage settings
+
+### Changed
+
+- Rename project from `clog` to `kittylog`, including all module references, environment variables, and configuration files
+- Update AI model references in tests from `anthropic:claude-3-5-haiku-latest` to `cerebras:qwen-3-coder-480b`
+- Improve readability by reformatting test function parameter lists and method signatures
+- Modify CI workflow to exclude documentation, example, and metadata files from triggering builds
+
+### Fixed
+
+- Correct environment variable name in error messages from `CHANGELOG_UPDATER_MODEL` to `KITTYLOG_MODEL`
+
 ## [0.2.3] - 2025-09-22
 
 ### Added
