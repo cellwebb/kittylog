@@ -38,11 +38,11 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
 
         # Check if this is a category section header (### Added/Changed/Fixed/etc.)
         elif re.match(r"^###\s+[A-Z][a-z]+", stripped_line):
-            # Add blank line before category header if there's content before it
+            # Always add blank line before category header if there are existing lines
             if processed_lines and processed_lines[-1].strip():
                 processed_lines.append("")
             processed_lines.append(line)
-            # Add blank line after category header
+            # Always add blank line after category header
             processed_lines.append("")
         else:
             processed_lines.append(line)
@@ -70,23 +70,23 @@ def clean_duplicate_sections(lines: list[str]) -> list[str]:
         List of lines with duplicate sections removed
     """
     processed_lines = []
-    seen_sections = set()
+    current_version_sections = set()
 
     for line in lines:
         stripped_line = line.strip()
 
-        # Check for section headers
-        section_match = re.match(r"^(##|###)\s+(.+)$", stripped_line)
-        if section_match:
-            header_level = section_match.group(1)
-            section_name = section_match.group(2)
-
-            # If we've seen this section at this level, skip it
-            section_key = f"{header_level}:{section_name}"
-            if section_key in seen_sections:
-                continue
+        # Check for version headers (## [version])
+        if re.match(r"^##\s*\[.*\]", stripped_line):
+            # Reset section tracking for the new version
+            current_version_sections = set()
+            processed_lines.append(line)
+        # Check for category section headers (### Added/Changed/Fixed/etc.)
+        elif re.match(r"^###\s+[A-Z][a-z]+", stripped_line):
+            # Only check for duplicates within the current version section
+            if stripped_line in current_version_sections:
+                continue  # Skip duplicate section header within this version
             else:
-                seen_sections.add(section_key)
+                current_version_sections.add(stripped_line)
                 processed_lines.append(line)
         else:
             processed_lines.append(line)

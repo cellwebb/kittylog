@@ -402,6 +402,9 @@ def format_and_clean_content(content: str) -> str:
     # Ensure there's a space before each version section (after the first one)
     content = re.sub(r"(\S)(\n##\s*\[)", r"\1\n\n\2", content)
 
+    # Apply postprocessing to ensure proper line breaks around section headers
+    content = postprocess_changelog_content(content)
+
     return content
 
 
