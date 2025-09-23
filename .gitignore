@@ -167,6 +167,7 @@ cython_debug/
 # Agents
 .claude/
 .crush/
+.crush.json
 .gemini/
 .llxprt/
 .qwen/
