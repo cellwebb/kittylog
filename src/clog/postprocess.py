@@ -70,7 +70,7 @@ def clean_duplicate_sections(lines: list[str]) -> list[str]:
         List of lines with duplicate sections removed
     """
     processed_lines = []
-    current_version_sections = set()
+    current_version_sections: set[str] = set()
 
     for line in lines:
         stripped_line = line.strip()
