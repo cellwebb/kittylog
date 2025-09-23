@@ -121,7 +121,7 @@ def add(
             git_tag = f"v{normalized_tag}" if not tag.startswith("v") else tag
 
             # For specific tags, always overwrite the entry
-            success = main_business_logic(
+            success, token_usage = main_business_logic(
                 changelog_file=file,
                 from_tag=from_tag,  # Will use get_previous_tag in main logic if None
                 to_tag=git_tag,  # Process the specific tag

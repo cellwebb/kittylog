@@ -82,7 +82,7 @@ def update_version(
         # If no version is specified, process all tags (update behavior)
         if version is None:
             # Run main business logic with update behavior (process all tags)
-            success = main_business_logic(
+            success, token_usage = main_business_logic(
                 changelog_file=file,
                 from_tag=from_tag,
                 to_tag=to_tag,
@@ -116,7 +116,7 @@ def update_version(
         previous_tag = get_previous_tag(git_version)
 
         # Run main business logic for this specific version
-        success = main_business_logic(
+        success, token_usage = main_business_logic(
             changelog_file=file,
             from_tag=from_tag or previous_tag,  # Use provided from_tag or fallback to previous_tag
             to_tag=git_version,

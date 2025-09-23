@@ -37,7 +37,7 @@ def handle_unreleased_mode(
     show_prompt: bool,
     quiet: bool,
     no_unreleased: bool,
-) -> str:
+) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
     existing_content = read_changelog(changelog_file)
@@ -62,7 +62,7 @@ def handle_unreleased_mode(
     logger.debug(f"Latest tag: {latest_tag}")
 
     # Update changelog for unreleased changes only - always replace in special unreleased mode
-    updated_content = update_changelog(
+    updated_content, token_usage = update_changelog(
         existing_content=changelog_content,
         from_tag=latest_tag,
         to_tag=None,  # None means HEAD for unreleased
@@ -74,7 +74,7 @@ def handle_unreleased_mode(
         no_unreleased=no_unreleased,
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
-    return updated_content
+    return updated_content, token_usage
 
 
 def handle_auto_mode(
@@ -86,7 +86,7 @@ def handle_auto_mode(
     update_all_entries: bool,
     special_unreleased_mode: bool = False,
     no_unreleased: bool = False,
-) -> str:
+) -> tuple[str, dict[str, int] | None]:
     """Handle automatic tag detection workflow."""
     # In simplified mode by default, process all tags with proper AI-generated content
     all_tags = get_all_tags()
@@ -145,7 +145,7 @@ def handle_auto_mode(
         previous_tag = get_previous_tag(tag)
 
         # Update changelog for this tag only (overwrite existing content)
-        changelog_content = update_changelog(
+        changelog_content, token_usage = update_changelog(
             existing_content=changelog_content,
             from_tag=previous_tag,
             to_tag=tag,
@@ -181,7 +181,7 @@ def handle_auto_mode(
             output.processing("Processing unreleased changes...")
 
         # Update changelog for unreleased changes
-        changelog_content = update_changelog(
+        changelog_content, unreleased_token_usage = update_changelog(
             existing_content=changelog_content,
             from_tag=latest_tag,
             to_tag=None,  # None means HEAD
@@ -193,7 +193,10 @@ def handle_auto_mode(
             no_unreleased=no_unreleased,
         )
 
-    return changelog_content
+        # Keep the token usage for display
+        token_usage = unreleased_token_usage
+
+    return changelog_content, token_usage
 
 
 def handle_single_tag_mode(
@@ -204,7 +207,7 @@ def handle_single_tag_mode(
     show_prompt: bool,
     quiet: bool,
     no_unreleased: bool,
-) -> str:
+) -> tuple[str, dict[str, int] | None]:
     """Handle single tag processing workflow."""
     # When only to_tag is specified, find the previous tag to use as from_tag
     changelog_content = read_changelog(changelog_file)
@@ -222,7 +225,7 @@ def handle_single_tag_mode(
         output.info(f"Processing tag {to_tag} (from {previous_tag or 'beginning'} to {to_tag})")
 
     # Update changelog for this specific tag only (overwrite if exists)
-    changelog_content = update_changelog(
+    changelog_content, token_usage = update_changelog(
         existing_content=changelog_content,
         from_tag=previous_tag,
         to_tag=to_tag,
@@ -234,7 +237,7 @@ def handle_single_tag_mode(
         no_unreleased=no_unreleased,
     )
 
-    return changelog_content
+    return changelog_content, token_usage
 
 
 def handle_tag_range_mode(
@@ -247,7 +250,7 @@ def handle_tag_range_mode(
     quiet: bool,
     special_unreleased_mode: bool = False,
     no_unreleased: bool = False,
-) -> str:
+) -> tuple[str, dict[str, int] | None]:
     """Handle tag range processing workflow."""
     # Process specific tag range
     if to_tag is None and not special_unreleased_mode:
@@ -267,7 +270,7 @@ def handle_tag_range_mode(
         output.info(f"Processing from {from_tag or 'beginning'} to {to_tag}")
 
     # Update changelog for specified range
-    changelog_content = update_changelog(
+    changelog_content, token_usage = update_changelog(
         file_path=changelog_file,
         from_tag=from_tag,
         to_tag=to_tag,
@@ -279,7 +282,7 @@ def handle_tag_range_mode(
         no_unreleased=no_unreleased,
     )
 
-    return changelog_content
+    return changelog_content, token_usage
 
 
 def main_business_logic(
@@ -295,7 +298,7 @@ def main_business_logic(
     special_unreleased_mode: bool = False,
     update_all_entries: bool = False,
     no_unreleased: bool = False,
-) -> bool:
+) -> tuple[bool, dict[str, int] | None]:
     """Main application logic for changelog-updater.
 
     Returns True on success, False on failure.
@@ -316,11 +319,11 @@ def main_business_logic(
         if not all_tags and not special_unreleased_mode:
             output = get_output_manager()
             output.warning("No git tags found. Create some tags first to generate changelog entries.")
-            return True
+            return True, None
 
     except GitError as e:
         handle_error(e)
-        return False
+        return False, None
 
     if model is None:
         model_value = config["model"]
@@ -331,15 +334,16 @@ def main_business_logic(
                     "No model specified. Please set the KITTYLOG_MODEL environment variable or use --model."
                 )
             )
-            return False
+            return False, None
         model = str(model_value)
 
     # Determine which workflow to use based on input parameters
+    token_usage = None
     try:
         if special_unreleased_mode:
-            changelog_content = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet, no_unreleased)
+            changelog_content, token_usage = handle_unreleased_mode(changelog_file, model, hint, show_prompt, quiet, no_unreleased)
         elif from_tag is None and to_tag is None:
-            changelog_content = handle_auto_mode(
+            changelog_content, token_usage = handle_auto_mode(
                 changelog_file,
                 model,
                 hint,
@@ -350,11 +354,11 @@ def main_business_logic(
                 no_unreleased,
             )
         elif to_tag is not None and from_tag is None:
-            changelog_content = handle_single_tag_mode(
+            changelog_content, token_usage = handle_single_tag_mode(
                 changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased
             )
         else:
-            changelog_content = handle_tag_range_mode(
+            changelog_content, token_usage = handle_tag_range_mode(
                 changelog_file,
                 from_tag,
                 to_tag,
@@ -367,7 +371,7 @@ def main_business_logic(
             )
     except Exception as e:
         handle_error(e)
-        return False
+        return False, None
 
     # Show preview and get confirmation
     if dry_run:
@@ -375,7 +379,7 @@ def main_business_logic(
         output.warning("Dry run: Changelog content generated but not saved")
         output.echo("\nPreview of updated changelog:")
         output.panel(changelog_content, title="Updated Changelog", style="cyan")
-        return True
+        return True, token_usage
 
     if require_confirmation:
         output = get_output_manager()
@@ -388,20 +392,24 @@ def main_business_logic(
 
         output.panel(preview_text, title="Changelog Preview", style="cyan")
 
+        # Display token usage if available
+        if token_usage:
+            output.info(f"Token usage: {token_usage['prompt_tokens']} input + {token_usage['completion_tokens']} output = {token_usage['total_tokens']} total")
+
         proceed = click.confirm("\nSave the updated changelog?", default=True)
         if not proceed:
             output = get_output_manager()
             output.warning("Changelog update cancelled.")
-            return True
+            return True, token_usage
 
     # Write the updated changelog
     try:
         write_changelog(changelog_file, changelog_content)
     except Exception as e:
         handle_error(e)
-        return False
+        return False, None
 
     if not quiet:
         logger.info(f"Successfully updated changelog: {changelog_file}")
 
-    return True
+    return True, token_usage

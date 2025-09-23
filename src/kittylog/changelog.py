@@ -427,7 +427,7 @@ def update_changelog(
     quiet: bool = False,
     replace_unreleased: bool = True,
     no_unreleased: bool = False,
-) -> str:
+) -> tuple[str, dict[str, int] | None]:
     """Update changelog with entries for new tags.
 
     Args:
@@ -471,7 +471,7 @@ def update_changelog(
 
     if not commits:
         logger.info(f"No commits found between {from_tag} and {to_tag}")
-        return existing_content
+        return existing_content, None
 
     logger.info(f"Found {len(commits)} commits between {from_tag or 'beginning'} and {to_tag}")
 
@@ -484,9 +484,9 @@ def update_changelog(
 
     # If no_unreleased is True and we're processing unreleased content, skip processing
     if no_unreleased and to_tag is None:
-        return existing_content
+        return existing_content, None
 
-    ai_content = generate_changelog_entry(
+    ai_content, token_usage = generate_changelog_entry(
         commits=commits,
         tag=tag_name,
         from_tag=from_tag,
@@ -545,7 +545,7 @@ def update_changelog(
     updated_content = "\n".join(lines)
     updated_content = format_and_clean_content(updated_content, no_unreleased=no_unreleased)
 
-    return updated_content
+    return updated_content, token_usage
 
 
 def write_changelog(file_path: str, content: str) -> None:

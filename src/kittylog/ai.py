@@ -33,7 +33,7 @@ def generate_changelog_entry(
     max_tokens: int | None = None,
     max_retries: int | None = None,
     diff_content: str = "",
-) -> str:
+) -> tuple[str, dict[str, int]]:
     """Generate a changelog entry using AI.
 
     Args:
@@ -120,7 +120,12 @@ def generate_changelog_entry(
         if not quiet:
             logger.info(f"Token usage: {prompt_tokens} prompt + {completion_tokens} completion = {total_tokens} total")
 
-        return cleaned_content
+        token_usage = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens
+        }
+        return cleaned_content, token_usage
 
     except Exception as e:
         logger.error(f"Failed to generate changelog entry: {e}")
