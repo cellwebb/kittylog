@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-09-22
+
+### Added
+
+- Add `--no-unreleased` flag to skip creation or removal of Unreleased sections in changelog updates
+- Introduce visual usage diagram in documentation to illustrate kittylog workflow and module interaction
+
+### Changed
+
+- Modify `update_changelog` function to accept a `no_unreleased` parameter for conditional section handling
+- Adjust CLI commands (`add`, `update_compat`, `unreleased`) to support the new `--no-unreleased` flag
+- Improve formatting logic to conditionally remove Unreleased sections when `no_unreleased` is enabled
+- Update internal content filtering to prevent duplicate Unreleased headers during entry generation
+
+### Fixed
+
+- Fix excessive blank line cleanup in changelog formatting to ensure proper spacing
+- Resolve issue where empty Unreleased sections were not consistently removed during processing
+
 ## [0.3.1] - 2025-09-22
 
 ### Changed
