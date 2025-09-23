@@ -12,9 +12,10 @@ class TestBulletLimiting:
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.get_latest_tag")
     @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")
     def test_bullet_limiting_per_section(
-        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
+        self, mock_generate, mock_get_git_diff, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
     ):
         """Test that bullet points are limited to 6 per section."""
         # Setup mocks
@@ -23,6 +24,7 @@ class TestBulletLimiting:
         ]
         mock_get_latest_tag.return_value = "v0.1.0"
         mock_is_tagged.return_value = False  # Simulate unreleased commits
+        mock_get_git_diff.return_value = "diff --git a/feature.py b/feature.py"
 
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added
@@ -150,9 +152,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.get_latest_tag")
     @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")
     def test_bullet_limiting_replace_mode(
-        self, mock_generate, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
+        self, mock_generate, mock_get_git_diff, mock_get_commits, mock_get_latest_tag, mock_is_tagged, temp_dir
     ):
         """Test that bullet points are limited to 6 per section in replace mode."""
         # Setup mocks
@@ -161,6 +164,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         ]
         mock_get_latest_tag.return_value = "v0.1.0"
         mock_is_tagged.return_value = False  # Simulate unreleased commits
+        mock_get_git_diff.return_value = "diff --git a/feature.py b/feature.py"
 
         # AI generated content with more than 6 bullets per section
         ai_content = """### Added

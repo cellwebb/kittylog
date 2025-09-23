@@ -318,7 +318,7 @@ def main_business_logic(
             print("DEBUG: No model specified in config")
             handle_error(
                 AIError.model_error(
-                    "No model specified. Please set the CHANGELOG_UPDATER_MODEL environment variable or use --model."
+                    "No model specified. Please set the KITTYLOG_MODEL environment variable or use --model."
                 )
             )
             return False
