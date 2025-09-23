@@ -5,12 +5,12 @@ Based on gac's AI module but specialized for changelog generation.
 """
 
 import logging
-import time
 
-import aisuite as ai
 from rich.console import Console
 from rich.panel import Panel
 
+from kittylog.ai_providers import call_anthropic_api, call_cerebras_api, call_groq_api, call_ollama_api, call_openai_api
+from kittylog.ai_utils import generate_with_retries
 from kittylog.config import load_config
 from kittylog.constants import EnvDefaults
 from kittylog.errors import AIError
@@ -19,6 +19,33 @@ from kittylog.utils import count_tokens
 
 logger = logging.getLogger(__name__)
 config = load_config()
+
+
+def classify_error(error: Exception) -> str:
+    """Classify an error for retry logic."""
+    error_str = str(error).lower()
+
+    if "authentication" in error_str or "unauthorized" in error_str or "api key" in error_str:
+        return "authentication"
+    elif "model" in error_str and ("not found" in error_str or "does not exist" in error_str):
+        return "model_not_found"
+    elif "context" in error_str and ("length" in error_str or "too long" in error_str):
+        return "context_length"
+    elif "rate limit" in error_str or "quota" in error_str:
+        return "rate_limit"
+    elif "timeout" in error_str:
+        return "timeout"
+    else:
+        return "unknown"
+
+
+# Export the functions that tests expect to be able to patch
+# This maintains backward compatibility with existing tests
+build_changelog_prompt = build_changelog_prompt
+clean_changelog_content = clean_changelog_content
+count_tokens = count_tokens
+generate_with_retries = generate_with_retries
+classify_error = classify_error
 
 
 def generate_changelog_entry(
@@ -98,9 +125,19 @@ def generate_changelog_entry(
     prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
     logger.info(f"Prompt tokens: {prompt_tokens}")
 
+    # Provider functions mapping
+    provider_funcs = {
+        "anthropic": call_anthropic_api,
+        "openai": call_openai_api,
+        "groq": call_groq_api,
+        "cerebras": call_cerebras_api,
+        "ollama": call_ollama_api,
+    }
+
     # Generate the changelog content
     try:
-        content = _generate_with_retries(
+        content = generate_with_retries(
+            provider_funcs=provider_funcs,
             model=model,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -130,84 +167,3 @@ def generate_changelog_entry(
     except Exception as e:
         logger.error(f"Failed to generate changelog entry: {e}")
         raise AIError.generation_error(f"Failed to generate changelog entry: {e}") from e
-
-
-def _generate_with_retries(
-    model: str,
-    system_prompt: str,
-    user_prompt: str,
-    temperature: float,
-    max_tokens: int,
-    max_retries: int,
-    quiet: bool = False,
-) -> str:
-    """Generate content with retry logic."""
-    client = ai.Client()
-
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
-    last_exception = None
-
-    for attempt in range(max_retries):
-        try:
-            if not quiet and attempt > 0:
-                logger.info(f"Retry attempt {attempt + 1}/{max_retries}")
-
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                timeout=120,  # Increase timeout to 120 seconds for larger prompts
-            )
-
-            content = response.choices[0].message.content
-            if content:
-                return content.strip()
-            else:
-                raise AIError.generation_error("Empty response from AI model")
-
-        except Exception as e:
-            last_exception = e
-            error_type = _classify_error(e)
-
-            if error_type in ["authentication", "model_not_found", "context_length", "sdk_error"]:
-                # Don't retry these errors
-                raise AIError.generation_error(f"AI generation failed: {str(e)}") from e
-
-            if attempt < max_retries - 1:
-                # Exponential backoff
-                wait_time = 2**attempt
-                if not quiet:
-                    logger.warning(f"AI generation failed (attempt {attempt + 1}), retrying in {wait_time}s: {str(e)}")
-                time.sleep(wait_time)
-            else:
-                logger.error(f"AI generation failed after {max_retries} attempts: {str(e)}")
-
-    # If we get here, all retries failed
-    raise AIError.generation_error(
-        f"AI generation failed after {max_retries} attempts: {str(last_exception)}"
-    ) from last_exception
-
-
-def _classify_error(error: Exception) -> str:
-    """Classify an error for retry logic."""
-    error_str = str(error).lower()
-
-    if "authentication" in error_str or "unauthorized" in error_str or "api key" in error_str:
-        return "authentication"
-    elif "model" in error_str and ("not found" in error_str or "does not exist" in error_str):
-        return "model_not_found"
-    elif "context" in error_str and ("length" in error_str or "too long" in error_str):
-        return "context_length"
-    elif "rate limit" in error_str or "quota" in error_str:
-        return "rate_limit"
-    elif "timeout" in error_str:
-        return "timeout"
-    elif "cerebras.cloud.sdk" in error_str and "attribute" in error_str:
-        return "sdk_error"
-    else:
-        return "unknown"
