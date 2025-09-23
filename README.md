@@ -23,7 +23,7 @@
 **Try without installing:**
 ```sh
 uvx kittylog init  # Set up configuration
-cd your-project && uvx kittylog  # Generate changelog
+uvx kittylog       # Generate changelog
 ```
 
 **Install permanently:**
@@ -39,8 +39,8 @@ kittylog init  # Interactive setup
 kittylog
 
 # Common options
-kittylog --dry-run           # Preview only
-kittylog -y                  # Auto-accept
+kittylog --dry-run              # Preview only
+kittylog -y                     # Auto-accept
 kittylog -h "Breaking changes"  # Add context hint
 ```
 
