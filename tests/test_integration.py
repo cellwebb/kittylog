@@ -1,4 +1,4 @@
-"""Integration tests for changelog-updater."""
+"""Integration tests for kittylog."""
 
 import os
 from pathlib import Path

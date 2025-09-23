@@ -1,4 +1,4 @@
-"""Error handling module for changelog-updater."""
+"""Error handling module for kittylog."""
 
 import logging
 import sys
@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-class ChangelogUpdaterError(Exception):
-    """Base exception class for all changelog-updater errors."""
+class KittylogError(Exception):
+    """Base exception class for all kittylog errors."""
 
     exit_code = 1  # Default exit code
 
@@ -25,7 +25,7 @@ class ChangelogUpdaterError(Exception):
         **kwargs,
     ):
         """
-        Initialize a new ChangelogUpdaterError.
+        Initialize a new KittylogError.
 
         Args:
             message: The error message
@@ -45,7 +45,7 @@ class ChangelogUpdaterError(Exception):
             setattr(self, key, value)
 
 
-class ConfigError(ChangelogUpdaterError):
+class ConfigError(KittylogError):
     """Error related to configuration issues."""
 
     exit_code = 2
@@ -70,7 +70,7 @@ class ConfigError(ChangelogUpdaterError):
         self.config_value = config_value
 
 
-class GitError(ChangelogUpdaterError):
+class GitError(KittylogError):
     """Error related to Git operations."""
 
     exit_code = 3
@@ -98,7 +98,7 @@ class GitError(ChangelogUpdaterError):
         self.stderr = stderr
 
 
-class AIError(ChangelogUpdaterError):
+class AIError(KittylogError):
     """Error related to AI provider or models."""
 
     exit_code = 4
@@ -150,7 +150,7 @@ class AIError(ChangelogUpdaterError):
         return cls(message, error_type="generation")
 
 
-class ChangelogError(ChangelogUpdaterError):
+class ChangelogError(KittylogError):
     """Error related to changelog operations."""
 
     exit_code = 5
@@ -273,7 +273,7 @@ def format_error_for_user(error: Exception) -> str:
 
 
 def with_error_handling(
-    error_type: type[ChangelogUpdaterError], error_message: str, quiet: bool = False, exit_on_error: bool = True
+    error_type: type[KittylogError], error_message: str, quiet: bool = False, exit_on_error: bool = True
 ) -> Callable[[Callable[..., T]], Callable[..., T | None]]:
     """
     A decorator that wraps a function with standardized error handling.

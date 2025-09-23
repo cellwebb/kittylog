@@ -1,4 +1,4 @@
-"""Git operations for changelog-updater.
+"""Git operations for kittylog.
 
 This module provides Git operations specifically focused on tag-based changelog generation.
 It extends the concepts from gac but focuses on tag operations and commit history.

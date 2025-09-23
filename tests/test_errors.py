@@ -5,26 +5,26 @@ import pytest
 from kittylog.errors import (
     AIError,
     ChangelogError,
-    ChangelogUpdaterError,
     ConfigError,
     GitError,
+    KittylogError,
 )
 
 
-class TestChangelogUpdaterError:
-    """Test base ChangelogUpdaterError class."""
+class TestKittylogError:
+    """Test base KittylogError class."""
 
     def test_base_error_creation(self):
         """Test creating base error."""
-        error = ChangelogUpdaterError("Base error message")
+        error = KittylogError("Base error message")
         assert str(error) == "Base error message"
         assert isinstance(error, Exception)
 
     def test_base_error_inheritance(self):
         """Test that base error is properly inherited."""
-        error = ChangelogUpdaterError("Test")
+        error = KittylogError("Test")
         assert isinstance(error, Exception)
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
 
 
 class TestGitError:
@@ -34,7 +34,7 @@ class TestGitError:
         """Test creating git error."""
         error = GitError("Not a git repository")
         assert str(error) == "Not a git repository"
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
         assert isinstance(error, GitError)
 
     def test_git_error_with_details(self):
@@ -47,7 +47,7 @@ class TestGitError:
         """Test git error inheritance chain."""
         error = GitError("Test")
         assert isinstance(error, Exception)
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
         assert isinstance(error, GitError)
 
 
@@ -59,7 +59,7 @@ class TestAIError:
         error = AIError("API key invalid")
         assert str(error) == "API key invalid"
         assert error.error_type == "unknown"
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
 
     def test_ai_error_with_type(self):
         """Test creating AI error with error type."""
@@ -94,7 +94,7 @@ class TestAIError:
         """Test AI error inheritance chain."""
         error = AIError("Test")
         assert isinstance(error, Exception)
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
         assert isinstance(error, AIError)
 
 
@@ -105,7 +105,7 @@ class TestChangelogError:
         """Test creating changelog error."""
         error = ChangelogError("Failed to parse changelog")
         assert str(error) == "Failed to parse changelog"
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
 
     def test_changelog_error_with_file_path(self):
         """Test changelog error with file path."""
@@ -124,7 +124,7 @@ class TestChangelogError:
         """Test changelog error inheritance chain."""
         error = ChangelogError("Test")
         assert isinstance(error, Exception)
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
         assert isinstance(error, ChangelogError)
 
 
@@ -135,7 +135,7 @@ class TestConfigError:
         """Test creating config error."""
         error = ConfigError("Invalid configuration")
         assert str(error) == "Invalid configuration"
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
 
     def test_config_error_with_key(self):
         """Test config error with configuration key."""
@@ -154,7 +154,7 @@ class TestConfigError:
         """Test config error inheritance chain."""
         error = ConfigError("Test")
         assert isinstance(error, Exception)
-        assert isinstance(error, ChangelogUpdaterError)
+        assert isinstance(error, KittylogError)
         assert isinstance(error, ConfigError)
 
 
@@ -296,7 +296,7 @@ class TestErrorUsagePatterns:
         assert exc_info.value.error_type == "authentication"
 
     def test_catch_base_error(self):
-        """Test catching base ChangelogUpdaterError."""
+        """Test catching base KittylogError."""
 
         def raise_various_errors(error_type):
             if error_type == "git":
@@ -309,7 +309,7 @@ class TestErrorUsagePatterns:
                 raise ConfigError("Config error")
 
         for error_type in ["git", "ai", "changelog", "config"]:
-            with pytest.raises(ChangelogUpdaterError):
+            with pytest.raises(KittylogError):
                 raise_various_errors(error_type)
 
     def test_error_handling_in_try_except(self):
@@ -323,7 +323,7 @@ class TestErrorUsagePatterns:
         except AIError as e:
             assert e.error_type == "rate_limit"
             assert str(e) == "Rate limit"
-        except ChangelogUpdaterError:
+        except KittylogError:
             pytest.fail("Should have caught AIError specifically")
         except Exception:
-            pytest.fail("Should have caught ChangelogUpdaterError family")
+            pytest.fail("Should have caught KittylogError family")

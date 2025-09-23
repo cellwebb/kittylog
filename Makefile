@@ -1,10 +1,10 @@
-# Changelog Updater Development Makefile
+# kittylog Development Makefile
 
 .PHONY: help install install-dev test test-coverage lint format check clean build publish docs
 
 # Default target
 help: ## Show this help message
-	@echo "Changelog Updater Development Commands:"
+	@echo "kittylog Development Commands:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
@@ -109,7 +109,7 @@ info: ## Show environment info
 
 # Quick start for new contributors
 quickstart: ## Quick setup for new contributors
-	@echo " Setting up changelog-updater for development..."
+	@echo " Setting up kittylog for development..."
 	@echo ""
 	@echo "1. Installing development dependencies..."
 	uv pip install -e ".[dev,test]"

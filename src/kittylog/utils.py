@@ -1,4 +1,4 @@
-"""Utility functions for changelog-updater."""
+"""Utility functions for kittylog."""
 
 import logging
 import os
@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.theme import Theme
 
 from kittylog.constants import Logging, Utility
-from kittylog.errors import ChangelogUpdaterError
+from kittylog.errors import KittylogError
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def run_subprocess(
         Command output as string
 
     Raises:
-        ChangelogUpdaterError: If the command times out
+        KittylogError: If the command times out
         subprocess.CalledProcessError: If the command fails and raise_on_error is True
     """
     if not silent:
@@ -127,7 +127,7 @@ def run_subprocess(
         return output
     except subprocess.TimeoutExpired as e:
         logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
-        raise ChangelogUpdaterError(f"Command timed out: {' '.join(command)}") from e
+        raise KittylogError(f"Command timed out: {' '.join(command)}") from e
     except subprocess.CalledProcessError as e:
         if not silent:
             logger.error(f"Command failed: {e.stderr.strip() if e.stderr else str(e)}")

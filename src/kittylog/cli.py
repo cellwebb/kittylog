@@ -1,4 +1,4 @@
-"""CLI entry point for changelog-updater.
+"""CLI entry point for kittylog.
 
 Defines the Click-based command-line interface and delegates execution to the main workflow.
 """
@@ -111,7 +111,7 @@ def add(
     """
     try:
         setup_command_logging(log_level, verbose, quiet)
-        logger.info("Starting changelog-updater")
+        logger.info("Starting kittylog")
 
         # If a specific tag is provided, process only that tag
         if tag:
@@ -265,7 +265,7 @@ def cli(ctx, version):
     """Changelog Updater - Generate changelog entries from git tags with AI."""
     if version:
         output = get_output_manager()
-        output.echo(f"changelog-updater version: {__version__}")
+        output.echo(f"kittylog version: {__version__}")
         sys.exit(0)
     # If no subcommand was invoked, run the add command by default
     if ctx.invoked_subcommand is None:
