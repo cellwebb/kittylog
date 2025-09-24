@@ -148,6 +148,9 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     env_max_retries = os.getenv("KITTYLOG_RETRIES")
     env_log_level = os.getenv("KITTYLOG_LOG_LEVEL")
     env_warning_limit_tokens = os.getenv("KITTYLOG_WARNING_LIMIT_TOKENS")
+    env_grouping_mode = os.getenv("KITTYLOG_GROUPING_MODE")
+    env_gap_threshold_hours = os.getenv("KITTYLOG_GAP_THRESHOLD_HOURS")
+    env_date_grouping = os.getenv("KITTYLOG_DATE_GROUPING")
 
     # Apply validated environment variables with defaults for invalid values
     config["model"] = env_model
@@ -199,6 +202,46 @@ def load_config() -> dict[str, str | int | float | bool | None]:
         else None
     )
 
+    # New environment variables for boundary detection
+    config["grouping_mode"] = (
+        validate_env_var(
+            env_grouping_mode,
+            str,
+            lambda x: x in ["tags", "dates", "gaps"],
+            EnvDefaults.GROUPING_MODE,
+            "grouping_mode",
+            "Must be one of 'tags', 'dates', or 'gaps'",
+        )
+        if env_grouping_mode is not None
+        else None
+    )
+
+    config["gap_threshold_hours"] = (
+        validate_env_var(
+            env_gap_threshold_hours,
+            float,
+            lambda x: x > 0,
+            EnvDefaults.GAP_THRESHOLD_HOURS,
+            "gap_threshold_hours",
+            "Must be positive",
+        )
+        if env_gap_threshold_hours is not None
+        else None
+    )
+
+    config["date_grouping"] = (
+        validate_env_var(
+            env_date_grouping,
+            str,
+            lambda x: x in ["daily", "weekly", "monthly"],
+            EnvDefaults.DATE_GROUPING,
+            "date_grouping",
+            "Must be one of 'daily', 'weekly', or 'monthly'",
+        )
+        if env_date_grouping is not None
+        else None
+    )
+
     # Apply file values as fallbacks (only if env vars weren't set or were None)
     # For file variables, convert them normally so validate_config can catch errors
     if config["model"] is None:
@@ -228,6 +271,19 @@ def load_config() -> dict[str, str | int | float | bool | None]:
             or EnvDefaults.WARNING_LIMIT_TOKENS
         )
 
+    # Apply file values for new environment variables
+    if config["grouping_mode"] is None:
+        config["grouping_mode"] = config_vars.get("KITTYLOG_GROUPING_MODE") or EnvDefaults.GROUPING_MODE
+
+    if config["gap_threshold_hours"] is None:
+        gap_threshold_str = config_vars.get("KITTYLOG_GAP_THRESHOLD_HOURS")
+        config["gap_threshold_hours"] = (
+            _safe_float(gap_threshold_str, EnvDefaults.GAP_THRESHOLD_HOURS) or EnvDefaults.GAP_THRESHOLD_HOURS
+        )
+
+    if config["date_grouping"] is None:
+        config["date_grouping"] = config_vars.get("KITTYLOG_DATE_GROUPING") or EnvDefaults.DATE_GROUPING
+
     return config
 
 
@@ -248,6 +304,28 @@ def validate_config(config: dict) -> None:
 
     validate_config_value(
         config.get("log_level"), lambda x: x in Logging.LEVELS, "log_level", f"Must be one of {Logging.LEVELS}"
+    )
+
+    # Validate new configuration values for boundary detection
+    validate_config_value(
+        config.get("grouping_mode"),
+        lambda x: x in ["tags", "dates", "gaps"],
+        "grouping_mode",
+        "Must be one of 'tags', 'dates', or 'gaps'",
+    )
+
+    validate_config_value(
+        config.get("gap_threshold_hours"),
+        lambda x: x > 0,
+        "gap_threshold_hours",
+        "Must be positive",
+    )
+
+    validate_config_value(
+        config.get("date_grouping"),
+        lambda x: x in ["daily", "weekly", "monthly"],
+        "date_grouping",
+        "Must be one of 'daily', 'weekly', or 'monthly'",
     )
 
 
@@ -272,5 +350,10 @@ def apply_config_defaults(config: dict) -> dict:
     apply_default_if_invalid("max_output_tokens", lambda x: x > 0, EnvDefaults.MAX_OUTPUT_TOKENS)
     apply_default_if_invalid("max_retries", lambda x: x > 0, EnvDefaults.MAX_RETRIES)
     apply_default_if_invalid("log_level", lambda x: x in Logging.LEVELS, Logging.DEFAULT_LEVEL)
+
+    # Apply defaults for new configuration values
+    apply_default_if_invalid("grouping_mode", lambda x: x in ["tags", "dates", "gaps"], EnvDefaults.GROUPING_MODE)
+    apply_default_if_invalid("gap_threshold_hours", lambda x: x > 0, EnvDefaults.GAP_THRESHOLD_HOURS)
+    apply_default_if_invalid("date_grouping", lambda x: x in ["daily", "weekly", "monthly"], EnvDefaults.DATE_GROUPING)
 
     return validated_config

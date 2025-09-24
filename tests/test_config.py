@@ -22,6 +22,10 @@ class TestLoadConfig:
         assert config["max_retries"] == 3
         assert config["log_level"] == "WARNING"
         assert config["warning_limit_tokens"] == 16384
+        # Check new defaults
+        assert config["grouping_mode"] == "tags"
+        assert config["gap_threshold_hours"] == 4.0
+        assert config["date_grouping"] == "daily"
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -32,6 +36,10 @@ class TestLoadConfig:
         monkeypatch.setenv("KITTYLOG_RETRIES", "5")
         monkeypatch.setenv("KITTYLOG_LOG_LEVEL", "DEBUG")
         monkeypatch.setenv("KITTYLOG_WARNING_LIMIT_TOKENS", "8192")
+        # Set new environment variables
+        monkeypatch.setenv("KITTYLOG_GROUPING_MODE", "dates")
+        monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "2.5")
+        monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "weekly")
 
         config = load_config()
 
@@ -41,6 +49,10 @@ class TestLoadConfig:
         assert config["max_retries"] == 5
         assert config["log_level"] == "DEBUG"
         assert config["warning_limit_tokens"] == 8192
+        # Check new environment variables
+        assert config["grouping_mode"] == "dates"
+        assert config["gap_threshold_hours"] == 2.5
+        assert config["date_grouping"] == "weekly"
 
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
@@ -66,12 +78,19 @@ OPENAI_API_KEY=sk-test123
 
         project_env_file.write_text("""KITTYLOG_MODEL=groq:llama-4
 KITTYLOG_MAX_OUTPUT_TOKENS=512
+KITTYLOG_GROUPING_MODE=gaps
+KITTYLOG_GAP_THRESHOLD_HOURS=6.0
+KITTYLOG_DATE_GROUPING=monthly
 """)
 
         config = load_config()
 
         assert config["model"] == "groq:llama-4"
         assert config["max_output_tokens"] == 512
+        # Check new project-level environment variables
+        assert config["grouping_mode"] == "gaps"
+        assert config["gap_threshold_hours"] == 6.0
+        assert config["date_grouping"] == "monthly"
 
     def test_load_config_precedence(self, isolated_config_test, monkeypatch):
         """Test configuration precedence: env vars > project .env > user .env > defaults."""
@@ -83,12 +102,17 @@ KITTYLOG_MAX_OUTPUT_TOKENS=512
         user_env_file.write_text("""KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_MAX_OUTPUT_TOKENS=1024
+KITTYLOG_GROUPING_MODE=tags
+KITTYLOG_GAP_THRESHOLD_HOURS=1.0
+KITTYLOG_DATE_GROUPING=daily
 """)
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".kittylog.env"
         project_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
 KITTYLOG_TEMPERATURE=0.5
+KITTYLOG_GROUPING_MODE=gaps
+KITTYLOG_GAP_THRESHOLD_HOURS=2.0
 """)
 
         # Set environment variable (should override everything)
@@ -100,8 +124,11 @@ KITTYLOG_TEMPERATURE=0.5
         assert config["model"] == "groq:llama-4"
         # Project file overrides user file
         assert config["temperature"] == 0.5
+        assert config["grouping_mode"] == "gaps"
+        assert config["gap_threshold_hours"] == 2.0
         # User file provides value not overridden
         assert config["max_output_tokens"] == 1024
+        assert config["date_grouping"] == "daily"
 
     def test_load_config_invalid_values(self, isolated_config_test, monkeypatch):
         """Test handling of invalid configuration values."""
@@ -109,6 +136,10 @@ KITTYLOG_TEMPERATURE=0.5
         monkeypatch.setenv("KITTYLOG_TEMPERATURE", "invalid")
         monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "not_a_number")
         monkeypatch.setenv("KITTYLOG_RETRIES", "-1")
+        # Set invalid values for new environment variables
+        monkeypatch.setenv("KITTYLOG_GROUPING_MODE", "invalid_mode")
+        monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "invalid_number")
+        monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "invalid_grouping")
 
         config = load_config()
 
@@ -116,6 +147,10 @@ KITTYLOG_TEMPERATURE=0.5
         assert config["temperature"] == 0.7  # default
         assert config["max_output_tokens"] == 1024  # default
         assert config["max_retries"] == 3  # default
+        # Should fall back to defaults for invalid new values
+        assert config["grouping_mode"] == "tags"  # default
+        assert config["gap_threshold_hours"] == 4.0  # default
+        assert config["date_grouping"] == "daily"  # default
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -125,6 +160,10 @@ KITTYLOG_TEMPERATURE=0.5
         # Should get defaults
         assert config["temperature"] == 0.7
         assert config["max_output_tokens"] == 1024
+        # Should get new defaults
+        assert config["grouping_mode"] == "tags"
+        assert config["gap_threshold_hours"] == 4.0
+        assert config["date_grouping"] == "daily"
 
 
 class TestValidateConfig:
@@ -139,6 +178,9 @@ class TestValidateConfig:
             "max_retries": 3,
             "log_level": "INFO",
             "warning_limit_tokens": 16384,
+            "grouping_mode": "dates",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "weekly",
         }
 
         # Should not raise any exception
@@ -153,6 +195,9 @@ class TestValidateConfig:
             "max_retries": 3,
             "log_level": "INFO",
             "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
         }
 
         with pytest.raises(ConfigError) as exc_info:
@@ -168,6 +213,9 @@ class TestValidateConfig:
             "max_retries": 3,
             "log_level": "INFO",
             "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
         }
 
         with pytest.raises(ConfigError) as exc_info:
@@ -183,6 +231,9 @@ class TestValidateConfig:
             "max_retries": 0,  # Invalid: must be >= 1
             "log_level": "INFO",
             "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
         }
 
         with pytest.raises(ConfigError) as exc_info:
@@ -198,11 +249,68 @@ class TestValidateConfig:
             "max_retries": 3,
             "log_level": "INVALID",  # Invalid log level
             "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
         }
 
         with pytest.raises(ConfigError) as exc_info:
             validate_config(config)
         assert "log_level" in str(exc_info.value).lower()
+
+    def test_validate_config_invalid_grouping_mode(self):
+        """Test validation of invalid grouping_mode."""
+        config = {
+            "model": "cerebras:qwen-3-coder-480b",
+            "temperature": 0.7,
+            "max_output_tokens": 1024,
+            "max_retries": 3,
+            "log_level": "INFO",
+            "warning_limit_tokens": 16384,
+            "grouping_mode": "invalid_mode",  # Invalid grouping mode
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
+        }
+
+        with pytest.raises(ConfigError) as exc_info:
+            validate_config(config)
+        assert "grouping_mode" in str(exc_info.value).lower()
+
+    def test_validate_config_invalid_gap_threshold(self):
+        """Test validation of invalid gap_threshold_hours."""
+        config = {
+            "model": "cerebras:qwen-3-coder-480b",
+            "temperature": 0.7,
+            "max_output_tokens": 1024,
+            "max_retries": 3,
+            "log_level": "INFO",
+            "warning_limit_tokens": 16384,
+            "grouping_mode": "gaps",
+            "gap_threshold_hours": -1.0,  # Invalid: negative
+            "date_grouping": "daily",
+        }
+
+        with pytest.raises(ConfigError) as exc_info:
+            validate_config(config)
+        assert "gap_threshold_hours" in str(exc_info.value).lower()
+
+    def test_validate_config_invalid_date_grouping(self):
+        """Test validation of invalid date_grouping."""
+        config = {
+            "model": "cerebras:qwen-3-coder-480b",
+            "temperature": 0.7,
+            "max_output_tokens": 1024,
+            "max_retries": 3,
+            "log_level": "INFO",
+            "warning_limit_tokens": 16384,
+            "grouping_mode": "dates",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "invalid_grouping",  # Invalid date grouping
+        }
+
+        with pytest.raises(ConfigError) as exc_info:
+            validate_config(config)
+        assert "date_grouping" in str(exc_info.value).lower()
 
     def test_validate_config_boundary_values(self):
         """Test validation of boundary values."""
@@ -214,6 +322,9 @@ class TestValidateConfig:
             "max_retries": 1,
             "log_level": "DEBUG",
             "warning_limit_tokens": 1,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 0.1,  # minimum positive value
+            "date_grouping": "daily",
         }
         validate_config(config)
 
@@ -225,6 +336,9 @@ class TestValidateConfig:
             "max_retries": 100,
             "log_level": "CRITICAL",
             "warning_limit_tokens": 999999,
+            "grouping_mode": "gaps",
+            "gap_threshold_hours": 999999.0,
+            "date_grouping": "monthly",
         }
         validate_config(config)
 
@@ -250,6 +364,8 @@ ANTHROPIC_API_KEY=sk-ant-user123
         project_env_file.write_text("""# Project overrides
 KITTYLOG_TEMPERATURE=0.7
 KITTYLOG_MAX_OUTPUT_TOKENS=2048
+KITTYLOG_GROUPING_MODE=dates
+KITTYLOG_DATE_GROUPING=weekly
 """)
 
         # Load and validate config
@@ -261,6 +377,8 @@ KITTYLOG_MAX_OUTPUT_TOKENS=2048
         assert config["temperature"] == 0.7  # from project (overrides user)
         assert config["max_output_tokens"] == 2048  # from project
         assert config["max_retries"] == 3  # default
+        assert config["grouping_mode"] == "dates"  # from project
+        assert config["date_grouping"] == "weekly"  # from project
 
         # Check API key is available
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
@@ -273,6 +391,8 @@ KITTYLOG_MAX_OUTPUT_TOKENS=2048
         project_env_file = cwd / ".kittylog.env"
         project_env_file.write_text("""KITTYLOG_TEMPERATURE=10.0
 KITTYLOG_MAX_OUTPUT_TOKENS=-1
+KITTYLOG_GROUPING_MODE=invalid
+KITTYLOG_GAP_THRESHOLD_HOURS=-2.0
 """)
 
         # Load config (should handle invalid values gracefully)
@@ -299,6 +419,11 @@ KITTYLOG_MAX_OUTPUT_TOKENS=1024
 # API Keys
 ANTHROPIC_API_KEY=sk-ant-test123
 
+# Boundary Detection Settings
+KITTYLOG_GROUPING_MODE=gaps
+KITTYLOG_GAP_THRESHOLD_HOURS=3.5
+KITTYLOG_DATE_GROUPING=monthly
+
 # Empty line above
 """)
 
@@ -308,6 +433,9 @@ ANTHROPIC_API_KEY=sk-ant-test123
         assert config["temperature"] == 0.5
         assert config["max_output_tokens"] == 1024
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-test123"
+        assert config["grouping_mode"] == "gaps"
+        assert config["gap_threshold_hours"] == 3.5
+        assert config["date_grouping"] == "monthly"
 
 
 class TestConfigUtils:
@@ -333,6 +461,8 @@ class TestConfigUtils:
         monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "2048")
         monkeypatch.setenv("KITTYLOG_RETRIES", "5")
         monkeypatch.setenv("KITTYLOG_WARNING_LIMIT_TOKENS", "32768")
+        # Set string values for new environment variables
+        monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "3.2")
 
         config = load_config()
 
@@ -341,9 +471,13 @@ class TestConfigUtils:
         assert isinstance(config["max_output_tokens"], int)
         assert isinstance(config["max_retries"], int)
         assert isinstance(config["warning_limit_tokens"], int)
+        # Check new types
+        assert isinstance(config["gap_threshold_hours"], float)
 
         # Check values
         assert config["temperature"] == 0.8
         assert config["max_output_tokens"] == 2048
         assert config["max_retries"] == 5
         assert config["warning_limit_tokens"] == 32768
+        # Check new values
+        assert config["gap_threshold_hours"] == 3.2

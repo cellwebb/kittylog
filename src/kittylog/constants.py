@@ -22,6 +22,9 @@ class EnvDefaults:
     TEMPERATURE: float = 0.7
     MAX_OUTPUT_TOKENS: int = 1024
     WARNING_LIMIT_TOKENS: int = 16384
+    GROUPING_MODE: str = "tags"
+    GAP_THRESHOLD_HOURS: float = 4.0
+    DATE_GROUPING: str = "daily"
 
 
 class Logging:
