@@ -1,12 +1,12 @@
 """Git operations for kittylog.
 
-This module provides Git operations specifically focused on tag-based changelog generation.
-It extends the concepts from gac but focuses on tag operations and commit history.
+This module provides Git operations for changelog generation using various boundary detection methods.
+It extends the concepts from gac but supports tag-based, date-based, and gap-based commit grouping.
 """
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 
 import git
@@ -84,10 +84,187 @@ def get_all_tags() -> list[str]:
         raise GitError(f"Failed to get tags: {str(e)}") from e
 
 
+def get_all_commits_chronological() -> list[dict]:
+    """Get all git commits sorted chronologically by commit date.
+
+    Returns:
+        List of commit dictionaries with hash, message, author, date, and files.
+    """
+    try:
+        repo = get_repo()
+        commits = []
+
+        # Get all commits in reverse chronological order (latest first)
+        # then reverse the list to get chronological order (oldest first)
+        commit_iter = repo.iter_commits("--all", reverse=True)
+
+        for commit in commit_iter:
+            # Get changed files for this commit
+            changed_files = []
+            try:
+                if commit.parents:
+                    # Compare with first parent to get changed files
+                    diff = commit.parents[0].diff(commit)
+                    changed_files = [item.a_path or item.b_path for item in diff]
+                else:
+                    # Initial commit - all files are new
+                    changed_files = [str(key) for key in commit.stats.files.keys()]
+            except Exception as e:
+                logger.debug(f"Could not get changed files for commit {commit.hexsha[:8]}: {e}")
+
+            commits.append(
+                {
+                    "hash": commit.hexsha,
+                    "short_hash": commit.hexsha[:8],
+                    "message": commit.message.strip(),
+                    "author": str(commit.author),
+                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "files": changed_files,
+                }
+            )
+
+        logger.debug(f"Retrieved {len(commits)} commits in chronological order")
+        return commits
+    except Exception as e:
+        logger.error(f"Failed to get commits chronologically: {str(e)}")
+        raise GitError(f"Failed to get commits chronologically: {str(e)}") from e
+
+
+def get_commits_by_date_boundaries(grouping: str = "daily") -> list[dict]:
+    """Get commit boundaries based on calendar dates.
+
+    Args:
+        grouping: How to group commits ('daily', 'weekly', or 'monthly')
+
+    Returns:
+        List of boundary commit dictionaries with additional 'boundary_type' field
+    """
+    commits = get_all_commits_chronological()
+    if not commits:
+        return []
+
+    boundaries = []
+    current_date = None
+
+    for commit in commits:
+        commit_date = commit["date"]
+
+        # Apply grouping logic
+        if grouping == "daily":
+            boundary_date = commit_date.date()
+        elif grouping == "weekly":
+            # Get the Monday of the week for this commit
+            boundary_date = commit_date.date() - timedelta(days=commit_date.weekday())
+        elif grouping == "monthly":
+            # Get the first day of the month for this commit
+            boundary_date = commit_date.date().replace(day=1)
+        else:
+            raise ValueError(f"Invalid grouping option: {grouping}")
+
+        # If this is the first commit of a new date group, mark it as a boundary
+        if current_date != boundary_date:
+            current_date = boundary_date
+            commit["boundary_type"] = "date"
+            boundaries.append(commit)
+
+    logger.debug(f"Found {len(boundaries)} date boundaries with {grouping} grouping")
+    return boundaries
+
+
+def get_commits_by_gap_boundaries(gap_threshold_hours: float = 4.0) -> list[dict]:
+    """Get commit boundaries based on time gaps between commits.
+
+    Args:
+        gap_threshold_hours: Minimum gap in hours to consider a boundary
+
+    Returns:
+        List of boundary commit dictionaries with additional 'boundary_type' field
+    """
+    commits = get_all_commits_chronological()
+    if len(commits) < 2:
+        # If 0 or 1 commits, all are boundaries
+        for commit in commits:
+            commit["boundary_type"] = "gap"
+        return commits
+
+    # Add boundary_type to all commits first
+    for commit in commits:
+        commit["boundary_type"] = "gap"
+
+    boundaries = [commits[0]]  # First commit is always a boundary
+    gap_threshold_seconds = gap_threshold_hours * 3600
+
+    for i in range(1, len(commits)):
+        current_commit = commits[i]
+        previous_commit = commits[i - 1]
+
+        # Calculate time gap between commits
+        time_gap = (current_commit["date"] - previous_commit["date"]).total_seconds()
+
+        # If gap exceeds threshold, mark current commit as boundary
+        if time_gap > gap_threshold_seconds:
+            boundaries.append(current_commit)
+
+    logger.debug(f"Found {len(boundaries)} gap boundaries with {gap_threshold_hours} hour threshold")
+    return boundaries
+
+
+def get_all_boundaries(mode: str = "tags", **kwargs) -> list[dict]:
+    """Get all boundaries based on the specified mode.
+
+    Args:
+        mode: Boundary detection mode ('tags', 'dates', or 'gaps')
+        **kwargs: Additional parameters for specific modes
+            - date_grouping: For 'dates' mode ('daily', 'weekly', 'monthly')
+            - gap_threshold_hours: For 'gaps' mode (minimum gap in hours)
+
+    Returns:
+        List of boundary dictionaries with consistent format
+    """
+    if mode == "tags":
+        tag_names = get_all_tags()
+        boundaries: list[dict] = []
+        repo = get_repo()
+        for tag_name in tag_names:
+            tag = repo.tags[tag_name]
+            boundaries.append(
+                {
+                    "hash": tag.commit.hexsha,
+                    "short_hash": tag.commit.hexsha[:8],
+                    "message": tag.commit.message.strip(),
+                    "author": str(tag.commit.author),
+                    "date": datetime.fromtimestamp(tag.commit.committed_date),
+                    "files": [],  # We don't track files for tags
+                    "boundary_type": "tag",
+                    "identifier": tag_name,
+                }
+            )
+        return boundaries
+    elif mode == "dates":
+        return get_commits_by_date_boundaries(kwargs.get("date_grouping", "daily"))
+    elif mode == "gaps":
+        return get_commits_by_gap_boundaries(kwargs.get("gap_threshold_hours", 4.0))
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+
+
 def get_latest_tag() -> str | None:
     """Get the most recent tag."""
     tags = get_all_tags()
     return tags[-1] if tags else None
+
+
+def get_latest_boundary(mode: str) -> dict | None:
+    """Get the most recent boundary based on mode.
+
+    Args:
+        mode: Boundary detection mode
+
+    Returns:
+        The latest boundary dictionary, or None if no boundaries exist
+    """
+    boundaries = get_all_boundaries(mode)
+    return boundaries[-1] if boundaries else None
 
 
 def get_previous_tag(target_tag: str) -> str | None:
@@ -135,6 +312,46 @@ def get_previous_tag(target_tag: str) -> str | None:
 
     except Exception as e:
         logger.debug(f"Could not determine previous tag for {target_tag}: {e}")
+        return None
+
+
+def get_previous_boundary(target_boundary: dict, mode: str) -> dict | None:
+    """Get the boundary that comes before the target boundary.
+
+    Args:
+        target_boundary: The boundary to find the predecessor for
+        mode: Boundary detection mode
+
+    Returns:
+        The previous boundary dictionary, or None if target_boundary is the first
+    """
+    try:
+        all_boundaries = get_all_boundaries(mode)
+        if not all_boundaries:
+            return None
+
+        # Find the index of the target boundary
+        target_index = None
+        for i, boundary in enumerate(all_boundaries):
+            if boundary["hash"] == target_boundary["hash"]:
+                target_index = i
+                break
+
+        if target_index is None:
+            # Target boundary not found in the list
+            return None
+
+        # Return the previous boundary if it exists
+        if target_index > 0:
+            return all_boundaries[target_index - 1]
+        else:
+            # This is the first boundary, so return None
+            return None
+
+    except Exception as e:
+        logger.debug(
+            f"Could not determine previous boundary for {target_boundary.get('identifier', target_boundary.get('hash', 'unknown'))}: {e}"
+        )
         return None
 
 
@@ -240,6 +457,76 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
         return []
 
 
+def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict | None, mode: str) -> list[dict]:
+    """Get commits between two boundaries regardless of boundary type.
+
+    Args:
+        from_boundary: Starting boundary (exclusive). If None, starts from beginning of history.
+        to_boundary: Ending boundary (inclusive). If None, goes to HEAD.
+        mode: Boundary detection mode for context
+
+    Returns:
+        List of commit dictionaries with hash, message, author, date, and files.
+    """
+    try:
+        repo = get_repo()
+
+        # Determine the revision range based on boundary types
+        if from_boundary and to_boundary:
+            rev_range = f"{from_boundary['hash']}..{to_boundary['hash']}"
+        elif from_boundary:
+            rev_range = f"{from_boundary['hash']}..HEAD"
+        elif to_boundary:
+            # From beginning to specific boundary
+            rev_range = to_boundary["hash"]
+        else:
+            # All commits
+            rev_range = "HEAD"
+
+        commits = []
+        try:
+            commit_iter = repo.iter_commits(rev_range)
+        except git.exc.GitCommandError as e:
+            if from_boundary and ("unknown revision" in str(e).lower() or "bad revision" in str(e).lower()):
+                logger.warning(
+                    f"Boundary {from_boundary.get('identifier', from_boundary.get('hash', 'unknown'))} not found, using full history"
+                )
+                commit_iter = repo.iter_commits("HEAD")
+            else:
+                raise
+
+        for commit in commit_iter:
+            # Get changed files for this commit
+            changed_files = []
+            try:
+                if commit.parents:
+                    # Compare with first parent to get changed files
+                    diff = commit.parents[0].diff(commit)
+                    changed_files = [item.a_path or item.b_path for item in diff]
+                else:
+                    # Initial commit - all files are new
+                    changed_files = [str(key) for key in commit.stats.files.keys()]
+            except Exception as e:
+                logger.debug(f"Could not get changed files for commit {commit.hexsha[:8]}: {e}")
+
+            commits.append(
+                {
+                    "hash": commit.hexsha,
+                    "short_hash": commit.hexsha[:8],
+                    "message": commit.message.strip(),
+                    "author": str(commit.author),
+                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "files": changed_files,
+                }
+            )
+
+        return commits
+    except Exception as e:
+        logger.error(f"Failed to get commits between boundaries: {str(e)}")
+        # Return empty list instead of raising exception
+        return []
+
+
 def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md") -> tuple[str | None, list[str]]:
     """Get tags that have been created since the last changelog update.
 
@@ -331,6 +618,46 @@ def get_tag_date(tag_name: str) -> datetime | None:
     except Exception as e:
         logger.debug(f"Could not get date for tag {tag_name}: {e}")
         return None
+
+
+def generate_boundary_identifier(boundary: dict, mode: str) -> str:
+    """Generate a consistent identifier for a boundary.
+
+    Args:
+        boundary: Boundary dictionary
+        mode: Boundary detection mode
+
+    Returns:
+        Formatted boundary identifier string
+    """
+    if mode == "tags":
+        return boundary.get("identifier", boundary["hash"][:8])
+    elif mode == "dates":
+        return boundary["date"].strftime("%Y-%m-%d")
+    elif mode == "gaps":
+        return f"{boundary['date'].strftime('%Y-%m-%d')}-{boundary['short_hash']}"
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+
+
+def generate_boundary_display_name(boundary: dict, mode: str) -> str:
+    """Generate a user-friendly display name for a boundary.
+
+    Args:
+        boundary: Boundary dictionary
+        mode: Boundary detection mode
+
+    Returns:
+        Formatted boundary display name string
+    """
+    if mode == "tags":
+        return boundary.get("identifier", boundary["hash"][:8])
+    elif mode == "dates":
+        return f"[{boundary['date'].strftime('%Y-%m-%d')}] - {boundary['date'].strftime('%B %d, %Y')}"
+    elif mode == "gaps":
+        return f"[Gap-{boundary['date'].strftime('%Y-%m-%d')}] - Development session"
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
 
 
 def run_git_command(args: list[str], silent: bool = False, timeout: int = 30) -> str:

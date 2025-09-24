@@ -52,6 +52,151 @@ class TestGetAllTags:
         assert tags == ["v0.1.0", "v0.2.0", "v0.10.0"]
 
 
+class TestGetAllCommitsChronological:
+    """Test get_all_commits_chronological function."""
+
+    def test_get_all_commits_chronological_success(self, git_repo_with_tags):
+        """Test getting all commits in chronological order."""
+        from kittylog.git_operations import get_all_commits_chronological
+
+        commits = get_all_commits_chronological()
+        assert len(commits) >= 5  # At least the 5 commits from our fixture
+
+        # Check that commits are in chronological order
+        for i in range(1, len(commits)):
+            assert commits[i - 1]["date"] <= commits[i]["date"]
+
+        # Check commit structure
+        commit = commits[0]
+        assert "hash" in commit
+        assert "short_hash" in commit
+        assert "message" in commit
+        assert "author" in commit
+        assert "date" in commit
+        assert "files" in commit
+
+
+class TestGetCommitsByDateBoundaries:
+    """Test get_commits_by_date_boundaries function."""
+
+    def test_get_commits_by_date_boundaries_daily(self, git_repo_with_tags):
+        """Test daily date boundary detection."""
+        from kittylog.git_operations import get_commits_by_date_boundaries
+
+        boundaries = get_commits_by_date_boundaries("daily")
+        assert len(boundaries) > 0
+
+        # Verify all boundaries have the boundary_type field
+        for boundary in boundaries:
+            assert boundary.get("boundary_type") == "date"
+
+        # Check that we're getting first commits of each day
+        dates = [commit["date"].date() for commit in boundaries]
+        assert len(dates) == len(set(dates))  # All dates should be unique
+
+    def test_get_commits_by_date_boundaries_weekly(self, git_repo_with_tags):
+        """Test weekly date boundary detection."""
+        from kittylog.git_operations import get_commits_by_date_boundaries
+
+        boundaries = get_commits_by_date_boundaries("weekly")
+        assert len(boundaries) > 0
+
+        # Verify all boundaries have the boundary_type field
+        for boundary in boundaries:
+            assert boundary.get("boundary_type") == "date"
+
+    def test_get_commits_by_date_boundaries_monthly(self, git_repo_with_tags):
+        """Test monthly date boundary detection."""
+        from kittylog.git_operations import get_commits_by_date_boundaries
+
+        boundaries = get_commits_by_date_boundaries("monthly")
+        assert len(boundaries) > 0
+
+        # Verify all boundaries have the boundary_type field
+        for boundary in boundaries:
+            assert boundary.get("boundary_type") == "date"
+
+    def test_get_commits_by_date_boundaries_invalid_grouping(self, git_repo_with_tags):
+        """Test handling of invalid grouping parameter."""
+        from kittylog.git_operations import get_commits_by_date_boundaries
+
+        with pytest.raises(ValueError):
+            get_commits_by_date_boundaries("invalid")
+
+
+class TestGetCommitsByGapBoundaries:
+    """Test get_commits_by_gap_boundaries function."""
+
+    def test_get_commits_by_gap_boundaries_default(self, git_repo_with_tags):
+        """Test gap boundary detection with default threshold."""
+        from kittylog.git_operations import get_commits_by_gap_boundaries
+
+        boundaries = get_commits_by_gap_boundaries()
+        assert len(boundaries) > 0
+
+        # First commit should always be a boundary
+        assert boundaries[0].get("boundary_type") == "gap"
+
+        # Verify structure
+        for boundary in boundaries:
+            if "boundary_type" in boundary:
+                assert boundary["boundary_type"] == "gap"
+
+    def test_get_commits_by_gap_boundaries_custom_threshold(self, git_repo_with_tags):
+        """Test gap boundary detection with custom threshold."""
+        from kittylog.git_operations import get_commits_by_gap_boundaries
+
+        boundaries = get_commits_by_gap_boundaries(1.0)  # 1 hour threshold
+        assert len(boundaries) > 0
+
+        # First commit should always be a boundary
+        assert boundaries[0].get("boundary_type") == "gap"
+
+
+class TestGetAllBoundaries:
+    """Test get_all_boundaries function."""
+
+    def test_get_all_boundaries_tags_mode(self, git_repo_with_tags):
+        """Test getting all boundaries in tags mode."""
+        from kittylog.git_operations import get_all_boundaries
+
+        boundaries = get_all_boundaries("tags")
+        assert len(boundaries) == 3  # Our fixture has 3 tags
+
+        # Verify structure
+        for boundary in boundaries:
+            assert boundary.get("boundary_type") == "tag"
+            assert "identifier" in boundary
+
+    def test_get_all_boundaries_dates_mode(self, git_repo_with_tags):
+        """Test getting all boundaries in dates mode."""
+        from kittylog.git_operations import get_all_boundaries
+
+        boundaries = get_all_boundaries("dates", date_grouping="daily")
+        assert len(boundaries) > 0
+
+        # Verify structure
+        for boundary in boundaries:
+            assert boundary.get("boundary_type") == "date"
+
+    def test_get_all_boundaries_gaps_mode(self, git_repo_with_tags):
+        """Test getting all boundaries in gaps mode."""
+        from kittylog.git_operations import get_all_boundaries
+
+        boundaries = get_all_boundaries("gaps", gap_threshold_hours=2.0)
+        assert len(boundaries) > 0
+
+        # First commit should always be a boundary
+        assert boundaries[0].get("boundary_type") == "gap"
+
+    def test_get_all_boundaries_invalid_mode(self, git_repo_with_tags):
+        """Test handling of invalid mode."""
+        from kittylog.git_operations import get_all_boundaries
+
+        with pytest.raises(ValueError):
+            get_all_boundaries("invalid")
+
+
 class TestGetLatestTag:
     """Test get_latest_tag function."""
 

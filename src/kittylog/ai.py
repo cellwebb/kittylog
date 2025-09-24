@@ -39,8 +39,6 @@ def classify_error(error: Exception) -> str:
         return "unknown"
 
 
-
-
 def generate_changelog_entry(
     commits: list[dict],
     tag: str,
