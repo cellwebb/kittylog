@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-09-24
+
+### Added
+
+- Add multi-provider AI support for changelog generation, including Anthropic, OpenAI, Groq, Cerebras, and Ollama
+- Implement environment variable loading from `.kittylog.env` files with a clear precedence hierarchy
+- Introduce retry logic and utility functions for robust AI provider API interactions
+- Add new integration tests for actual provider API calls (excluded by default in CI)
+
+### Changed
+
+- Replace `aisuite` dependency with direct HTTP-based API calls to AI providers for better control and lower overhead
+- Refactor AI module to use `httpx.post` calls and provider-specific configurations while maintaining backward compatibility
+- Update project documentation (`AGENTS.md`) with comprehensive usage examples, project structure, and AI integration details
+- Streamline changelog header generation logic in `changelog.py`
+- Improve error classification and handling for different AI provider error types
+- Update installation instructions to prioritize `uv/uvx` over `pipx` in documentation and README
+
+### Fixed
+
+- Remove outdated and redundant documentation sections to avoid confusion
+- Exclude agent-specific files and directories from git tracking while retaining user-facing documentation like `AGENTS.md`
+
 ## [0.3.3] - 2025-09-22
 
 ### Added
