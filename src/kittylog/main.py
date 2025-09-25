@@ -37,6 +37,9 @@ def handle_unreleased_mode(
     show_prompt: bool,
     quiet: bool,
     no_unreleased: bool,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
@@ -57,8 +60,14 @@ def handle_unreleased_mode(
     output = get_output_manager()
     output.processing("Processing unreleased section...")
 
-    # Get latest tag for commit range
-    latest_tag = get_latest_tag()
+    # Get latest boundary for commit range based on mode
+    if grouping_mode != "tags":
+        from kittylog.git_operations import get_latest_boundary, generate_boundary_identifier
+        latest_boundary = get_latest_boundary(grouping_mode)
+        latest_tag = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+    else:
+        latest_tag = get_latest_tag()
+        
     logger.debug(f"Latest tag: {latest_tag}")
 
     # Update changelog for unreleased changes only - always replace in special unreleased mode
@@ -85,42 +94,75 @@ def handle_auto_mode(
     update_all_entries: bool,
     special_unreleased_mode: bool = False,
     no_unreleased: bool = False,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
-    """Handle automatic tag detection workflow."""
-    # In simplified mode by default, process all tags with proper AI-generated content
-    all_tags = get_all_tags()
+    """Handle automatic boundary detection workflow."""
+    from kittylog.git_operations import (
+        get_all_boundaries,
+        get_commits_between_boundaries,
+        get_latest_boundary,
+        get_previous_boundary,
+        generate_boundary_identifier,
+        generate_boundary_display_name,
+    )
+    
+    # In simplified mode by default, process all boundaries with proper AI-generated content
+    all_boundaries = get_all_boundaries(
+        mode=grouping_mode,
+        gap_threshold_hours=gap_threshold_hours,
+        date_grouping=date_grouping
+    )
 
-    # If update_all_entries flag is set, process all tags; otherwise process only missing tags
+    # If update_all_entries flag is set, process all boundaries; otherwise process only missing ones
     if not update_all_entries:
         # Read existing changelog content
         existing_content = read_changelog(changelog_file)
-        # Find tags that already exist in changelog
-        existing_tags = find_existing_tags(existing_content)
+        
+        # Find boundaries that already exist in changelog
+        existing_boundaries = find_existing_tags(existing_content)
 
-        # Filter to only process tags that are missing from changelog
-        tags_to_process = [tag for tag in all_tags if tag.lstrip("v") not in existing_tags]
+        # Filter to only process boundaries that are missing from changelog
+        boundaries_to_process = [
+            boundary for boundary in all_boundaries 
+            if generate_boundary_identifier(boundary, grouping_mode) not in existing_boundaries
+        ]
 
         if not quiet:
-            missing_tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
-            existing_tag_list = ", ".join(existing_tags) if existing_tags else "none"
+            missing_boundary_list = ", ".join([
+                generate_boundary_display_name(boundary, grouping_mode) 
+                for boundary in boundaries_to_process
+            ]) if boundaries_to_process else "none"
+            existing_boundary_list = ", ".join(existing_boundaries) if existing_boundaries else "none"
             output = get_output_manager()
-            output.info(f"Found {len(all_tags)} total tags")
-            output.info(f"Existing tags in changelog: {existing_tag_list}")
-            output.info(f"Missing tags to process: {missing_tag_list}")
+            output.info(f"Found {len(all_boundaries)} total boundaries")
+            output.info(f"Existing boundaries in changelog: {existing_boundary_list}")
+            output.info(f"Missing boundaries to process: {missing_boundary_list}")
 
-        # If no tags to process and no unreleased changes, return early
-        if not tags_to_process:
+        # If no boundaries to process and no unreleased changes, return early
+        if not boundaries_to_process:
             has_unreleased_changes = False
-            latest_tag = get_latest_tag()
-            if latest_tag and not is_current_commit_tagged():
+            latest_boundary = get_latest_boundary(grouping_mode)
+            if latest_boundary and not is_current_commit_tagged():
                 # If the current commit isn't tagged, we have unreleased changes
-                # But only if there are actually commits since the last tag
-                unreleased_commits = get_commits_between_tags(latest_tag, None)
+                # But only if there are actually commits since the last boundary
+                if grouping_mode == "tags":
+                    unreleased_commits = get_commits_between_tags(
+                        latest_boundary.get("identifier"), None
+                    )
+                else:
+                    unreleased_commits = get_commits_between_boundaries(
+                        latest_boundary, None, grouping_mode
+                    )
                 if len(unreleased_commits) > 0:
                     has_unreleased_changes = True
-            elif not latest_tag and not is_current_commit_tagged():
-                # If no tags exist in repo at all, check if we have commits
-                all_commits = get_commits_between_tags(None, None)
+            elif not latest_boundary and not is_current_commit_tagged():
+                # If no boundaries exist in repo at all, check if we have commits
+                if grouping_mode == "tags":
+                    all_commits = get_commits_between_tags(None, None)
+                else:
+                    all_commits = get_commits_between_boundaries(None, None, grouping_mode)
                 if all_commits:
                     has_unreleased_changes = True
 
@@ -128,12 +170,15 @@ def handle_auto_mode(
             if not has_unreleased_changes and not special_unreleased_mode:
                 return existing_content, None
     else:
-        # Process all tags when update_all_entries is True
-        tags_to_process = all_tags
+        # Process all boundaries when update_all_entries is True
+        boundaries_to_process = all_boundaries
         if not quiet:
-            tag_list = ", ".join(tags_to_process) if tags_to_process else "none"
+            boundary_list = ", ".join([
+                generate_boundary_display_name(boundary, grouping_mode)
+                for boundary in boundaries_to_process
+            ]) if boundaries_to_process else "none"
             output = get_output_manager()
-            output.info(f"Updating all {len(tags_to_process)} tags: {tag_list}")
+            output.info(f"Updating all {len(boundaries_to_process)} boundaries: {boundary_list}")
 
     # Read existing changelog content
     existing_content = read_changelog(changelog_file)
@@ -145,29 +190,39 @@ def handle_auto_mode(
     else:
         changelog_content = existing_content
 
-    logger.info(f"Found {len(all_tags)} tags: {all_tags}")
+    logger.info(f"Found {len(all_boundaries)} boundaries: {all_boundaries}")
 
     if not quiet:
-        tag_list = ", ".join(all_tags) if all_tags else "none"
+        boundary_list = ", ".join([
+            generate_boundary_display_name(boundary, grouping_mode)
+            for boundary in all_boundaries
+        ]) if all_boundaries else "none"
         output = get_output_manager()
-        output.info(f"Found {len(all_tags)} tags: {tag_list}")
+        output.info(f"Found {len(all_boundaries)} boundaries: {boundary_list}")
 
-    # Process each tag with AI-generated content (overwrite existing placeholders)
-    for tag in tags_to_process:
-        logger.info(f"Processing tag {tag}")
+    # Process each boundary with AI-generated content (overwrite existing placeholders)
+    for boundary in boundaries_to_process:
+        logger.info(f"Processing boundary {generate_boundary_display_name(boundary, grouping_mode)}")
 
         if not quiet:
             output = get_output_manager()
-            output.processing(f"Processing {tag}...")
+            output.processing(f"Processing {generate_boundary_display_name(boundary, grouping_mode)}...")
 
-        # Get previous tag to determine the range
-        previous_tag = get_previous_tag(tag)
+        # Get previous boundary to determine the range
+        if grouping_mode == "tags":
+            previous_boundary = get_previous_tag(boundary.get("identifier"))
+        else:
+            previous_boundary = get_previous_boundary(boundary, grouping_mode)
 
-        # Update changelog for this tag only (overwrite existing content)
+        # Update changelog for this boundary only (overwrite existing content)
         changelog_content, token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag=previous_tag,
-            to_tag=tag,
+            from_tag=previous_boundary if grouping_mode == "tags" else (
+                previous_boundary.get("identifier") if previous_boundary else None
+            ),
+            to_tag=boundary.get("identifier") if grouping_mode == "tags" else (
+                generate_boundary_identifier(boundary, grouping_mode)
+            ),
             model=model,
             hint=hint,
             show_prompt=show_prompt,
@@ -177,16 +232,26 @@ def handle_auto_mode(
 
     # Check if we have unreleased changes
     has_unreleased_changes = False
-    latest_tag = get_latest_tag()
-    if latest_tag and not is_current_commit_tagged():
+    latest_boundary = get_latest_boundary(grouping_mode)
+    if latest_boundary and not is_current_commit_tagged():
         # If the current commit isn't tagged, we have unreleased changes
-        # But only if there are actually commits since the last tag
-        unreleased_commits = get_commits_between_tags(latest_tag, None)
+        # But only if there are actually commits since the last boundary
+        if grouping_mode == "tags":
+            unreleased_commits = get_commits_between_tags(
+                latest_boundary.get("identifier"), None
+            )
+        else:
+            unreleased_commits = get_commits_between_boundaries(
+                latest_boundary, None, grouping_mode
+            )
         if len(unreleased_commits) > 0:
             has_unreleased_changes = True
-    elif not latest_tag and not is_current_commit_tagged():
-        # If no tags exist in repo at all, check if we have commits
-        all_commits = get_commits_between_tags(None, None)
+    elif not latest_boundary and not is_current_commit_tagged():
+        # If no boundaries exist in repo at all, check if we have commits
+        if grouping_mode == "tags":
+            all_commits = get_commits_between_tags(None, None)
+        else:
+            all_commits = get_commits_between_boundaries(None, None, grouping_mode)
         if all_commits:
             has_unreleased_changes = True
 
@@ -201,7 +266,7 @@ def handle_auto_mode(
         # Update changelog for unreleased changes
         changelog_content, unreleased_token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag=latest_tag,
+            from_tag=latest_boundary.get("identifier") if latest_boundary and grouping_mode == "tags" else None,
             to_tag=None,  # None means HEAD
             model=model,
             hint=hint,
@@ -224,9 +289,12 @@ def handle_single_tag_mode(
     show_prompt: bool,
     quiet: bool,
     no_unreleased: bool,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
-    """Handle single tag processing workflow."""
-    # When only to_tag is specified, find the previous tag to use as from_tag
+    """Handle single boundary processing workflow."""
+    # When only to_tag is specified, find the previous tag/boundary to use as from_tag
     changelog_content = read_changelog(changelog_file)
 
     # If changelog doesn't exist, create header
@@ -234,8 +302,30 @@ def handle_single_tag_mode(
         changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
         logger.info("Created new changelog header")
 
-    # Get previous tag to determine the range
-    previous_tag = get_previous_tag(to_tag)
+    # Get previous boundary to determine the range
+    if grouping_mode != "tags":
+        from kittylog.git_operations import get_all_boundaries, get_previous_boundary, generate_boundary_identifier
+        # We need to find the boundary corresponding to to_tag
+        all_boundaries = get_all_boundaries(
+            mode=grouping_mode,
+            gap_threshold_hours=gap_threshold_hours,
+            date_grouping=date_grouping
+        )
+        previous_tag = None
+        target_boundary = None
+        for i, boundary in enumerate(all_boundaries):
+            if generate_boundary_identifier(boundary, grouping_mode) == to_tag:
+                target_boundary = boundary
+                if i > 0:
+                    previous_tag = generate_boundary_identifier(all_boundaries[i-1], grouping_mode)
+                break
+        
+        if target_boundary:
+            # Get previous boundary if it exists
+            prev_boundary = get_previous_boundary(target_boundary, grouping_mode)
+            previous_tag = generate_boundary_identifier(prev_boundary, grouping_mode) if prev_boundary else None
+    else:
+        previous_tag = get_previous_tag(to_tag)
 
     if not quiet:
         output = get_output_manager()
@@ -266,18 +356,49 @@ def handle_tag_range_mode(
     quiet: bool,
     special_unreleased_mode: bool = False,
     no_unreleased: bool = False,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
-    """Handle tag range processing workflow."""
-    # Process specific tag range
+    """Handle boundary range processing workflow."""
+    # Process specific boundary range
     if to_tag is None and not special_unreleased_mode:
-        to_tag = get_latest_tag()
-        if to_tag is None:
+        if grouping_mode != "tags":
+            from kittylog.git_operations import get_latest_boundary, generate_boundary_identifier
+            latest_boundary = get_latest_boundary(grouping_mode)
+            to_tag = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+        else:
+            to_tag = get_latest_tag()
+            
+        if to_tag is None and grouping_mode == "tags":
             output = get_output_manager()
             output.error("No tags found in repository.")
             raise ValueError("No tags found in repository")
     elif from_tag is None and to_tag is not None and not special_unreleased_mode:
-        # When only to_tag is specified, find the previous tag to use as from_tag
-        from_tag = get_previous_tag(to_tag)
+        # When only to_tag is specified, find the previous boundary to use as from_tag
+        if grouping_mode != "tags":
+            from kittylog.git_operations import get_all_boundaries, get_previous_boundary, generate_boundary_identifier
+            # We need to find the boundary corresponding to to_tag
+            all_boundaries = get_all_boundaries(
+                mode=grouping_mode,
+                gap_threshold_hours=gap_threshold_hours,
+                date_grouping=date_grouping
+            )
+            from_tag = None
+            target_boundary = None
+            for i, boundary in enumerate(all_boundaries):
+                if generate_boundary_identifier(boundary, grouping_mode) == to_tag:
+                    target_boundary = boundary
+                    if i > 0:
+                        from_tag = generate_boundary_identifier(all_boundaries[i-1], grouping_mode)
+                    break
+            
+            if target_boundary:
+                # Get previous boundary if it exists
+                prev_boundary = get_previous_boundary(target_boundary, grouping_mode)
+                from_tag = generate_boundary_identifier(prev_boundary, grouping_mode) if prev_boundary else None
+        else:
+            from_tag = get_previous_tag(to_tag)
 
     logger.info(f"Processing specific range: {from_tag or 'beginning'} to {to_tag}")
 
@@ -359,36 +480,83 @@ def main_business_logic(
     token_usage = None
     try:
         if special_unreleased_mode:
-            changelog_content, token_usage = handle_unreleased_mode(
-                changelog_file, model, hint, show_prompt, quiet, no_unreleased
-            )
+            if grouping_mode != "tags":
+                # Use boundary-aware function for non-tag modes
+                changelog_content, token_usage = handle_unreleased_mode(
+                    changelog_file, model, hint, show_prompt, quiet, no_unreleased,
+                    grouping_mode, gap_threshold_hours, date_grouping
+                )
+            else:
+                changelog_content, token_usage = handle_unreleased_mode(
+                    changelog_file, model, hint, show_prompt, quiet, no_unreleased
+                )
         elif from_tag is None and to_tag is None:
-            changelog_content, token_usage = handle_auto_mode(
-                changelog_file,
-                model,
-                hint,
-                show_prompt,
-                quiet,
-                update_all_entries,
-                special_unreleased_mode,
-                no_unreleased,
-            )
+            if grouping_mode != "tags":
+                # Use boundary-aware function for non-tag modes
+                changelog_content, token_usage = handle_auto_mode(
+                    changelog_file,
+                    model,
+                    hint,
+                    show_prompt,
+                    quiet,
+                    update_all_entries,
+                    special_unreleased_mode,
+                    no_unreleased,
+                    grouping_mode,
+                    gap_threshold_hours,
+                    date_grouping,
+                )
+            else:
+                changelog_content, token_usage = handle_auto_mode(
+                    changelog_file,
+                    model,
+                    hint,
+                    show_prompt,
+                    quiet,
+                    update_all_entries,
+                    special_unreleased_mode,
+                    no_unreleased,
+                )
         elif to_tag is not None and from_tag is None:
-            changelog_content, token_usage = handle_single_tag_mode(
-                changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased
-            )
+            if grouping_mode != "tags":
+                # Use boundary-aware function for non-tag modes
+                changelog_content, token_usage = handle_single_tag_mode(
+                    changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased,
+                    grouping_mode, gap_threshold_hours, date_grouping
+                )
+            else:
+                changelog_content, token_usage = handle_single_tag_mode(
+                    changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased
+                )
         else:
-            changelog_content, token_usage = handle_tag_range_mode(
-                changelog_file,
-                from_tag,
-                to_tag,
-                model,
-                hint,
-                show_prompt,
-                quiet,
-                special_unreleased_mode,
-                no_unreleased,
-            )
+            if grouping_mode != "tags":
+                # Use boundary-aware function for non-tag modes
+                changelog_content, token_usage = handle_tag_range_mode(
+                    changelog_file,
+                    from_tag,
+                    to_tag,
+                    model,
+                    hint,
+                    show_prompt,
+                    quiet,
+                    special_unreleased_mode,
+                    no_unreleased,
+                    grouping_mode,
+                    gap_threshold_hours,
+                    date_grouping,
+                )
+            else:
+                changelog_content, token_usage = handle_tag_range_mode(
+                    changelog_file,
+                    from_tag,
+                    to_tag,
+                    model,
+                    hint,
+                    show_prompt,
+                    quiet,
+                    special_unreleased_mode,
+                    no_unreleased,
+                )
     except Exception as e:
         handle_error(e)
         return False, None

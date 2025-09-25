@@ -3,36 +3,47 @@
 from unittest.mock import patch
 
 from kittylog.main import main_business_logic
+from kittylog.git_operations import get_all_boundaries
 
 
 class TestMainBusinessLogic:
     """Test main business logic."""
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_boundary")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_boundaries")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_main_logic_auto_detect_success(
         self,
         mock_write,
         mock_read,
         mock_update,
-        mock_get_all_tags,
+        mock_get_all_boundaries,
         mock_find_existing,
-        mock_get_latest_tag,
+        mock_get_latest_boundary,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,
         temp_dir,
     ):
         """Test successful auto-detection logic."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
+        
+        # Mock the new boundary-aware functions
+        mock_boundaries = [
+            {"identifier": "v0.1.0", "hash": "abc123", "boundary_type": "tag"},
+            {"identifier": "v0.2.0", "hash": "def456", "boundary_type": "tag"}
+        ]
+        mock_get_all_boundaries.return_value = mock_boundaries
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
-        mock_find_existing.return_value = []  # No existing tags in changelog
-        mock_get_latest_tag.return_value = "v0.2.0"
+        mock_find_existing.return_value = set()  # No existing tags in changelog
+        mock_get_latest_boundary.return_value = mock_boundaries[-1]  # Latest boundary
         mock_is_current_commit_tagged.return_value = False  # Current commit not tagged
         mock_get_commits.return_value = []  # No unreleased commits
         mock_update.return_value = (
@@ -56,6 +67,7 @@ class TestMainBusinessLogic:
                 quiet=True,
                 require_confirmation=False,
                 no_unreleased=False,
+                grouping_mode="tags"  # Default mode for backward compatibility
             )
 
         assert success is True
@@ -63,13 +75,14 @@ class TestMainBusinessLogic:
         assert mock_update.call_count == 2
         mock_write.assert_called_once_with(str(temp_dir / "CHANGELOG.md"), "Updated content")
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
     def test_main_logic_no_new_tags(
         self,
         mock_read,
@@ -79,13 +92,15 @@ class TestMainBusinessLogic:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,
         temp_dir,
     ):
         """Test when no new tags need processing."""
-        mock_get_all_tags.return_value = ["v0.1.0"]
-        mock_read.return_value = "# Changelog\n\n## [0.1.0]\n"  # Already has the tag
-        mock_find_existing.return_value = ["0.1.0"]  # Tag already exists in changelog
-        mock_get_latest_tag.return_value = "v0.1.0"
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
+        mock_get_all_tags.return_value = ["v0.1.0"]  # Only one tag
+        mock_find_existing.return_value = {"0.1.0"}  # Tag already exists in changelog
+        mock_get_latest_tag.return_value = "v0.1.0"  # Latest tag
         mock_is_current_commit_tagged.return_value = True  # Current commit is tagged
         mock_get_commits.return_value = []  # No unreleased commits
 
@@ -104,18 +119,20 @@ class TestMainBusinessLogic:
                 quiet=True,
                 require_confirmation=False,
                 no_unreleased=False,
+                grouping_mode="tags"  # Default mode for backward compatibility
             )
 
         assert success is True
         mock_update.assert_not_called()  # Should not call update when no new tags
 
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
-    def test_main_logic_specific_tags(self, mock_write, mock_read, mock_update, mock_get_all_tags, temp_dir):
-        """Test processing specific tag range."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
+    def test_main_logic_specific_tags(self, mock_write, mock_read, mock_update, mock_get_all_tags, mock_get_repo, temp_dir):
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_update.return_value = (
             "Updated content",
@@ -145,15 +162,18 @@ class TestMainBusinessLogic:
         mock_update.assert_called_once()
         mock_write.assert_called_once_with(str(temp_dir / "CHANGELOG.md"), "Updated content")
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_main_logic_dry_run(
         self,
+        mock_write,
         mock_read,
         mock_update,
         mock_get_all_tags,
@@ -161,13 +181,23 @@ class TestMainBusinessLogic:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,
         temp_dir,
     ):
         """Test dry run mode."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
+        
+        # Mock boundaries for the dry run test
+        mock_boundaries = [
+            {"identifier": "v0.1.0", "hash": "abc123", "boundary_type": "tag"},
+            {"identifier": "v0.2.0", "hash": "def456", "boundary_type": "tag"}
+        ]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
-        mock_find_existing.return_value = []  # No existing tags in changelog
-        mock_get_latest_tag.return_value = "v0.2.0"
+        mock_find_existing.return_value = set()  # No existing tags in changelog
+        mock_get_latest_tag.return_value = "v0.2.0"  # Latest tag
         mock_is_current_commit_tagged.return_value = False  # Current commit not tagged
         mock_get_commits.return_value = []  # No unreleased commits
         mock_update.return_value = (
@@ -191,6 +221,7 @@ class TestMainBusinessLogic:
                 quiet=True,
                 require_confirmation=False,
                 no_unreleased=False,
+                grouping_mode="tags"  # Default mode for backward compatibility
             )
 
         assert success is True
@@ -217,7 +248,8 @@ class TestMainBusinessLogic:
         temp_dir,
     ):
         """Test user confirmation accepted."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -266,10 +298,12 @@ class TestMainBusinessLogic:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing mock parameter
         temp_dir,
     ):
         """Test user confirmation rejected."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -303,8 +337,13 @@ class TestMainBusinessLogic:
         assert mock_update.call_count == 2
         # Should not write file when user rejects
 
-    @patch("kittylog.main.get_all_tags")
-    def test_main_logic_git_error(self, mock_get_all_tags):
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    def test_main_logic_git_error(self, mock_get_repo, mock_get_all_tags):
         """Test handling of git errors."""
         from kittylog.errors import GitError
 
@@ -329,12 +368,31 @@ class TestMainBusinessLogic:
 
         assert success is False  # Should return False on git error
 
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    def test_main_logic_ai_error(self, mock_update, mock_get_all_tags):
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
+    def test_main_logic_ai_error(
+        self,
+        mock_write,
+        mock_read,
+        mock_update,
+        mock_get_all_tags,
+        mock_find_existing,
+        mock_get_latest_tag,
+        mock_is_current_commit_tagged,
+        mock_get_commits,
+        mock_get_repo,
+    ):
         """Test handling of AI errors."""
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
-        mock_update.side_effect = Exception("AI error")  # Simulate AI error
 
         config_with_model = {
             "model": "cerebras:qwen-3-coder-480b",
@@ -355,13 +413,26 @@ class TestMainBusinessLogic:
 
         assert success is False  # Should return False on AI error
 
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
-    def test_main_logic_changelog_error(self, mock_write, mock_read, mock_update, mock_get_all_tags, temp_dir):
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
+    def test_main_logic_changelog_error(
+        self,
+        mock_write,
+        mock_read,
+        mock_update,
+        mock_get_all_tags,
+        mock_get_repo,  # Add missing mock parameter
+        temp_dir,
+    ):
         """Test handling of changelog file errors."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_update.return_value = (
             "Updated content",
@@ -388,10 +459,14 @@ class TestMainBusinessLogic:
 
         assert success is False  # Should return False on file error
 
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    def test_main_logic_empty_repo(self, mock_update, mock_get_all_tags):
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    def test_main_logic_empty_repo(self, mock_read, mock_update, mock_get_all_tags, mock_get_repo):  # Add missing parameter
         """Test handling of empty git repository."""
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_get_all_tags.return_value = []  # No tags
         mock_update.return_value = (
             "Updated content",
@@ -417,13 +492,26 @@ class TestMainBusinessLogic:
 
         assert success is True  # Should succeed even with no tags
 
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
-    def test_main_logic_write_failure(self, mock_write, mock_read, mock_update, mock_get_all_tags, temp_dir):
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
+    def test_main_logic_write_failure(
+        self,
+        mock_write,
+        mock_read,
+        mock_update,
+        mock_get_all_tags,
+        mock_get_repo,  # Add missing mock parameter
+        temp_dir,
+    ):
         """Test handling of write failures."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_update.return_value = (
             "Updated content",
@@ -509,11 +597,15 @@ class TestMainLogicMultipleTags:
         assert mock_update.call_count == 2  # Should process 2 missing tags
         assert mock_write.call_count == 1  # Should write once at the end
 
-    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
     @patch("kittylog.changelog.find_existing_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_multiple_tags_partial_failure(
         self, mock_write, mock_read, mock_update, mock_find_existing, mock_get_all_tags, temp_dir
     ):
@@ -608,12 +700,17 @@ class TestMainLogicEdgeCases:
         mock_update.assert_called_once()
 
     @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.get_previous_tag")
-    def test_only_to_tag_specified(self, mock_get_previous_tag, mock_read, mock_update, mock_get_all_tags, temp_dir):
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
+    def test_only_to_tag_specified(self, mock_write, mock_read, mock_get_all_tags, mock_get_previous_tag, mock_get_repo, temp_dir):
         """Test when only to_tag is specified."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_update.return_value = (
             "Updated content",
@@ -706,14 +803,15 @@ class TestMainLogicEdgeCases:
 class TestMainLogicConfiguration:
     """Test configuration handling in main business logic."""
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_config_precedence(
         self,
         mock_write,
@@ -727,7 +825,8 @@ class TestMainLogicConfiguration:
         temp_dir,
     ):
         """Test that CLI arguments override config defaults."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -764,14 +863,15 @@ class TestMainLogicConfiguration:
 class TestMainLogicLogging:
     """Test logging behavior in main business logic."""
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_quiet_mode_suppresses_output(
         self,
         mock_write,
@@ -782,10 +882,12 @@ class TestMainLogicLogging:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing parameter
         temp_dir,
     ):
         """Test that quiet mode suppresses non-error output."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -816,14 +918,15 @@ class TestMainLogicLogging:
         # Should call update_changelog for each tag
         assert mock_update.call_count == 2
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.update_changelog")
-    @patch("kittylog.main.read_changelog")
-    @patch("kittylog.main.write_changelog")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_verbose_mode_shows_output(
         self,
         mock_write,
@@ -834,10 +937,12 @@ class TestMainLogicLogging:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing parameter
         temp_dir,
     ):
         """Test that verbose mode shows detailed output."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n\n## [Unreleased]\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -868,11 +973,12 @@ class TestMainLogicLogging:
         # Should call update_changelog for each tag
         assert mock_update.call_count == 2
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.find_existing_tags")
     def test_debug_mode_enables_debug_logging(
         self,
         mock_get_all_tags,
@@ -880,6 +986,7 @@ class TestMainLogicLogging:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing parameter
     ):
         """Test that debug logging can be enabled."""
         mock_get_all_tags.return_value = ["v0.1.0"]
@@ -910,24 +1017,30 @@ class TestMainLogicLogging:
 class TestMainBusinessLogicIntegration:
     """Integration tests for main business logic."""
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
-    @patch("kittylog.main.read_changelog")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
+    @patch("kittylog.changelog.update_changelog")
+    @patch("kittylog.changelog.read_changelog")
+    @patch("kittylog.changelog.write_changelog")
     def test_main_logic_no_commits(
         self,
+        mock_write,  # Add missing parameter
         mock_read,
+        mock_update,
         mock_get_all_tags,
         mock_find_existing,
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing parameter
         temp_dir,
     ):
         """Test main logic when no commits are found."""
-        mock_get_all_tags.return_value = ["v0.1.0", "v0.2.0"]
+        # Mock the git repository to avoid "Not in a git repository" errors
+        mock_get_repo.return_value = None
         mock_read.return_value = "# Changelog\n"
         mock_find_existing.return_value = []  # No existing tags in changelog
         mock_get_latest_tag.return_value = "v0.2.0"
@@ -952,11 +1065,11 @@ class TestMainBusinessLogicIntegration:
 
         assert success is True  # Should succeed even with no commits
 
-    @patch("kittylog.main.get_commits_between_tags")
-    @patch("kittylog.main.is_current_commit_tagged")
-    @patch("kittylog.main.get_latest_tag")
-    @patch("kittylog.main.find_existing_tags")
-    @patch("kittylog.main.get_all_tags")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.is_current_commit_tagged")
+    @patch("kittylog.git_operations.get_latest_tag")
+    @patch("kittylog.changelog.find_existing_tags")
+    @patch("kittylog.git_operations.get_all_tags")
     def test_main_logic_missing_config(
         self,
         mock_get_all_tags,
@@ -964,6 +1077,7 @@ class TestMainBusinessLogicIntegration:
         mock_get_latest_tag,
         mock_is_current_commit_tagged,
         mock_get_commits,
+        mock_get_repo,  # Add missing parameter
     ):
         """Test main logic with missing config."""
         # This mostly tests that the system can handle missing config gracefully

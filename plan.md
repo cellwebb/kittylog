@@ -108,11 +108,11 @@ Add alternatives to git tag-based changelog generation by implementing date-base
 ## Phase 3: Core Business Logic Updates
 
 ### 3.1 Workflow Function Updates in `main.py`
-- [ ] **3.1.1** Update `handle_auto_mode()` to support boundary modes
-  - [ ] **3.1.1.1** Replace `get_all_tags()` calls with `get_all_boundaries(mode)`
-  - [ ] **3.1.1.2** Update existing tag detection logic
-  - [ ] **3.1.1.3** Handle boundary-based filtering for missing entries
-  - [ ] **3.1.1.4** Unit tests for updated auto mode
+- [x] **3.1.1** Update `handle_auto_mode()` to support boundary modes
+  - [x] **3.1.1.1** Replace `get_all_tags()` calls with `get_all_boundaries(mode)`
+  - [x] **3.1.1.2** Update existing tag detection logic
+  - [x] **3.1.1.3** Handle boundary-based filtering for missing entries
+  - [x] **3.1.1.4** Unit tests for updated auto mode
 - [ ] **3.1.2** Update `handle_single_tag_mode()` to `handle_single_boundary_mode()`
   - [ ] **3.1.2.1** Accept boundary identifiers instead of just tags
   - [ ] **3.1.2.2** Update boundary resolution logic
