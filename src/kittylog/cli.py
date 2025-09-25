@@ -43,21 +43,21 @@ def changelog_options(f):
     f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
     f = click.option(
         "--grouping-mode",
-        type=click.Choice(['tags', 'dates', 'gaps'], case_sensitive=False),
+        type=click.Choice(["tags", "dates", "gaps"], case_sensitive=False),
         default=None,
-        help="How to group commits: 'tags' uses git tags, 'dates' groups by time periods, 'gaps' detects natural breaks"
+        help="How to group commits: 'tags' uses git tags, 'dates' groups by time periods, 'gaps' detects natural breaks",
     )(f)
     f = click.option(
         "--gap-threshold",
         type=float,
         default=None,
-        help="Time gap threshold in hours for gap-based grouping (default: 4.0)"
+        help="Time gap threshold in hours for gap-based grouping (default: 4.0)",
     )(f)
     f = click.option(
         "--date-grouping",
-        type=click.Choice(['daily', 'weekly', 'monthly'], case_sensitive=False),
+        type=click.Choice(["daily", "weekly", "monthly"], case_sensitive=False),
         default=None,
-        help="Date grouping period for date-based grouping (default: daily)"
+        help="Date grouping period for date-based grouping (default: daily)",
     )(f)
     return f
 
@@ -160,7 +160,7 @@ def add(
             click.echo(
                 f"Warning: --from-tag and --to-tag are only supported with --grouping-mode tags. "
                 f"Using {final_grouping_mode} mode instead.",
-                err=True
+                err=True,
             )
 
         if final_grouping_mode == "gaps" and date_grouping:
