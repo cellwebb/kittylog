@@ -225,29 +225,44 @@ def format_changelog_entry(
     ai_content: str,
     tag_date: datetime | None = None,
     include_unreleased_header: bool = True,
+    boundary_mode: str = "tags",
 ) -> str:
-    """Format a changelog entry for a specific tag.
+    """Format a changelog entry for a specific boundary.
 
     Args:
-        tag: The version tag
+        tag: The boundary identifier (tag name, date, etc.)
         commits: List of commit dictionaries
         ai_content: AI-generated changelog content
-        tag_date: Date the tag was created
+        tag_date: Date the boundary was created
         include_unreleased_header: Whether to include the Unreleased header (used in append mode)
+        boundary_mode: The boundary mode ('tags', 'dates', 'gaps')
 
     Returns:
         Formatted changelog entry as a string
     """
-    # Clean up the tag name for display
+    # Generate proper display name for boundary
     if tag is None:
         display_tag = "Unreleased"
+        date_str = ""
     else:
-        display_tag = tag.lstrip("v")
+        # Use boundary-aware display generation
+        if boundary_mode == "tags":
+            display_tag = tag.lstrip("v")
+            date_str = f" - {tag_date.strftime('%Y-%m-%d')}" if tag_date else ""
+        else:
+            # For dates and gaps, create a boundary object to generate display name
+            from kittylog.git_operations import generate_boundary_display_name
 
-    # Format the date
-    date_str = ""
-    if tag_date and tag is not None:
-        date_str = f" - {tag_date.strftime('%Y-%m-%d')}"
+            boundary = {
+                "hash": "dummy",  # We don't need the actual hash for display
+                "date": tag_date or datetime.now(),
+                "identifier": tag,
+                "boundary_type": boundary_mode.rstrip('s')  # 'dates' -> 'date', 'gaps' -> 'gap'
+            }
+            display_name = generate_boundary_display_name(boundary, boundary_mode)
+            # Extract just the display part, removing the "## " prefix if present
+            display_tag = display_name.replace("## ", "")
+            date_str = ""  # Date is already included in the display name
 
     # For unreleased changes, we include the header UNLESS we're appending to an existing section
     if tag is None:
@@ -481,10 +496,33 @@ def update_changelog(
 
     # Get commits for this boundary range
     if grouping_mode != "tags":
-        from kittylog.git_operations import get_commits_between_boundaries
+        from kittylog.git_operations import (
+            get_all_boundaries,
+            get_commits_between_boundaries,
+            generate_boundary_identifier,
+        )
 
-        commits = get_commits_between_boundaries(from_tag, to_tag, grouping_mode)
+        # Convert boundary identifiers to boundary objects
+        all_boundaries = get_all_boundaries(grouping_mode)
+        from_boundary = None
+        to_boundary = None
+
+        if from_tag:
+            for boundary in all_boundaries:
+                if generate_boundary_identifier(boundary, grouping_mode) == from_tag:
+                    from_boundary = boundary
+                    break
+
+        if to_tag:
+            for boundary in all_boundaries:
+                if generate_boundary_identifier(boundary, grouping_mode) == to_tag:
+                    to_boundary = boundary
+                    break
+
+        commits = get_commits_between_boundaries(from_boundary, to_boundary, grouping_mode)
     else:
+        from kittylog.git_operations import get_commits_between_tags
+
         commits = get_commits_between_tags(from_tag, to_tag)
 
     if not commits:
@@ -522,6 +560,7 @@ def update_changelog(
         show_prompt=show_prompt,
         quiet=quiet,
         diff_content=diff_content,
+        boundary_mode=grouping_mode,
     )
 
     # Post-process the AI content to ensure proper formatting
@@ -545,7 +584,7 @@ def update_changelog(
     # For unreleased changes, don't include the Unreleased header in the formatted entry
     # because it will be inserted into content that already has the header
     include_header = to_tag is not None
-    new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date, include_header)
+    new_entry = format_changelog_entry(tag_name, commits, ai_content, tag_date, include_header, grouping_mode)
 
     # Log the AI content for debugging
     logger.debug(f"AI-generated content for {tag_name}: {ai_content}")
@@ -594,7 +633,11 @@ def write_changelog(file_path: str, content: str) -> None:
         raise
 
 
-def preview_changelog_entry(tag: str, commits: list[dict], ai_content: str) -> str:
+def preview_changelog_entry(tag: str, commits: list[dict], ai_content: str, boundary_mode: str = "tags") -> str:
     """Generate a preview of what the changelog entry would look like."""
-    tag_date = get_tag_date(tag)
-    return format_changelog_entry(tag, commits, ai_content, tag_date)
+    if boundary_mode == "tags":
+        tag_date = get_tag_date(tag)
+    else:
+        from kittylog.git_operations import get_boundary_date
+        tag_date = get_boundary_date(tag, boundary_mode)
+    return format_changelog_entry(tag, commits, ai_content, tag_date, boundary_mode=boundary_mode)

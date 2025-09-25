@@ -14,20 +14,22 @@ def build_changelog_prompt(
     tag: str,
     from_tag: str | None = None,
     hint: str = "",
+    boundary_mode: str = "tags",
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
 
     Args:
         commits: List of commit dictionaries
-        tag: The target tag/version
-        from_tag: The previous tag (for context)
+        tag: The target boundary identifier
+        from_tag: The previous boundary identifier (for context)
         hint: Additional context hint
+        boundary_mode: The boundary mode ('tags', 'dates', 'gaps')
 
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
     system_prompt = _build_system_prompt()
-    user_prompt = _build_user_prompt(commits, tag, from_tag, hint)
+    user_prompt = _build_user_prompt(commits, tag, from_tag, hint, boundary_mode)
 
     return system_prompt, user_prompt
 
@@ -101,17 +103,31 @@ def _build_user_prompt(
     tag: str,
     from_tag: str | None = None,
     hint: str = "",
+    boundary_mode: str = "tags",
 ) -> str:
     """Build the user prompt with commit data."""
 
-    # Start with version context
+    # Start with boundary context
     if tag is None:
         version_context = "Generate a changelog entry for unreleased changes"
     else:
-        version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
+        if boundary_mode == "tags":
+            version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
+        elif boundary_mode == "dates":
+            version_context = f"Generate a changelog entry for date-based boundary {tag}"
+            version_context += "\n\nNote: This represents all changes made on or around this date, grouped together for organizational purposes."
+        elif boundary_mode == "gaps":
+            version_context = f"Generate a changelog entry for activity boundary {tag}"
+            version_context += "\n\nNote: This represents a development session or period of activity, bounded by gaps in commit history."
+        else:
+            version_context = f"Generate a changelog entry for boundary {tag}"
+
     if from_tag:
         # Handle case where from_tag might be None
-        from_tag_display = from_tag.lstrip("v") if from_tag is not None else "beginning"
+        if boundary_mode == "tags":
+            from_tag_display = from_tag.lstrip("v") if from_tag is not None else "beginning"
+        else:
+            from_tag_display = from_tag if from_tag is not None else "beginning"
         version_context += f" (changes since {from_tag_display})"
     version_context += ".\n\n"
 

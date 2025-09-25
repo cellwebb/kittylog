@@ -762,3 +762,71 @@ def get_git_diff(from_tag: str | None, to_tag: str | None) -> str:
     except Exception as e:
         logger.debug(f"Could not get git diff: {e}")
         return ""
+
+
+def get_git_diff_by_boundaries(from_boundary: str | None, to_boundary: str | None, mode: str) -> str:
+    """Get git diff between boundaries for any grouping mode.
+
+    Args:
+        from_boundary: Starting boundary identifier
+        to_boundary: Ending boundary identifier
+        mode: Boundary mode ('tags', 'dates', 'gaps')
+
+    Returns:
+        Git diff content as string
+    """
+    if mode == "tags":
+        return get_git_diff(from_boundary, to_boundary)
+
+    try:
+        # For non-tag modes, we need to convert boundary identifiers to commit hashes
+        from_hash = None
+        to_hash = None
+
+        if from_boundary:
+            # Find the commit hash for this boundary
+            all_boundaries = get_all_boundaries(mode)
+            for boundary in all_boundaries:
+                if generate_boundary_identifier(boundary, mode) == from_boundary:
+                    from_hash = boundary["hash"]
+                    break
+
+        if to_boundary:
+            # Find the commit hash for this boundary
+            all_boundaries = get_all_boundaries(mode)
+            for boundary in all_boundaries:
+                if generate_boundary_identifier(boundary, mode) == to_boundary:
+                    to_hash = boundary["hash"]
+                    break
+
+        # Use commit hashes to get diff
+        return get_git_diff(from_hash, to_hash)
+
+    except Exception as e:
+        logger.debug(f"Could not get git diff by boundaries: {e}")
+        return ""
+
+
+def get_boundary_date(boundary_id: str, mode: str) -> datetime | None:
+    """Get the date for a specific boundary.
+
+    Args:
+        boundary_id: Boundary identifier
+        mode: Boundary mode ('tags', 'dates', 'gaps')
+
+    Returns:
+        DateTime of the boundary, or None if not found
+    """
+    if mode == "tags":
+        return get_tag_date(boundary_id)
+
+    try:
+        all_boundaries = get_all_boundaries(mode)
+        for boundary in all_boundaries:
+            if generate_boundary_identifier(boundary, mode) == boundary_id:
+                return boundary["date"]
+        return None
+
+    except Exception as e:
+        logger.debug(f"Could not get boundary date: {e}")
+        return None

@@ -22,6 +22,7 @@ from kittylog.git_operations import (
     generate_boundary_identifier,
     get_all_boundaries,
     get_commits_between_boundaries,
+    get_commits_between_tags,
     get_latest_boundary,
     get_previous_boundary,
     is_current_commit_tagged,

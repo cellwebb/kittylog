@@ -51,6 +51,7 @@ def generate_changelog_entry(
     max_tokens: int | None = None,
     max_retries: int | None = None,
     diff_content: str = "",
+    boundary_mode: str = "tags",
 ) -> tuple[str, dict[str, int]]:
     """Generate a changelog entry using AI.
 
@@ -91,6 +92,7 @@ def generate_changelog_entry(
         tag=tag,
         from_tag=from_tag,
         hint=hint,
+        boundary_mode=boundary_mode,
     )
 
     # Add diff content to user prompt if available, but limit its size to prevent timeouts
