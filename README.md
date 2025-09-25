@@ -19,6 +19,36 @@
 - **Interactive workflow** - review and approve content before saving
 - **Intelligent version detection** - avoids duplicates by comparing with existing changelog
 
+## Grouping Modes
+
+kittylog supports three different grouping strategies to accommodate various project workflows:
+
+### 🏷️ **Tags Mode** (default)
+Uses git tags as changelog boundaries. Perfect for projects with consistent release tagging.
+```bash
+kittylog --grouping-mode tags  # Default behavior
+```
+
+### 📅 **Date Mode**
+Groups commits by date (daily/weekly/monthly). Ideal for projects without regular tags.
+```bash
+kittylog --grouping-mode dates --date-grouping daily    # Group by day
+kittylog --grouping-mode dates --date-grouping weekly   # Group by week
+kittylog --grouping-mode dates --date-grouping monthly  # Group by month
+```
+
+### ⏱️ **Gap Mode**
+Groups commits by activity sessions with configurable time gaps. Great for irregular development patterns.
+```bash
+kittylog --grouping-mode gaps --gap-threshold 4.0  # 4-hour gaps (default)
+kittylog --grouping-mode gaps --gap-threshold 24   # 24-hour gaps
+```
+
+**When to use each mode:**
+- **Tags**: Formal release process with semantic versioning
+- **Dates**: Regular development without formal releases
+- **Gaps**: Irregular development with distinct work sessions
+
 ## Installation
 
 **Try without installing:**
@@ -48,18 +78,18 @@ kittylog -h "Breaking changes"  # Add context hint
 ![Simple kittylog Usage](assets/kittylog-usage.png)
 
 **How it works:**
-1. Detects new git tags since last changelog update
-2. Analyzes commits and file changes between versions
-3. Generates categorized changelog entries with AI
+1. Detects changelog boundaries using your chosen grouping mode (tags/dates/gaps)
+2. Analyzes commits and file changes between boundaries
+3. Generates categorized changelog entries with AI that understands the grouping context
 4. Shows preview and prompts for confirmation
-5. Updates your CHANGELOG.md file
+5. Updates your CHANGELOG.md file with properly formatted sections
 
 See [USAGE.md](USAGE.md) for detailed documentation.
 
 ## Requirements
 
 - Python 3.10+
-- Git repository with tags
+- Git repository (tags optional - can use date/gap grouping)
 - AI provider API key
 
 ## Contributing

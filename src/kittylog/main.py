@@ -442,7 +442,38 @@ def main_business_logic(
 ) -> tuple[bool, dict[str, int] | None]:
     """Main application logic for kittylog.
 
-    Returns True on success, False on failure.
+    Orchestrates the changelog generation process using configurable boundary detection modes.
+    Supports tags (default), dates, and gap-based grouping for flexible changelog workflows.
+
+    Args:
+        changelog_file: Path to changelog file
+        from_tag: Starting boundary identifier (optional)
+        to_tag: Ending boundary identifier (optional)
+        model: AI model to use for generation
+        hint: Additional context for AI generation
+        show_prompt: Display the AI prompt
+        require_confirmation: Ask for user confirmation
+        quiet: Suppress output
+        dry_run: Preview only, don't write changes
+        special_unreleased_mode: Handle unreleased section only
+        update_all_entries: Update all existing entries
+        no_unreleased: Skip unreleased section management
+        grouping_mode: Boundary detection mode ('tags', 'dates', 'gaps')
+        gap_threshold_hours: Hours threshold for gap detection (gaps mode)
+        date_grouping: Date grouping granularity ('daily', 'weekly', 'monthly')
+
+    Returns:
+        Tuple of (success: bool, token_usage: dict | None)
+
+    Examples:
+        # Default tags mode
+        success, usage = main_business_logic()
+
+        # Date-based grouping
+        success, usage = main_business_logic(grouping_mode="dates", date_grouping="weekly")
+
+        # Gap-based grouping with 8-hour threshold
+        success, usage = main_business_logic(grouping_mode="gaps", gap_threshold_hours=8.0)
     """
     logger.debug(f"main_business_logic called with special_unreleased_mode={special_unreleased_mode}")
 
