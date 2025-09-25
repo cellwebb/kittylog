@@ -41,6 +41,24 @@ def changelog_options(f):
     f = click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")(f)
     f = click.option("--hint", "-h", default="", help="Additional context for the prompt")(f)
     f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
+    f = click.option(
+        "--grouping-mode",
+        type=click.Choice(['tags', 'dates', 'gaps'], case_sensitive=False),
+        default=None,
+        help="How to group commits: 'tags' uses git tags, 'dates' groups by time periods, 'gaps' detects natural breaks"
+    )(f)
+    f = click.option(
+        "--gap-threshold",
+        type=float,
+        default=None,
+        help="Time gap threshold in hours for gap-based grouping (default: 4.0)"
+    )(f)
+    f = click.option(
+        "--date-grouping",
+        type=click.Choice(['daily', 'weekly', 'monthly'], case_sensitive=False),
+        default=None,
+        help="Date grouping period for date-based grouping (default: daily)"
+    )(f)
     return f
 
 
@@ -102,16 +120,54 @@ def add(
     all,
     tag,
     no_unreleased,
+    grouping_mode,
+    gap_threshold,
+    date_grouping,
 ):
     """Add missing changelog entries or update a specific tag entry.
 
     When run without arguments, adds entries for tags missing from changelog.
     When run with a specific tag, processes only that tag (overwrites if exists).
     When --all flag is used, updates all entries in changelog.
+
+    BOUNDARY DETECTION MODES:
+
+    --grouping-mode tags (default): Use git tags to create changelog sections
+    Example: kittylog --grouping-mode tags
+
+    --grouping-mode dates: Group commits by time periods
+    Example: kittylog --grouping-mode dates --date-grouping weekly
+
+    --grouping-mode gaps: Detect natural breaks in commit timing
+    Example: kittylog --grouping-mode gaps --gap-threshold 6.0
     """
     try:
         setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting kittylog")
+
+        # Process and validate boundary detection parameters
+        final_grouping_mode = grouping_mode or config["grouping_mode"] or "tags"
+        final_gap_threshold = gap_threshold or config["gap_threshold_hours"] or 4.0
+        final_date_grouping = date_grouping or config["date_grouping"] or "daily"
+
+        # Validate gap threshold
+        if final_gap_threshold <= 0:
+            click.echo("Error: --gap-threshold must be positive", err=True)
+            sys.exit(1)
+
+        # Validate for conflicting options
+        if final_grouping_mode != "tags" and (from_tag or to_tag):
+            click.echo(
+                f"Warning: --from-tag and --to-tag are only supported with --grouping-mode tags. "
+                f"Using {final_grouping_mode} mode instead.",
+                err=True
+            )
+
+        if final_grouping_mode == "gaps" and date_grouping:
+            click.echo("Warning: --date-grouping is ignored when using --grouping-mode gaps", err=True)
+
+        if final_grouping_mode == "dates" and gap_threshold:
+            click.echo("Warning: --gap-threshold is ignored when using --grouping-mode dates", err=True)
 
         # If a specific tag is provided, process only that tag
         if tag:
@@ -132,6 +188,9 @@ def add(
                 quiet=quiet,
                 dry_run=dry_run,
                 no_unreleased=no_unreleased,
+                grouping_mode=final_grouping_mode,
+                gap_threshold_hours=final_gap_threshold,
+                date_grouping=final_date_grouping,
             )
         else:
             # Default behavior: process all missing tags
@@ -146,6 +205,10 @@ def add(
                 quiet=quiet,
                 dry_run=dry_run,
                 no_unreleased=no_unreleased,
+                update_all_entries=all,
+                grouping_mode=final_grouping_mode,
+                gap_threshold_hours=final_gap_threshold,
+                date_grouping=final_date_grouping,
             )
 
         if not success:
@@ -185,6 +248,10 @@ def cli(ctx, version):
             log_level=None,
             all=False,
             tag=None,
+            no_unreleased=False,
+            grouping_mode=None,
+            gap_threshold=None,
+            date_grouping=None,
         )
 
 

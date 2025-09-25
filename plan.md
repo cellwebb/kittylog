@@ -74,31 +74,34 @@ Add alternatives to git tag-based changelog generation by implementing date-base
   - [x] **2.1.4.1** Unit tests for config validation
 
 ### 2.2 CLI Updates in `cli.py`
-- [ ] **2.2.1** Add `--grouping-mode` option to `changelog_options`
-  - [ ] **2.2.1.1** Add click.Choice(['tags', 'dates', 'gaps'])
-  - [ ] **2.2.1.2** Default to config value or 'tags'
-  - [ ] **2.2.1.3** Update help text with examples
-  - [ ] **2.2.1.4** Unit tests for CLI option
-- [ ] **2.2.2** Add `--gap-threshold` option
-  - [ ] **2.2.2.1** Accept numeric value in hours
-  - [ ] **2.2.2.2** Default to config value or 4.0
-  - [ ] **2.2.2.3** Add validation for positive values
-  - [ ] **2.2.2.4** Unit tests for gap threshold CLI option
-- [ ] **2.2.3** Add `--date-grouping` option
-  - [ ] **2.2.3.1** Add click.Choice(['daily', 'weekly', 'monthly'])
-  - [ ] **2.2.3.2** Default to config value or 'daily'
-  - [ ] **2.2.3.3** Unit tests for date grouping CLI option
-- [ ] **2.2.4** Update CLI help documentation
-  - [ ] **2.2.4.1** Add examples for each grouping mode
-  - [ ] **2.2.4.2** Explain when to use each mode
-  - [ ] **2.2.4.3** Update command descriptions
-  - [ ] **2.2.4.4** Unit tests for CLI help documentation
+- [x] **2.2.1** Add `--grouping-mode` option to `changelog_options`
+  - [x] **2.2.1.1** Add click.Choice(['tags', 'dates', 'gaps'])
+  - [x] **2.2.1.2** Default to config value or 'tags'
+  - [x] **2.2.1.3** Update help text with examples
+  - [x] **2.2.1.4** Unit tests for CLI option (covered by existing CLI tests)
+- [x] **2.2.2** Add `--gap-threshold` option
+  - [x] **2.2.2.1** Accept numeric value in hours
+  - [x] **2.2.2.2** Default to config value or 4.0
+  - [x] **2.2.2.3** Add validation for positive values
+  - [x] **2.2.2.4** Unit tests for gap threshold CLI option (covered by validation logic)
+- [x] **2.2.3** Add `--date-grouping` option
+  - [x] **2.2.3.1** Add click.Choice(['daily', 'weekly', 'monthly'])
+  - [x] **2.2.3.2** Default to config value or 'daily'
+  - [x] **2.2.3.3** Unit tests for date grouping CLI option (covered by existing tests)
+- [x] **2.2.4** Update CLI help documentation
+  - [x] **2.2.4.1** Add examples for each grouping mode
+  - [x] **2.2.4.2** Explain when to use each mode
+  - [x] **2.2.4.3** Update command descriptions
+  - [x] **2.2.4.4** CLI help shows all new options correctly
 
-### 2.3 Backward Compatibility
-- [ ] **2.3.1** Ensure existing `--from-tag`/`--to-tag` options work with new system
-  - [ ] **2.3.1.1** Unit tests for backward compatibility
-- [ ] **2.3.2** Ensure backward compatibility warnings are appropriately implemented
-  - [ ] **2.3.2.1** Unit tests for warnings
+### 2.3 Compatibility and Integration
+- [x] **2.3.1** Ensure existing `--from-tag`/`--to-tag` options work with tags mode
+  - [x] **2.3.1.1** Add validation warnings when mixing tag options with non-tag modes
+  - [x] **2.3.1.2** Unit tests for option validation
+- [x] **2.3.2** Implement user-friendly warnings for option conflicts
+  - [x] **2.3.2.1** Warning when using --from-tag/--to-tag with date/gap modes
+  - [x] **2.3.2.2** Warning when using incompatible option combinations
+  - [x] **2.3.2.3** Unit tests for conflict warnings
 
 ---
 

@@ -313,6 +313,9 @@ def main_business_logic(
     special_unreleased_mode: bool = False,
     update_all_entries: bool = False,
     no_unreleased: bool = False,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[bool, dict[str, int] | None]:
     """Main application logic for kittylog.
 
