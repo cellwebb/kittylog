@@ -21,8 +21,12 @@ class TestMainBusinessLogicFixed:
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.generate_boundary_identifier")
     @patch("kittylog.git_operations.generate_boundary_display_name")
+    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.git_operations.get_previous_boundary")
     def test_main_logic_tags_success(
         self,
+        mock_get_previous_boundary,
+        mock_get_commits_between_tags,
         mock_generate_display,
         mock_generate_identifier,
         mock_is_tagged,
@@ -37,8 +41,10 @@ class TestMainBusinessLogicFixed:
         temp_dir,
     ):
         """Test successful tags mode processing."""
-        # Mock repository
+        # Mock repository - since we're mocking get_all_boundaries, this doesn't need to be complex
         mock_repo = Mock()
+        mock_repo.tags = []
+        mock_repo.iter_commits.return_value = []
         mock_get_repo.return_value = mock_repo
 
         # Mock output manager
@@ -62,17 +68,24 @@ class TestMainBusinessLogicFixed:
         mock_get_all_boundaries.return_value = mock_boundaries
         mock_find_existing.return_value = set()  # No existing boundaries
         mock_get_latest_boundary.return_value = mock_boundaries[0]
+        mock_get_previous_boundary.return_value = None  # No previous boundary for first tag
         mock_is_tagged.return_value = False
         mock_read.return_value = "# Changelog\n"
 
-        # Mock identifier functions
+        # Mock commits to simulate unreleased changes
+        mock_unreleased_commits = [
+            {"hash": "def456", "message": "Unreleased change", "files": ["new_file.py"]}
+        ]
+        mock_get_commits_between_tags.return_value = mock_unreleased_commits
+
+        # Mock identifier functions - ensure consistent identifier
         mock_generate_identifier.return_value = "v1.0.0"
         mock_generate_display.return_value = "[v1.0.0] - January 1, 2024"
 
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -85,10 +98,11 @@ class TestMainBusinessLogicFixed:
         ):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 require_confirmation=False,
                 grouping_mode="tags",
+                update_all_entries=True,  # Force processing of all boundaries
             )
 
         assert success is True
@@ -103,8 +117,10 @@ class TestMainBusinessLogicFixed:
         self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir
     ):
         """Test handling when no boundaries are found."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock no boundaries
@@ -115,7 +131,7 @@ class TestMainBusinessLogicFixed:
         mock_output_manager.return_value = mock_output
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -128,7 +144,7 @@ class TestMainBusinessLogicFixed:
         ):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 grouping_mode="tags",
             )
@@ -165,8 +181,10 @@ class TestMainBusinessLogicFixed:
         temp_dir,
     ):
         """Test date-based boundary mode."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock output manager
@@ -199,7 +217,7 @@ class TestMainBusinessLogicFixed:
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -212,7 +230,7 @@ class TestMainBusinessLogicFixed:
         ):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 require_confirmation=False,
                 grouping_mode="dates",
@@ -268,8 +286,10 @@ class TestMainBusinessLogicFixed:
         temp_dir,
     ):
         """Test dry run mode doesn't write changes."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock output manager
@@ -302,7 +322,7 @@ class TestMainBusinessLogicFixed:
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -315,7 +335,7 @@ class TestMainBusinessLogicFixed:
         ):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 require_confirmation=False,
                 dry_run=True,  # Enable dry run

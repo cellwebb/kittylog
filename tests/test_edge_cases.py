@@ -16,8 +16,10 @@ class TestEdgeCases:
     @patch("kittylog.git_operations.get_repo")
     def test_no_boundaries_tags_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no tags."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock no boundaries found
@@ -28,7 +30,7 @@ class TestEdgeCases:
         mock_output_manager.return_value = mock_output
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -38,7 +40,7 @@ class TestEdgeCases:
         with patch("kittylog.main.config", config_with_model):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 grouping_mode="tags",
             )
@@ -57,8 +59,10 @@ class TestEdgeCases:
     @patch("kittylog.git_operations.get_repo")
     def test_no_boundaries_dates_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no date boundaries."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock no boundaries found
@@ -69,7 +73,7 @@ class TestEdgeCases:
         mock_output_manager.return_value = mock_output
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -79,7 +83,7 @@ class TestEdgeCases:
         with patch("kittylog.main.config", config_with_model):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 grouping_mode="dates",
             )
@@ -98,8 +102,10 @@ class TestEdgeCases:
     @patch("kittylog.git_operations.get_repo")
     def test_no_boundaries_gaps_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no gap boundaries."""
-        # Mock repository
+        # Mock repository with iterable tags and commits
         mock_repo = Mock()
+        mock_repo.tags = []  # Empty tags for this test
+        mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
         # Mock no boundaries found
@@ -110,7 +116,7 @@ class TestEdgeCases:
         mock_output_manager.return_value = mock_output
 
         config_with_model = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -120,7 +126,7 @@ class TestEdgeCases:
         with patch("kittylog.main.config", config_with_model):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="cerebras:qwen-3-coder-480b",
+                model="openai:gpt-4o-mini",
                 quiet=True,
                 grouping_mode="gaps",
                 gap_threshold_hours=4.0,

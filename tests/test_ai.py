@@ -356,6 +356,7 @@ class TestAIIntegration:
             tag="v1.0.0",
             from_tag="v0.9.0",
             hint="Focus on user-facing changes",
+            boundary_mode="tags",
         )
 
         # Verify AI client was called

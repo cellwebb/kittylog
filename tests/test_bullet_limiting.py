@@ -91,7 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             existing_content=changelog_content,
             from_tag="v0.1.0",
             to_tag=None,
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )
@@ -203,7 +203,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             existing_content=changelog_content,
             from_tag="v0.1.0",
             to_tag=None,
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )
@@ -303,7 +303,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
             existing_content=changelog_content,
             from_tag="v0.1.0",
             to_tag=None,
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )

@@ -207,9 +207,7 @@ def handle_auto_mode(
         # Update changelog for this boundary only (overwrite existing content)
         changelog_content, token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag=previous_boundary
-            if grouping_mode == "tags"
-            else (previous_boundary.get("identifier") if previous_boundary else None),
+            from_tag=previous_boundary.get("identifier") if previous_boundary else None,
             to_tag=boundary.get("identifier")
             if grouping_mode == "tags"
             else (generate_boundary_identifier(boundary, grouping_mode)),

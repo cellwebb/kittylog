@@ -300,7 +300,7 @@ class TestUpdateChangelog:
             file_path=str(changelog_file),
             from_tag="v0.1.0",
             to_tag="v0.2.0",
-            model="test:model",
+            model="openai:gpt-4o-mini",
             hint="",
             show_prompt=False,
             quiet=True,
@@ -313,7 +313,7 @@ class TestUpdateChangelog:
         assert "### Fixed" in result
         assert "Bug fix" in result
 
-    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.git_operations.get_commits_between_tags")
     def test_update_changelog_no_commits(self, mock_get_commits, temp_dir):
         """Test update when no commits found."""
         mock_get_commits.return_value = []
@@ -326,9 +326,10 @@ class TestUpdateChangelog:
             file_path=str(changelog_file),
             from_tag="v0.1.0",
             to_tag="v0.2.0",
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
+            grouping_mode="tags",
         )
 
         assert result == existing_content  # Content should be unchanged
@@ -363,7 +364,7 @@ class TestUpdateChangelog:
             file_path=str(changelog_file),
             from_tag=None,
             to_tag="v0.1.0",
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )
@@ -406,7 +407,7 @@ class TestUpdateChangelog:
             file_path=str(changelog_file),
             from_tag="v0.1.0",
             to_tag=None,
-            model="test:model",
+            model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )

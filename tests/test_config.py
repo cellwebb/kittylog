@@ -316,7 +316,7 @@ class TestValidateConfig:
         """Test validation of boundary values."""
         # Test minimum valid values
         config = {
-            "model": "test:model",
+            "model": "openai:gpt-4o-mini",
             "temperature": 0.0,
             "max_output_tokens": 1,
             "max_retries": 1,
@@ -330,7 +330,7 @@ class TestValidateConfig:
 
         # Test maximum valid values
         config = {
-            "model": "test:model",
+            "model": "openai:gpt-4o-mini",
             "temperature": 2.0,
             "max_output_tokens": 999999,
             "max_retries": 100,
