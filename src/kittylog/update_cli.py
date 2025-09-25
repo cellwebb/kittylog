@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from kittylog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
+from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Logging
 from kittylog.errors import handle_error
@@ -105,7 +105,7 @@ def update_version(
 
         # Check if version already exists in changelog
         existing_content = read_changelog(file)
-        existing_tags = find_existing_tags(existing_content)
+        existing_tags = find_existing_boundaries(existing_content)
 
         if normalized_version in existing_tags:
             # When updating a specific version, always overwrite existing entry

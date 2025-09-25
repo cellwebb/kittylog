@@ -10,7 +10,7 @@ import pytest
 from kittylog.changelog import (
     create_changelog_header,
     find_end_of_unreleased_section,
-    find_existing_tags,
+    find_existing_boundaries,
     find_insertion_point,
     read_changelog,
     remove_unreleased_sections,
@@ -172,11 +172,11 @@ class TestFindInsertionPoint:
         assert result == 4
 
 
-class TestFindExistingTags:
-    """Test find_existing_tags function."""
+class TestFindExistingBoundaries:
+    """Test find_existing_boundaries function."""
 
-    def test_find_existing_tags_basic(self):
-        """Test finding existing tags in changelog."""
+    def test_find_existing_boundaries_basic(self):
+        """Test finding existing boundaries in changelog."""
         content = """# Changelog
 
 ## [Unreleased]
@@ -185,11 +185,11 @@ class TestFindExistingTags:
 ## [v0.1.5] - 2024-01-10
 ## [0.1.0] - 2024-01-01
 """
-        result = find_existing_tags(content)
+        result = find_existing_boundaries(content)
         assert set(result) == {"0.2.0", "0.1.5", "0.1.0"}
 
-    def test_find_existing_tags_no_versions(self):
-        """Test finding existing tags when no versions exist."""
+    def test_find_existing_boundaries_no_versions(self):
+        """Test finding existing boundaries when no versions exist."""
         content = """# Changelog
 
 ## [Unreleased]
@@ -197,7 +197,7 @@ class TestFindExistingTags:
 ### Added
 - Feature 1
 """
-        result = find_existing_tags(content)
+        result = find_existing_boundaries(content)
         assert result == set()  # Should be empty set
 
 

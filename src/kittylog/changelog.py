@@ -62,30 +62,31 @@ def read_changelog(file_path: str) -> str:
         raise
 
 
-def find_existing_tags(content: str) -> set[str]:
-    """Find all existing tags in the changelog content.
+def find_existing_boundaries(content: str) -> set[str]:
+    """Find all existing boundaries in the changelog content.
 
     Args:
         content: The changelog content as a string
 
     Returns:
-        Set of existing tag names
+        Set of existing boundary identifiers (excluding 'unreleased')
     """
-    existing_tags = set()
+    existing_boundaries = set()
     lines = content.split("\n")
 
     for line in lines:
-        # Match patterns like ## [0.1.0], ## [v0.1.0], ## [Unreleased], etc.
-        match = re.match(r"##\s*\[\s*v?([^\]]+)\s*\]", line, re.IGNORECASE)
+        # Match patterns like ## [0.1.0], ## [v0.1.0], ## [Unreleased], ## [2024-01-15], ## [Gap-2024-01-15], etc.
+        match = re.match(r"##\s*\[\s*([^\]]+)\s*\]", line, re.IGNORECASE)
         if match:
-            tag_name = match.group(1).strip()
-            if tag_name.lower() != "unreleased":
-                # Normalize tag name by removing 'v' prefix if present
-                normalized_tag = tag_name.lstrip("v")
-                existing_tags.add(normalized_tag)
+            boundary_name = match.group(1).strip()
+            if boundary_name.lower() != "unreleased":
+                # Normalize boundary name by removing 'v' prefix if present
+                normalized_boundary = boundary_name.lstrip("v")
+                existing_boundaries.add(normalized_boundary)
+            # Note: We don't add 'unreleased' to the set as it's not a version boundary
 
-    logger.debug(f"Found existing tags: {existing_tags}")
-    return existing_tags
+    logger.debug(f"Found existing boundaries: {existing_boundaries}")
+    return existing_boundaries
 
 
 def find_unreleased_section(content: str) -> int | None:
@@ -438,19 +439,25 @@ def update_changelog(
     show_prompt: bool = False,
     quiet: bool = False,
     no_unreleased: bool = False,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
-    """Update changelog with entries for new tags.
+    """Update changelog with entries for new boundaries.
 
     Args:
         file_path: Path to the changelog file (used when existing_content is None)
         existing_content: Existing changelog content (takes precedence over file reading)
-        from_tag: Starting tag (exclusive)
-        to_tag: Ending tag (inclusive)
+        from_tag: Starting boundary (exclusive)
+        to_tag: Ending boundary (inclusive)
         model: AI model to use for generation
         hint: Additional context for AI
         show_prompt: Whether to show the prompt
         quiet: Whether to suppress output
         no_unreleased: Whether to skip creating unreleased sections (default False)
+        grouping_mode: Boundary grouping mode ('tags', 'dates', 'gaps')
+        gap_threshold_hours: Hours threshold for gap detection
+        date_grouping: Date grouping granularity ('daily', 'weekly', 'monthly')
 
     Returns:
         The updated changelog content
@@ -472,8 +479,13 @@ def update_changelog(
         lines = remove_unreleased_sections(lines)
         existing_content = "\n".join(lines)
 
-    # Get commits for this tag range
-    commits = get_commits_between_tags(from_tag, to_tag)
+    # Get commits for this boundary range
+    if grouping_mode != "tags":
+        from kittylog.git_operations import get_commits_between_boundaries
+
+        commits = get_commits_between_boundaries(from_tag, to_tag, grouping_mode)
+    else:
+        commits = get_commits_between_tags(from_tag, to_tag)
 
     if not commits:
         logger.info(f"No commits found between {from_tag} and {to_tag}")
@@ -486,7 +498,12 @@ def update_changelog(
         existing_content = create_changelog_header(include_unreleased=not no_unreleased)
 
     # Get git diff for better context
-    diff_content = get_git_diff(from_tag, to_tag)
+    if grouping_mode != "tags":
+        from kittylog.git_operations import get_git_diff_by_boundaries
+
+        diff_content = get_git_diff_by_boundaries(from_tag, to_tag, grouping_mode)
+    else:
+        diff_content = get_git_diff(from_tag, to_tag)
 
     # Generate AI content for this version
     # For unreleased changes, use "Unreleased" as the tag name
@@ -515,8 +532,13 @@ def update_changelog(
     )
     logger.debug(f"AI content after postprocessing: {repr(ai_content)}")
 
-    # Get tag date (None for unreleased changes)
-    tag_date = get_tag_date(to_tag) if to_tag else None
+    # Get boundary date (None for unreleased changes)
+    if grouping_mode != "tags" and to_tag:
+        from kittylog.git_operations import get_boundary_date
+
+        tag_date = get_boundary_date(to_tag, grouping_mode) if to_tag else None
+    else:
+        tag_date = get_tag_date(to_tag) if to_tag else None
 
     # Format new entries
     # For both tagged releases and unreleased changes, we use the same formatting function

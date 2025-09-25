@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from kittylog.changelog import create_changelog_header, find_existing_tags, read_changelog, write_changelog
+from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
 from kittylog.git_operations import get_all_tags
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def init_changelog(yes, file):
         return
 
     # Find existing tags in changelog
-    existing_tags = find_existing_tags(existing_content)
+    existing_tags = find_existing_boundaries(existing_content)
 
     # Find missing tags
     missing_tags = []

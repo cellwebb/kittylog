@@ -6,7 +6,7 @@ It extends the concepts from gac but supports tag-based, date-based, and gap-bas
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 import git
@@ -118,7 +118,7 @@ def get_all_commits_chronological() -> list[dict]:
                     "short_hash": commit.hexsha[:8],
                     "message": commit.message.strip(),
                     "author": str(commit.author),
-                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "date": datetime.fromtimestamp(commit.committed_date, tz=timezone.utc),
                     "files": changed_files,
                 }
             )
@@ -145,11 +145,16 @@ def get_commits_by_date_boundaries(grouping: str = "daily") -> list[dict]:
 
     boundaries = []
     current_date = None
+    commits_per_day = {}  # Track commits per day for activity analysis
 
     for commit in commits:
-        commit_date = commit["date"]
+        commit_date = commit["date"]  # This is always a UTC datetime from get_all_commits_chronological
+        daily_date = commit_date.date()
 
-        # Apply grouping logic
+        # Track daily activity for warnings
+        commits_per_day[daily_date] = commits_per_day.get(daily_date, 0) + 1
+
+        # Apply grouping logic (using UTC dates for consistency across timezones)
         if grouping == "daily":
             boundary_date = commit_date.date()
         elif grouping == "weekly":
@@ -168,6 +173,31 @@ def get_commits_by_date_boundaries(grouping: str = "daily") -> list[dict]:
             boundaries.append(commit)
 
     logger.debug(f"Found {len(boundaries)} date boundaries with {grouping} grouping")
+
+    # Warn about potentially too many boundaries for very active repos
+    if grouping == "daily" and len(boundaries) > 50:
+        logger.warning(
+            f"Found {len(boundaries)} daily boundaries. Consider using --date-grouping weekly/monthly for large repositories."
+        )
+    elif grouping == "weekly" and len(boundaries) > 100:
+        logger.warning(
+            f"Found {len(boundaries)} weekly boundaries. Consider using --date-grouping monthly for very large repositories."
+        )
+
+    # Warn about very active days that might benefit from gap-based grouping
+    if grouping == "daily":
+        max_commits_per_day = max(commits_per_day.values()) if commits_per_day else 0
+        high_activity_days = [date for date, count in commits_per_day.items() if count > 10]
+
+        if max_commits_per_day > 20:
+            logger.warning(
+                f"Repository has very active days with up to {max_commits_per_day} commits per day. Consider --grouping-mode gaps for activity-based grouping."
+            )
+        elif len(high_activity_days) > len(commits_per_day) * 0.3:  # More than 30% of days are high activity
+            logger.info(
+                f"Repository has {len(high_activity_days)} high-activity days (>10 commits). Consider --grouping-mode gaps or --date-grouping weekly."
+            )
+
     return boundaries
 
 
@@ -190,6 +220,36 @@ def get_commits_by_gap_boundaries(gap_threshold_hours: float = 4.0) -> list[dict
     # Add boundary_type to all commits first
     for commit in commits:
         commit["boundary_type"] = "gap"
+
+    # Calculate all gaps for statistical analysis
+    gaps = []
+    for i in range(1, len(commits)):
+        time_gap_hours = (commits[i]["date"] - commits[i - 1]["date"]).total_seconds() / 3600
+        gaps.append(time_gap_hours)
+
+    # Analyze commit patterns for irregular repositories
+    if gaps:
+        avg_gap = sum(gaps) / len(gaps)
+        max_gap = max(gaps)
+
+        # Detect irregular patterns and provide suggestions
+        gap_variance = sum((gap - avg_gap) ** 2 for gap in gaps) / len(gaps)
+        gap_std_dev = gap_variance**0.5
+
+        if gap_std_dev > avg_gap * 2:  # High variability
+            logger.info(
+                f"Repository has irregular commit patterns (std dev: {gap_std_dev:.1f}h vs avg: {avg_gap:.1f}h). Gap-based grouping may work well."
+            )
+
+        if max_gap > gap_threshold_hours * 10:  # Very long gaps detected
+            logger.info(
+                f"Repository has very long gaps (max: {max_gap:.1f}h). Consider increasing --gap-threshold or using --date-grouping monthly."
+            )
+
+        if avg_gap < gap_threshold_hours * 0.1:  # Very frequent commits
+            logger.info(
+                f"Repository has very frequent commits (avg gap: {avg_gap:.2f}h). Consider decreasing --gap-threshold or using --date-grouping daily."
+            )
 
     boundaries = [commits[0]]  # First commit is always a boundary
     gap_threshold_seconds = gap_threshold_hours * 3600
@@ -445,7 +505,7 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
                     "short_hash": commit.hexsha[:8],
                     "message": commit.message.strip(),
                     "author": str(commit.author),
-                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "date": datetime.fromtimestamp(commit.committed_date, tz=timezone.utc),
                     "files": changed_files,
                 }
             )
@@ -515,7 +575,7 @@ def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict
                     "short_hash": commit.hexsha[:8],
                     "message": commit.message.strip(),
                     "author": str(commit.author),
-                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "date": datetime.fromtimestamp(commit.committed_date, tz=timezone.utc),
                     "files": changed_files,
                 }
             )
