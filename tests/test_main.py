@@ -36,9 +36,7 @@ class TestMainBusinessLogic:
 
         with patch("kittylog.main.config", config_without_model):
             success, token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model=None,
-                quiet=True
+                changelog_file=str(temp_dir / "CHANGELOG.md"), model=None, quiet=True
             )
 
         assert success is False

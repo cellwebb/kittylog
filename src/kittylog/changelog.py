@@ -257,7 +257,7 @@ def format_changelog_entry(
                 "hash": "dummy",  # We don't need the actual hash for display
                 "date": tag_date or datetime.now(),
                 "identifier": tag,
-                "boundary_type": boundary_mode.rstrip('s')  # 'dates' -> 'date', 'gaps' -> 'gap'
+                "boundary_type": boundary_mode.rstrip("s"),  # 'dates' -> 'date', 'gaps' -> 'gap'
             }
             display_name = generate_boundary_display_name(boundary, boundary_mode)
             # Extract just the display part, removing the "## " prefix if present
@@ -313,7 +313,7 @@ def handle_unreleased_section(
     current_commit_is_tagged: bool,
 ) -> list[str]:
     """Handle updating the unreleased section of the changelog with intelligent behavior."""
-    from kittylog.git_operations import get_commits_between_tags, get_latest_tag
+    from kittylog.git_operations import get_latest_tag
 
     logger.debug("Processing unreleased section with intelligent behavior")
 
@@ -497,9 +497,9 @@ def update_changelog(
     # Get commits for this boundary range
     if grouping_mode != "tags":
         from kittylog.git_operations import (
+            generate_boundary_identifier,
             get_all_boundaries,
             get_commits_between_boundaries,
-            generate_boundary_identifier,
         )
 
         # Convert boundary identifiers to boundary objects
@@ -639,5 +639,6 @@ def preview_changelog_entry(tag: str, commits: list[dict], ai_content: str, boun
         tag_date = get_tag_date(tag)
     else:
         from kittylog.git_operations import get_boundary_date
+
         tag_date = get_boundary_date(tag, boundary_mode)
     return format_changelog_entry(tag, commits, ai_content, tag_date, boundary_mode=boundary_mode)

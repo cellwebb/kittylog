@@ -145,7 +145,7 @@ def get_commits_by_date_boundaries(grouping: str = "daily") -> list[dict]:
 
     boundaries = []
     current_date = None
-    commits_per_day = {}  # Track commits per day for activity analysis
+    commits_per_day: dict[str, int] = {}  # Track commits per day for activity analysis
 
     for commit in commits:
         commit_date = commit["date"]  # This is always a UTC datetime from get_all_commits_chronological

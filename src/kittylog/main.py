@@ -308,6 +308,9 @@ def handle_single_boundary_mode(
             prev_boundary = get_previous_boundary(target_boundary, grouping_mode)
             previous_boundary = generate_boundary_identifier(prev_boundary, grouping_mode) if prev_boundary else None
     else:
+        # Import needed for tags mode boundary operations
+        from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
+
         # For tags mode, we need to find the boundary object first
         target_boundary = None
         for boundary in get_all_boundaries(mode="tags"):
@@ -355,6 +358,9 @@ def handle_boundary_range_mode(
     date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
     """Handle boundary range processing workflow."""
+    # Import needed for boundary identifier generation
+    from kittylog.git_operations import generate_boundary_identifier
+
     # Process specific boundary range
     if to_boundary is None and not special_unreleased_mode:
         latest_boundary = get_latest_boundary(grouping_mode)
@@ -387,6 +393,9 @@ def handle_boundary_range_mode(
                 prev_boundary = get_previous_boundary(target_boundary, grouping_mode)
                 from_boundary = generate_boundary_identifier(prev_boundary, grouping_mode) if prev_boundary else None
         else:
+            # Import needed for tags mode boundary operations
+            from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
+
             # For tags mode, we need to find the boundary object first
             target_boundary = None
             for boundary in get_all_boundaries(mode="tags"):
