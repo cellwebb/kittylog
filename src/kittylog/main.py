@@ -116,7 +116,7 @@ def handle_auto_mode(
         boundaries_to_process = [
             boundary
             for boundary in all_boundaries
-            if generate_boundary_identifier(boundary, grouping_mode) not in existing_boundaries
+            if generate_boundary_identifier(boundary, grouping_mode).lstrip("v") not in existing_boundaries
         ]
 
         if not quiet:

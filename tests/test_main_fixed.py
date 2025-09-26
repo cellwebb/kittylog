@@ -244,7 +244,8 @@ class TestMainBusinessLogicFixed:
         # For dates mode, the function may return early if no changes are needed
         # Just verify the function completed successfully
 
-    def test_main_logic_no_model_error(self, temp_dir):
+    @patch("kittylog.git_operations.get_all_boundaries")
+    def test_main_logic_no_model_error(self, mock_get_all_boundaries, temp_dir):
         """Test error handling when no model is specified."""
         config_without_model = {
             "model": None,
@@ -253,6 +254,21 @@ class TestMainBusinessLogicFixed:
             "max_output_tokens": 1024,
             "max_retries": 3,
         }
+
+        # Mock boundaries to force code past the early return
+        mock_boundaries = [
+            {
+                "hash": "abc123",
+                "short_hash": "abc123",
+                "message": "Release v1.0.0",
+                "author": "Test Author",
+                "date": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "files": [],
+                "boundary_type": "tag",
+                "identifier": "v1.0.0",
+            }
+        ]
+        mock_get_all_boundaries.return_value = mock_boundaries
 
         with patch("kittylog.main.config", config_without_model):
             success, _token_usage = main_business_logic(
