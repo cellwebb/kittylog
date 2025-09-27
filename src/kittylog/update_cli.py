@@ -93,6 +93,7 @@ def update_version(
                 quiet=quiet,
                 dry_run=dry_run,
                 update_all_entries=True,  # Update command processes all entries by default
+                yes=yes,
             )
 
             if not success:
@@ -126,6 +127,7 @@ def update_version(
             require_confirmation=not yes,
             quiet=quiet,
             dry_run=dry_run,
+            yes=yes,
         )
 
         if not success:

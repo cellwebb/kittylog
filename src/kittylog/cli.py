@@ -191,6 +191,7 @@ def add(
                 grouping_mode=final_grouping_mode,
                 gap_threshold_hours=final_gap_threshold,
                 date_grouping=final_date_grouping,
+                yes=yes,
             )
         else:
             # Default behavior: process all missing tags
@@ -209,6 +210,7 @@ def add(
                 grouping_mode=final_grouping_mode,
                 gap_threshold_hours=final_gap_threshold,
                 date_grouping=final_date_grouping,
+                yes=yes,
             )
 
         if not success:

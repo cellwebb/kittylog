@@ -43,6 +43,7 @@ def handle_unreleased_mode(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    yes: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow for all boundary modes."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
@@ -60,8 +61,18 @@ def handle_unreleased_mode(
     # Process only the unreleased section
     logger.info("Processing unreleased section only")
 
-    output = get_output_manager()
-    output.processing("Processing unreleased section...")
+    if not quiet:
+        output = get_output_manager()
+        output.processing("Processing unreleased section...")
+
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info("Entry to process: Unreleased")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return changelog_content, None
 
     # Get latest boundary for commit range based on mode
     latest_boundary = get_latest_boundary(grouping_mode)
@@ -96,6 +107,7 @@ def handle_auto_mode(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    yes: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle automatic boundary detection workflow."""
 
@@ -193,6 +205,55 @@ def handle_auto_mode(
         output = get_output_manager()
         output.info(f"Found {len(all_boundaries)} boundaries: {boundary_list}")
 
+    # Check for unreleased changes to include in the count
+    has_unreleased_changes = False
+    latest_boundary = get_latest_boundary(grouping_mode)
+    if latest_boundary and not is_current_commit_tagged():
+        # If the current commit isn't tagged, we have unreleased changes
+        # But only if there are actually commits since the last boundary
+        if grouping_mode == "tags":
+            unreleased_commits = get_commits_between_tags(latest_boundary.get("identifier"), None)
+        else:
+            unreleased_commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
+        if len(unreleased_commits) > 0:
+            has_unreleased_changes = True
+    elif not latest_boundary and not is_current_commit_tagged():
+        # If no boundaries exist in repo at all, check if we have commits
+        if grouping_mode == "tags":
+            all_commits = get_commits_between_tags(None, None)
+        else:
+            all_commits = get_commits_between_boundaries(None, None, grouping_mode)
+        if all_commits:
+            has_unreleased_changes = True
+
+    # Calculate total entries that will require LLM calls
+    total_entries = len(boundaries_to_process)
+    if has_unreleased_changes or special_unreleased_mode:
+        total_entries += 1
+
+    # Ask for confirmation before making LLM calls (unless quiet mode or --yes flag)
+    if total_entries > 0 and not quiet and not yes:
+        output = get_output_manager()
+        entry_word = "entry" if total_entries == 1 else "entries"
+
+        # Show what will be processed
+        entries_list = []
+        if boundaries_to_process:
+            entries_list.extend(
+                [generate_boundary_display_name(boundary, grouping_mode) for boundary in boundaries_to_process]
+            )
+        if has_unreleased_changes or special_unreleased_mode:
+            entries_list.append("Unreleased")
+
+        entries_text = ", ".join(entries_list)
+
+        output.info(f"\nAbout to generate {total_entries} changelog {entry_word} using model: {model}")
+        output.info(f"Entries to process: {entries_text}")
+
+        if not click.confirm("\nProceed with generating changelog entries?", default=True):
+            output.warning("Operation cancelled by user.")
+            return existing_content, None
+
     # Process each boundary with AI-generated content (overwrite existing placeholders)
     for boundary in boundaries_to_process:
         logger.info(f"Processing boundary {generate_boundary_display_name(boundary, grouping_mode)}")
@@ -218,28 +279,7 @@ def handle_auto_mode(
             no_unreleased=no_unreleased,
         )
 
-    # Check if we have unreleased changes
-    has_unreleased_changes = False
-    latest_boundary = get_latest_boundary(grouping_mode)
-    if latest_boundary and not is_current_commit_tagged():
-        # If the current commit isn't tagged, we have unreleased changes
-        # But only if there are actually commits since the last boundary
-        if grouping_mode == "tags":
-            unreleased_commits = get_commits_between_tags(latest_boundary.get("identifier"), None)
-        else:
-            unreleased_commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
-        if len(unreleased_commits) > 0:
-            has_unreleased_changes = True
-    elif not latest_boundary and not is_current_commit_tagged():
-        # If no boundaries exist in repo at all, check if we have commits
-        if grouping_mode == "tags":
-            all_commits = get_commits_between_tags(None, None)
-        else:
-            all_commits = get_commits_between_boundaries(None, None, grouping_mode)
-        if all_commits:
-            has_unreleased_changes = True
-
-    # Process unreleased changes if needed
+    # Process unreleased changes if needed (has_unreleased_changes computed above)
     if has_unreleased_changes or special_unreleased_mode:
         logger.info("Processing unreleased changes")
 
@@ -276,6 +316,7 @@ def handle_single_boundary_mode(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    yes: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle single boundary processing workflow."""
     # When only to_boundary is specified, find the previous boundary to use as from_boundary
@@ -328,6 +369,15 @@ def handle_single_boundary_mode(
         output = get_output_manager()
         output.info(f"Processing boundary {to_boundary} (from {previous_boundary or 'beginning'} to {to_boundary})")
 
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info(f"Entry to process: {to_boundary}")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return changelog_content, None
+
     # Update changelog for this specific boundary only (overwrite if exists)
     changelog_content, token_usage = update_changelog(
         existing_content=changelog_content,
@@ -356,6 +406,7 @@ def handle_boundary_range_mode(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    yes: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle boundary range processing workflow."""
     # Import needed for boundary identifier generation
@@ -415,6 +466,20 @@ def handle_boundary_range_mode(
         output = get_output_manager()
         output.info(f"Processing from {from_boundary or 'beginning'} to {to_boundary}")
 
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            if special_unreleased_mode:
+                entry_text = "Unreleased"
+            else:
+                entry_text = f"{from_boundary or 'beginning'} to {to_boundary}"
+
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info(f"Range to process: {entry_text}")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return read_changelog(changelog_file), None
+
     # Update changelog for specified range
     changelog_content, token_usage = update_changelog(
         file_path=changelog_file,
@@ -446,6 +511,7 @@ def main_business_logic(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    yes: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
     """Main application logic for kittylog.
 
@@ -532,6 +598,9 @@ def main_business_logic(
             return False, None
         model = str(model_value)
 
+    # Read original changelog content to compare later
+    original_content = read_changelog(changelog_file)
+
     # Determine which workflow to use based on input parameters
     token_usage = None
     try:
@@ -548,10 +617,11 @@ def main_business_logic(
                     grouping_mode,
                     gap_threshold_hours,
                     date_grouping,
+                    yes,
                 )
             else:
                 changelog_content, token_usage = handle_unreleased_mode(
-                    changelog_file, model, hint, show_prompt, quiet, no_unreleased
+                    changelog_file, model, hint, show_prompt, quiet, no_unreleased, yes=yes
                 )
         elif from_tag is None and to_tag is None:
             if grouping_mode != "tags":
@@ -568,6 +638,7 @@ def main_business_logic(
                     grouping_mode,
                     gap_threshold_hours,
                     date_grouping,
+                    yes,
                 )
             else:
                 changelog_content, token_usage = handle_auto_mode(
@@ -579,6 +650,7 @@ def main_business_logic(
                     update_all_entries,
                     special_unreleased_mode,
                     no_unreleased,
+                    yes=yes,
                 )
         elif to_tag is not None and from_tag is None:
             if grouping_mode != "tags":
@@ -594,10 +666,11 @@ def main_business_logic(
                     grouping_mode,
                     gap_threshold_hours,
                     date_grouping,
+                    yes,
                 )
             else:
                 changelog_content, token_usage = handle_single_boundary_mode(
-                    changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased
+                    changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased, yes=yes
                 )
         else:
             if grouping_mode != "tags":
@@ -615,6 +688,7 @@ def main_business_logic(
                     grouping_mode,
                     gap_threshold_hours,
                     date_grouping,
+                    yes,
                 )
             else:
                 changelog_content, token_usage = handle_boundary_range_mode(
@@ -627,6 +701,7 @@ def main_business_logic(
                     quiet,
                     special_unreleased_mode,
                     no_unreleased,
+                    yes=yes,
                 )
     except Exception as e:
         handle_error(e)
@@ -638,6 +713,14 @@ def main_business_logic(
         output.warning("Dry run: Changelog content generated but not saved")
         output.echo("\nPreview of updated changelog:")
         output.panel(changelog_content, title="Updated Changelog", style="cyan")
+        return True, token_usage
+
+    # Check if content actually changed (user might have cancelled)
+    if changelog_content == original_content:
+        # No changes were made, skip save confirmation
+        if not quiet:
+            output = get_output_manager()
+            output.info("No changes made to changelog.")
         return True, token_usage
 
     if require_confirmation:
