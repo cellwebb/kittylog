@@ -52,7 +52,7 @@ kittylog = "kittylog.cli:cli"
 [project.optional-dependencies]
 dev = [
     # Version management
-    "bump-my-version",
+    "bumpversion",
     
     # Testing
     "pytest",
