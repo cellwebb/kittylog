@@ -199,6 +199,83 @@ def find_insertion_point(content: str) -> int:
     return 0
 
 
+def find_insertion_point_by_version(content: str, new_version: str) -> int:
+    """Find where to insert a new changelog entry based on semantic version ordering.
+
+    Args:
+        content: The existing changelog content
+        new_version: The version to insert (e.g., "1.0.0" or "v1.0.0")
+
+    Returns:
+        The line index where the new entry should be inserted to maintain version order
+    """
+    lines = content.split("\n")
+
+    def version_key(version_str: str) -> list[int | str]:
+        """Extract version components for sorting."""
+        # Remove 'v' prefix if present and any extra characters
+        version_str = version_str.lstrip("v").strip()
+        # Split by dots and convert to integers where possible
+        parts: list[int | str] = []
+        for part in version_str.split("."):
+            try:
+                # Handle pre-release versions like "1.0.0a1"
+                if part.isdigit():
+                    parts.append(int(part))
+                else:
+                    # Split alphanumeric parts (e.g., "0a1" -> [0, "a1"])
+                    import re
+
+                    numeric_match = re.match(r"^(\d+)", part)
+                    if numeric_match:
+                        parts.append(int(numeric_match.group(1)))
+                        remainder = part[len(numeric_match.group(1)) :]
+                        if remainder:
+                            parts.append(remainder)
+                    else:
+                        parts.append(part)
+            except ValueError:
+                parts.append(part)
+        return parts
+
+    # Normalize the new version for comparison
+    new_version_normalized = new_version.lstrip("v")
+    new_version_key = version_key(new_version_normalized)
+
+    # Find all version sections and their positions
+    version_positions = []
+    for i, line in enumerate(lines):
+        match = re.match(r"##\s*\[\s*([^\]]+)\s*\]", line, re.IGNORECASE)
+        if match:
+            version_text = match.group(1).strip()
+            if version_text.lower() != "unreleased":
+                # Extract version from the text (handle dates and other formats)
+                if re.match(r"v?\d+\.\d+", version_text):
+                    version_positions.append((i, version_text, version_key(version_text)))
+
+    # If no version sections found, use the original insertion point logic
+    if not version_positions:
+        return find_insertion_point(content)
+
+    # Find the correct position by comparing version keys
+    # Versions should be in descending order (newest first)
+    for position, _version_text, version_components in version_positions:
+        # If new version is greater than current version, insert before it
+        if new_version_key > version_components:
+            return position
+
+    # If new version is smaller than all existing versions, insert after the last one
+    # Find the end of the last version section
+    last_position = version_positions[-1][0]
+    for i in range(last_position + 1, len(lines)):
+        # If we hit another version section or end of file, insert here
+        if re.match(r"##\s*\[", lines[i]) or i == len(lines) - 1:
+            return i if i < len(lines) - 1 else len(lines)
+
+    # Fallback to end of file
+    return len(lines)
+
+
 def create_changelog_header(include_unreleased: bool = True) -> str:
     """Create a standard changelog header.
 
@@ -404,8 +481,8 @@ def handle_tagged_version(lines: list[str], new_entry: str, tag_name: str, exist
         for line in reversed(limited_entry_lines):
             lines.insert(version_start_line, line)
     else:
-        # Version section not found, insert at appropriate position
-        insert_line = find_insertion_point(existing_content)
+        # Version section not found, insert at appropriate position based on version ordering
+        insert_line = find_insertion_point_by_version(existing_content, tag_name)
 
         # Insert the new entry with bullet limiting
         entry_lines = [line for line in new_entry.rstrip().split("\n") if line.strip()]
