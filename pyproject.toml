@@ -38,10 +38,6 @@ dependencies = [
     "questionary",
     "rich>=14.1.0",
 
-    # Code formatting
-    "black",
-    "isort",
-
     # Git operations
     "GitPython>=3.1.45",
 ]
