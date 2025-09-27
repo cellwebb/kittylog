@@ -34,8 +34,8 @@ dependencies = [
 
     # CLI and formatting
     "click>=8.3.0",
-    "halo",
-    "questionary",
+    "halo>=0.0.31",
+    "questionary>=2.1.0",
     "rich>=14.1.0",
 
     # Git operations
