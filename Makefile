@@ -85,14 +85,33 @@ pre-commit: ## Run pre-commit hooks
 	pre-commit run --all-files
 
 # Version management
-bump-patch: ## Bump patch version
-	bump-my-version bump patch
+bump:
+	@# Check for uncommitted changes before starting
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Git working directory is not clean"; \
+		echo "Please commit or stash your changes first"; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "Bumping $(VERSION) version..."
+	@OLD_VERSION=$$(python -c "import re; content=open('.bumpversion.toml').read(); print(re.search(r'current_version = \"([^\"]+)\"', content).group(1))") && \
+	bump-my-version bump $(VERSION) --no-commit --no-tag && \
+	NEW_VERSION=$$(python -c "import re; content=open('.bumpversion.toml').read(); print(re.search(r'current_version = \"([^\"]+)\"', content).group(1))") && \
+	echo "Version bumped from $$OLD_VERSION to $$NEW_VERSION" && \
+	git add -A && \
+	git commit -m "chore: bump version to $$NEW_VERSION" && \
+	git tag -a "v$$NEW_VERSION" -m "Release version $$NEW_VERSION" && \
+	echo "✅ Created tag v$$NEW_VERSION" && \
+	echo "📦 To publish: git push && git push --tags"
 
-bump-minor: ## Bump minor version
-	bump-my-version bump minor
+bump-patch: VERSION=patch
+bump-patch: bump
 
-bump-major: ## Bump major version
-	bump-my-version bump major
+bump-minor: VERSION=minor
+bump-minor: bump
+
+bump-major: VERSION=major
+bump-major: bump
 
 # Security
 security-check: ## Run security checks
