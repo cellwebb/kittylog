@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-09-28
+
+### Added
+
+- Support for Cerebras provider integration with existing modular approach
+
+### Changed
+
+- Refactor AI provider integrations into separate modules for improved organization and extensibility
+- Replace bumpversion with bump-my-version for version management with enhanced tagging and safety checks
+- Update dependencies to enforce specific versions for greater compatibility
+
+### Removed
+
+- Eliminate monolithic ai_providers.py in favor of individual provider modules
+- Remove unused code formatting dependencies: black and isort
+
+### Fixed
+
+- No bug fixes implemented in this release
+
+### Security
+
+- No security vulnerabilities addressed in this release
+
+## [0.6.0] - 2025-09-27
+
+### Added
+
+- Introduce confirmation prompts before AI changelog generation to prevent accidental API calls
+- Add `--yes` flag to automatically bypass all confirmation prompts for scripting/automation
+
+### Changed
+
+- Replace `bump-my-version` with the original `bumpversion` tool due to reliability issues
+
+### Fixed
+
+- Resolve AttributeError bug with `bump-my-version` that caused failures in version bumping process
+
+### Security
+
+- Ensure version management tool is secure and maintained by switching to a reliable alternative
+
+## [0.5.1] - 2025-09-25
+
+### Added
+
+- Support for flexible changelog grouping modes: tags, dates, and gaps, enabling users to customize how commits are organized.
+
+### Changed
+
+- Update CLI to include new options for grouping modes, gap thresholds, and date-based grouping, improving usability and configurability.
+
+### Fixed
+
+- Resolve critical boundary filtering bug in the `kittylog add` command that caused all boundaries to be reprocessed instead of only missing ones due to a prefix mismatch.
+
+### Security
+
+- No security vulnerabilities were identified or addressed in this release.
+
 ## [0.4.0] - 2025-09-24
 
 ### Added
