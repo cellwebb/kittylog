@@ -86,13 +86,13 @@ pre-commit: ## Run pre-commit hooks
 
 # Version management
 bump-patch: ## Bump patch version
-	bumpversion patch
+	bump-my-version bump patch
 
 bump-minor: ## Bump minor version
-	bumpversion minor
+	bump-my-version bump minor
 
 bump-major: ## Bump major version
-	bumpversion major
+	bump-my-version bump major
 
 # Security
 security-check: ## Run security checks
