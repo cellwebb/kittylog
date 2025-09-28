@@ -101,13 +101,13 @@ class TestGenerateChangelogEntry:
 class TestGenerateWithRetries:
     """Test generate_with_retries function."""
 
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def testgenerate_with_retries_success(self, mock_getenv, mock_post):
         """Test successful generation on first try."""
         # Import here to avoid ImportError during test collection
         from kittylog.ai import generate_with_retries
-        from kittylog.ai_providers import call_openai_api
+        from kittylog.providers import call_openai_api
 
         # Mock API key
         mock_getenv.return_value = "test-api-key"
@@ -299,7 +299,7 @@ class TestClassifyError:
 class TestAIIntegration:
     """Integration tests for AI operations."""
 
-    @patch("kittylog.ai_providers.httpx.post")
+    @patch("httpx.post")
     @patch("kittylog.ai.build_changelog_prompt")
     @patch("kittylog.ai.count_tokens")
     @patch("kittylog.ai.clean_changelog_content")

@@ -13,8 +13,8 @@ class TestEndToEndWorkflow:
     """End-to-end integration tests."""
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_complete_workflow_new_changelog(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test complete workflow creating a new changelog."""
         # Mock API key
@@ -76,8 +76,8 @@ class TestEndToEndWorkflow:
         assert "Login validation errors" in content
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_complete_workflow_update_existing(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test complete workflow updating existing changelog."""
         # Mock API key
@@ -149,8 +149,8 @@ All notable changes to this project will be documented in this file.
         assert "## [0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_dry_run_workflow(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
         # Mock API key
@@ -293,7 +293,7 @@ class TestErrorHandlingIntegration:
         assert result.exit_code == 1
         assert "git" in result.output.lower()
 
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("os.getenv")
     def test_missing_api_key_error(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test error when API key is missing."""
         # Mock missing API key
@@ -373,8 +373,8 @@ class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_multiple_tags_auto_detection(self, mock_getenv, mock_post, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
         # Mock API key for cerebras provider
@@ -485,8 +485,8 @@ class TestCLIOptionsIntegration:
     """Integration tests for various CLI options."""
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_hint_option_integration(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test that hint option is properly passed through."""
         # Mock API key
@@ -541,8 +541,8 @@ class TestCLIOptionsIntegration:
         mock_post.assert_called_once()
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_model_override_integration(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test that model override works properly."""
         # Mock API key
@@ -602,8 +602,8 @@ class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_custom_changelog_path(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
         # Mock API key
@@ -665,8 +665,8 @@ class TestFilePathIntegration:
         assert "Custom path test" in content
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_relative_path_handling(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
         # Mock API key
@@ -725,8 +725,8 @@ class TestUnreleasedBulletLimitingIntegration:
     """Integration tests for bullet limiting in unreleased section handling."""
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_unreleased_section_bullet_limiting_append_mode(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when appending to existing unreleased section."""
         # Mock API key
@@ -826,8 +826,8 @@ All notable changes to this project will be documented in this file.
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
     @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("kittylog.ai_providers.httpx.post")
-    @patch("kittylog.ai_providers.os.getenv")
+    @patch("httpx.post")
+    @patch("os.getenv")
     def test_unreleased_section_bullet_limiting_replace_mode(
         self, mock_getenv, mock_post, git_repo_with_tags, temp_dir
     ):

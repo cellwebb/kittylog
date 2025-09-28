@@ -286,19 +286,23 @@ def get_all_boundaries(mode: str = "tags", **kwargs) -> list[dict]:
         boundaries: list[dict] = []
         repo = get_repo()
         for tag_name in tag_names:
-            tag = repo.tags[tag_name]
-            boundaries.append(
-                {
-                    "hash": tag.commit.hexsha,
-                    "short_hash": tag.commit.hexsha[:8],
-                    "message": tag.commit.message.strip(),
-                    "author": str(tag.commit.author),
-                    "date": datetime.fromtimestamp(tag.commit.committed_date),
-                    "files": [],  # We don't track files for tags
-                    "boundary_type": "tag",
-                    "identifier": tag_name,
-                }
-            )
+            try:
+                tag = repo.tags[tag_name]
+                boundaries.append(
+                    {
+                        "hash": tag.commit.hexsha,
+                        "short_hash": tag.commit.hexsha[:8],
+                        "message": tag.commit.message.strip(),
+                        "author": str(tag.commit.author),
+                        "date": datetime.fromtimestamp(tag.commit.committed_date),
+                        "files": [],  # We don't track files for tags
+                        "boundary_type": "tag",
+                        "identifier": tag_name,
+                    }
+                )
+            except Exception as e:
+                logger.debug(f"Could not process tag {tag_name}: {e}")
+                continue
         return boundaries
     elif mode == "dates":
         return get_commits_by_date_boundaries(kwargs.get("date_grouping", "daily"))

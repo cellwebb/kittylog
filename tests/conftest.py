@@ -215,7 +215,7 @@ def mock_questionary():
 def mock_api_calls():
     """Automatically mock API calls in all tests."""
     # Mock httpx.post for all providers
-    with patch("kittylog.ai_providers.httpx.post") as mock_post:
+    with patch("httpx.post") as mock_post:
         # Create mock response for HTTP calls
         mock_response = Mock()
         mock_response.raise_for_status.return_value = None  # Don't raise exceptions

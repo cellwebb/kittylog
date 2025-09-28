@@ -110,7 +110,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     project_config_env = Path(".kittylog.env")
     if project_config_env.exists():
         config_vars.update(dotenv_values(project_config_env))
-    api_keys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OLLAMA_HOST"]
+    api_keys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "OLLAMA_HOST"]
 
     if user_config.exists():
         user_vars = dotenv_values(user_config)

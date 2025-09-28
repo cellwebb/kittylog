@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from dotenv import dotenv_values
 
-from kittylog.ai_providers import (
+from kittylog.providers import (
     call_anthropic_api,
     call_cerebras_api,
     call_groq_api,

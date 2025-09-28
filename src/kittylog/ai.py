@@ -9,12 +9,12 @@ import logging
 from rich.console import Console
 from rich.panel import Panel
 
-from kittylog.ai_providers import call_anthropic_api, call_cerebras_api, call_groq_api, call_ollama_api, call_openai_api
 from kittylog.ai_utils import generate_with_retries
 from kittylog.config import load_config
 from kittylog.constants import EnvDefaults
 from kittylog.errors import AIError
 from kittylog.prompt import build_changelog_prompt, clean_changelog_content
+from kittylog.providers import call_anthropic_api, call_cerebras_api, call_groq_api, call_ollama_api, call_openai_api
 from kittylog.utils import count_tokens
 
 logger = logging.getLogger(__name__)

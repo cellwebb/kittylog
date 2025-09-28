@@ -723,7 +723,7 @@ def main_business_logic(
             output.info("No changes made to changelog.")
         return True, token_usage
 
-    if require_confirmation:
+    if require_confirmation and not quiet and not yes:
         output = get_output_manager()
         output.print("\n[bold green]Updated changelog preview:[/bold green]")
         # Show just the new parts for confirmation
