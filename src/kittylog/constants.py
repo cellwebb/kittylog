@@ -19,7 +19,7 @@ class EnvDefaults:
     """Default values for environment variables."""
 
     MAX_RETRIES: int = 3
-    TEMPERATURE: float = 0.7
+    TEMPERATURE: float = 1.0
     MAX_OUTPUT_TOKENS: int = 1024
     WARNING_LIMIT_TOKENS: int = 16384
     GROUPING_MODE: str = "tags"
