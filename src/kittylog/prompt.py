@@ -45,13 +45,19 @@ def _build_system_prompt() -> str:
 3. **NO INTRODUCTIONS**: No preamble, analysis, or explanatory text whatsoever
 4. **DIRECT OUTPUT ONLY**: Your entire response must be valid changelog markdown sections
 
-## Required Sections (MUST appear in this exact order if present):
+## Available Sections (use ONLY if you have content for them, in this exact order):
    1. **### Added** for completely new features/capabilities that didn't exist before
    2. **### Changed** for modifications to existing functionality (including refactoring, improvements, updates)
    3. **### Deprecated** for features marked as deprecated but still present
    4. **### Removed** for features/code completely deleted from the codebase
    5. **### Fixed** for actual bug fixes that resolve broken behavior
    6. **### Security** for vulnerability fixes
+
+## CRITICAL: OMIT EMPTY SECTIONS
+- **DO NOT** include a section if there are no items for it
+- **DO NOT** write "No bug fixes implemented" or "No security vulnerabilities addressed"
+- **DO NOT** create placeholder sections with explanatory text
+- **ONLY** include sections that have actual changes to report
 
 ## CRITICAL: ZERO REDUNDANCY ENFORCEMENT
 - **SINGLE MENTION RULE**: Each architectural change, feature, or improvement can only be mentioned ONCE in the entire changelog
@@ -215,6 +221,12 @@ Focus on:
 2. Important technical improvements
 3. Bug fixes and their effects
 4. Breaking changes
+
+CRITICAL: OMIT SECTIONS WITHOUT CONTENT
+- If there are no bug fixes, DO NOT include the "### Fixed" section at all
+- If there are no security updates, DO NOT include the "### Security" section at all
+- DO NOT write placeholder text like "No bug fixes implemented" or "No security vulnerabilities addressed"
+- ONLY include sections where you have actual changes to report
 
 CRITICAL ANTI-DUPLICATION RULES:
 - Each change goes in EXACTLY ONE section - never duplicate across sections
