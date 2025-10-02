@@ -12,7 +12,7 @@
 ## Key Features
 
 - **LLM-powered analysis** of commits, file changes, and code patterns to categorize changes
-- **Multi-provider support** for Anthropic, OpenAI, Groq, Cerebras, Ollama models
+- **Multi-provider support** for Anthropic, OpenAI, Groq, Cerebras, Ollama, Z.AI models
 - **Smart tag detection** - automatically detects which tags need changelog entries
 - **Keep a Changelog format** with proper Added/Changed/Fixed categorization
 - **Unreleased section** tracking for commits since last tag
@@ -24,13 +24,17 @@
 kittylog supports three different grouping strategies to accommodate various project workflows:
 
 ### 🏷️ **Tags Mode** (default)
+
 Uses git tags as changelog boundaries. Perfect for projects with consistent release tagging.
+
 ```bash
 kittylog --grouping-mode tags  # Default behavior
 ```
 
 ### 📅 **Date Mode**
+
 Groups commits by date (daily/weekly/monthly). Ideal for projects without regular tags.
+
 ```bash
 kittylog --grouping-mode dates --date-grouping daily    # Group by day
 kittylog --grouping-mode dates --date-grouping weekly   # Group by week
@@ -38,13 +42,16 @@ kittylog --grouping-mode dates --date-grouping monthly  # Group by month
 ```
 
 ### ⏱️ **Gap Mode**
+
 Groups commits by activity sessions with configurable time gaps. Great for irregular development patterns.
+
 ```bash
 kittylog --grouping-mode gaps --gap-threshold 4.0  # 4-hour gaps (default)
 kittylog --grouping-mode gaps --gap-threshold 24   # 24-hour gaps
 ```
 
 **When to use each mode:**
+
 - **Tags**: Formal release process with semantic versioning
 - **Dates**: Regular development without formal releases
 - **Gaps**: Irregular development with distinct work sessions
@@ -52,12 +59,14 @@ kittylog --grouping-mode gaps --gap-threshold 24   # 24-hour gaps
 ## Installation
 
 **Try without installing:**
+
 ```sh
 uvx kittylog init  # Set up configuration
 uvx kittylog       # Generate changelog
 ```
 
 **Install permanently:**
+
 ```sh
 pipx install kittylog
 kittylog init  # Interactive setup
@@ -78,6 +87,7 @@ kittylog -h "Breaking changes"  # Add context hint
 ![Simple kittylog Usage](assets/kittylog-usage.png)
 
 **How it works:**
+
 1. Detects changelog boundaries using your chosen grouping mode (tags/dates/gaps)
 2. Analyzes commits and file changes between boundaries
 3. Generates categorized changelog entries with AI that understands the grouping context

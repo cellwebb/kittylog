@@ -17,7 +17,7 @@ class TestLoadConfig:
 
         # Check defaults
         assert config["model"] is None  # Should be None if not set
-        assert config["temperature"] == 0.7
+        assert config["temperature"] == 1.0
         assert config["max_output_tokens"] == 1024
         assert config["max_retries"] == 3
         assert config["log_level"] == "WARNING"
@@ -144,7 +144,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         config = load_config()
 
         # Should fall back to defaults for invalid values
-        assert config["temperature"] == 0.7  # default
+        assert config["temperature"] == 1.0  # default
         assert config["max_output_tokens"] == 1024  # default
         assert config["max_retries"] == 3  # default
         # Should fall back to defaults for invalid new values
@@ -158,7 +158,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         config = load_config()
 
         # Should get defaults
-        assert config["temperature"] == 0.7
+        assert config["temperature"] == 1.0
         assert config["max_output_tokens"] == 1024
         # Should get new defaults
         assert config["grouping_mode"] == "tags"

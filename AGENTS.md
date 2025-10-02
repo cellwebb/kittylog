@@ -164,6 +164,7 @@ The project uses the `aisuite` library to support multiple AI providers:
 - OpenAI GPT models
 - Groq
 - Cerebras
+- Z.AI
 - Ollama (for local models)
 
 Configuration is handled through environment variables or the `~/.kittylog.env` file.
@@ -217,9 +218,11 @@ The tool can be configured through environment variables or a `~/.kittylog.env` 
 API keys for different providers:
 
 - `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
+- `CEREBRAS_API_KEY`
 - `GROQ_API_KEY`
 - `OLLAMA_HOST`
+- `OPENAI_API_KEY`
+- `ZAI_API_KEY`
 - Provider-specific keys as required
 
 ## Testing

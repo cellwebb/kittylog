@@ -32,13 +32,14 @@ def init() -> None:
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
+        ("Z.AI", "glm-4.6"),
     ]
     provider_names = [p[0] for p in providers]
     provider = questionary.select("Select your provider:", choices=provider_names).ask()
     if not provider:
         click.echo("Provider selection cancelled. Exiting.")
         return
-    provider_key = provider.lower()
+    provider_key = provider.lower().replace(".", "")
     model_suggestion = dict(providers)[provider]
     model = questionary.text(f"Enter the model (default: {model_suggestion}):", default=model_suggestion).ask()
     model_to_save = model.strip() if model.strip() else model_suggestion
