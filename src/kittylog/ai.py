@@ -20,6 +20,7 @@ from kittylog.providers import (
     call_groq_api,
     call_ollama_api,
     call_openai_api,
+    call_openrouter_api,
     call_zai_api,
 )
 from kittylog.utils import count_tokens
@@ -132,6 +133,7 @@ def generate_changelog_entry(
         "groq": call_groq_api,
         "ollama": call_ollama_api,
         "openai": call_openai_api,
+        "openrouter": call_openrouter_api,
         "zai": call_zai_api,
     }
 

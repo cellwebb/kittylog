@@ -12,6 +12,7 @@ from kittylog.providers import (
     call_groq_api,
     call_ollama_api,
     call_openai_api,
+    call_openrouter_api,
 )
 
 
@@ -27,7 +28,15 @@ class TestProviderIntegration:
             user_vars = dotenv_values(user_config)
             for key, value in user_vars.items():
                 if (
-                    key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "OLLAMA_HOST"]
+                    key
+                    in [
+                        "ANTHROPIC_API_KEY",
+                        "OPENAI_API_KEY",
+                        "OPENROUTER_API_KEY",
+                        "GROQ_API_KEY",
+                        "CEREBRAS_API_KEY",
+                        "OLLAMA_HOST",
+                    ]
                     and value is not None
                 ):
                     os.environ[key] = value
@@ -38,7 +47,15 @@ class TestProviderIntegration:
             project_vars = dotenv_values(project_env)
             for key, value in project_vars.items():
                 if (
-                    key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "OLLAMA_HOST"]
+                    key
+                    in [
+                        "ANTHROPIC_API_KEY",
+                        "OPENAI_API_KEY",
+                        "OPENROUTER_API_KEY",
+                        "GROQ_API_KEY",
+                        "CEREBRAS_API_KEY",
+                        "OLLAMA_HOST",
+                    ]
                     and value is not None
                 ):
                     os.environ[key] = value
@@ -49,7 +66,15 @@ class TestProviderIntegration:
             project_config_vars = dotenv_values(project_config_env)
             for key, value in project_config_vars.items():
                 if (
-                    key in ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "OLLAMA_HOST"]
+                    key
+                    in [
+                        "ANTHROPIC_API_KEY",
+                        "OPENAI_API_KEY",
+                        "OPENROUTER_API_KEY",
+                        "GROQ_API_KEY",
+                        "CEREBRAS_API_KEY",
+                        "OLLAMA_HOST",
+                    ]
                     and value is not None
                 ):
                     os.environ[key] = value
@@ -150,6 +175,26 @@ class TestProviderIntegration:
 
         result = call_ollama_api(
             model="llama3",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        assert len(result) > 0  # Any response is considered success
+
+    @pytest.mark.skipif(not os.getenv("OPENROUTER_API_KEY"), reason="OPENROUTER_API_KEY not set")
+    def test_openrouter_provider_integration(self):
+        """Test OpenRouter provider integration with a short message."""
+        # Test with a simple message
+        messages = [
+            {
+                "role": "user",
+                "content": "Reply with exactly: 'openrouter test success'",
+            }
+        ]
+
+        result = call_openrouter_api(
+            model="openai/gpt-3.5-turbo",
             messages=messages,
             temperature=0.7,
             max_tokens=100,

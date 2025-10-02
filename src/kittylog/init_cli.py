@@ -32,6 +32,7 @@ def init() -> None:
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
+        ("OpenRouter", "openai/gpt-3.5-turbo"),
         ("Z.AI", "glm-4.6"),
     ]
     provider_names = [p[0] for p in providers]
