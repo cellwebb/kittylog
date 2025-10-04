@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-03
+
+### Added
+
+- Add Z.AI as a new supported AI provider with coding plan API endpoint support
+- Include comprehensive test coverage for new Z.AI provider functionality
+- Add Z.AI-specific environment configuration options including API key and coding plan toggle
+
+### Changed
+
+- Update supported providers list to include Z.AI in AI utilities
+- Apply code formatting improvements using ruff across prompt and provider modules
+- Enhance error handling for Z.AI API responses with null/empty content validation
+
+## [1.0.2] - 2025-10-01
+
+### Added
+
+- Add OpenRouter provider support with dedicated API integration
+- Add Z.AI provider support with dedicated API client implementation
+- Add new dependencies: bracex, pydantic-settings, rich-click, tomlkit, wcmatch
+- Add ZAI_API_KEY and OPENROUTER_API_KEY to environment variable configuration loading
+
+### Changed
+
+- Update default temperature value from 0.7 to 1.0 in tests and configuration
+- Adjust provider key normalization in CLI initialization to handle dot characters
+- Replace bumpversion dependency with bump-my-version
+- Upgrade httpx dependency to version 0.28.1
+
+### Removed
+
+- Remove bumpversion dependency in favor of bump-my-version
+
 ## [1.0.1] - 2025-09-29
 
 ### Changed
