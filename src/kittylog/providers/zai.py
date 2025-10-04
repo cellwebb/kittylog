@@ -7,21 +7,15 @@ import httpx
 from kittylog.errors import AIError
 
 
-def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI API directly."""
+def _call_zai_api_impl(
+    url: str, api_name: str, model: str, messages: list[dict], temperature: float, max_tokens: int
+) -> str:
+    """Internal implementation for Z.AI API calls."""
     api_key = os.getenv("ZAI_API_KEY")
     if not api_key:
-        raise AIError.generation_error("ZAI_API_KEY not found in environment variables")
-
-    # Support both regular and coding API endpoints
-    use_coding_api = os.getenv("KITTYLOG_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
-    if use_coding_api:
-        url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
-    else:
-        url = "https://api.z.ai/api/paas/v4/chat/completions"
+        raise AIError.model_error("ZAI_API_KEY not found in environment variables")
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
 
     try:
@@ -35,15 +29,27 @@ def call_zai_api(model: str, messages: list[dict], temperature: float, max_token
             if "message" in choice and "content" in choice["message"]:
                 content = choice["message"]["content"]
                 if content is None:
-                    raise AIError.generation_error("Z.AI API returned null content")
+                    raise AIError.model_error(f"{api_name} API returned null content")
                 if content == "":
-                    raise AIError.generation_error("Z.AI API returned empty content")
+                    raise AIError.model_error(f"{api_name} API returned empty content")
                 return content
             else:
-                raise AIError.generation_error(f"Z.AI API response missing content: {response_data}")
+                raise AIError.model_error(f"{api_name} API response missing content: {response_data}")
         else:
-            raise AIError.generation_error(f"Z.AI API unexpected response structure: {response_data}")
+            raise AIError.model_error(f"{api_name} API unexpected response structure: {response_data}")
     except httpx.HTTPStatusError as e:
-        raise AIError.generation_error(f"Z.AI API error: {e.response.status_code} - {e.response.text}") from e
+        raise AIError.model_error(f"{api_name} API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling Z.AI API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling {api_name} API: {str(e)}") from e
+
+
+def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+    """Call Z.AI regular API directly."""
+    url = "https://api.z.ai/api/paas/v4/chat/completions"
+    return _call_zai_api_impl(url, "Z.AI", model, messages, temperature, max_tokens)
+
+
+def call_zai_coding_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+    """Call Z.AI coding API directly."""
+    url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
+    return _call_zai_api_impl(url, "Z.AI coding", model, messages, temperature, max_tokens)

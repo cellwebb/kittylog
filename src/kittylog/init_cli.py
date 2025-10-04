@@ -33,14 +33,15 @@ def init() -> None:
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
         ("OpenRouter", "openai/gpt-3.5-turbo"),
-        ("Z.AI", "glm-4.6"),
+        ("Z.AI", "glm-4.5-air"),
+        ("Z.AI Coding", "glm-4.6"),
     ]
     provider_names = [p[0] for p in providers]
     provider = questionary.select("Select your provider:", choices=provider_names).ask()
     if not provider:
         click.echo("Provider selection cancelled. Exiting.")
         return
-    provider_key = provider.lower().replace(".", "")
+    provider_key = provider.lower().replace(".", "").replace(" ", "-")
     model_suggestion = dict(providers)[provider]
     model = questionary.text(f"Enter the model (default: {model_suggestion}):", default=model_suggestion).ask()
     model_to_save = model.strip() if model.strip() else model_suggestion
@@ -49,17 +50,9 @@ def init() -> None:
 
     api_key = questionary.password("Enter your API key (input hidden, can be set later):").ask()
     if api_key:
-        set_key(str(kittylog_env_path), f"{provider_key.upper()}_API_KEY", api_key)
-        click.echo(f"Set {provider_key.upper()}_API_KEY (hidden)")
-
-    # Ask about ZAI coding plan if Z.AI provider was selected
-    if provider_key == "zai":
-        use_coding_api = questionary.confirm(
-            "Are you using a Z.AI coding plan? (uses different API endpoint)",
-            default=False,
-        ).ask()
-        if use_coding_api:
-            set_key(str(kittylog_env_path), "KITTYLOG_ZAI_USE_CODING_PLAN", "true")
-            click.echo("Set KITTYLOG_ZAI_USE_CODING_PLAN=true")
+        # Both Z.AI providers use the same API key
+        api_key_name = "ZAI_API_KEY" if provider_key in ["zai", "zai-coding"] else f"{provider_key.upper()}_API_KEY"
+        set_key(str(kittylog_env_path), api_key_name, api_key)
+        click.echo(f"Set {api_key_name} (hidden)")
 
     click.echo(f"\nkittylog environment setup complete. You can edit {kittylog_env_path} to update values later.")

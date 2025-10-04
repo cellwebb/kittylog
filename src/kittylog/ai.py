@@ -22,6 +22,7 @@ from kittylog.providers import (
     call_openai_api,
     call_openrouter_api,
     call_zai_api,
+    call_zai_coding_api,
 )
 from kittylog.utils import count_tokens
 
@@ -135,6 +136,7 @@ def generate_changelog_entry(
         "openai": call_openai_api,
         "openrouter": call_openrouter_api,
         "zai": call_zai_api,
+        "zai-coding": call_zai_coding_api,
     }
 
     # Generate the changelog content
