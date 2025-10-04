@@ -18,7 +18,7 @@
 
 - Python 3.10+
 - GitPython for git operations
-- aisuite for multi-provider AI integration
+- Direct provider SDK integrations for AI (Anthropic, OpenAI, Groq, Cerebras, Ollama, Z.AI)
 - Click for CLI interface
 - Pydantic for data validation
 - Rich for terminal output formatting
@@ -158,7 +158,7 @@ make quickstart         # Quick setup for new contributors
 
 ## AI Integration
 
-The project uses the `aisuite` library to support multiple AI providers:
+The project uses direct provider SDK integrations to support multiple AI providers:
 
 - Anthropic Claude
 - OpenAI GPT models
@@ -166,6 +166,7 @@ The project uses the `aisuite` library to support multiple AI providers:
 - Cerebras
 - Z.AI
 - Ollama (for local models)
+- OpenRouter
 
 Configuration is handled through environment variables or the `~/.kittylog.env` file.
 
@@ -181,7 +182,7 @@ Orchestrates the changelog update workflow including git operations, AI generati
 
 ### AI Integration (`src/kittylog/ai.py`)
 
-Handles AI model integration for generating changelog entries from commit data using aisuite.
+Handles AI model integration for generating changelog entries from commit data using direct provider SDKs.
 
 ### Git Operations (`src/kittylog/git_operations.py`)
 

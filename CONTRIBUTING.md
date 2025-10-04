@@ -47,13 +47,12 @@ Run tests with:
 
 ## Adding New AI Providers
 
-The kittylog tool uses [aisuite](https://github.com/mikep/aisuite) to interface with different AI providers. To add a new provider:
+To add a new provider:
 
 1. Add the provider SDK to `pyproject.toml` dependencies
-2. Test the integration with aisuite
-3. Update documentation in `README.md` and `AGENTS.md`
-
-Note that aisuite handles the abstraction layer, so in many cases adding a new provider only requires adding the dependency.
+2. Implement the provider interface in `src/kittylog/providers/` following existing provider patterns
+3. Register the provider in `src/kittylog/ai.py`
+4. Update documentation in `README.md` and `AGENTS.md`
 
 ## Pull Request Process
 
