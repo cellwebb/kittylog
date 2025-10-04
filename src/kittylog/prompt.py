@@ -300,25 +300,37 @@ def clean_changelog_content(content: str) -> str:
         content = re.sub(pattern, "", content, flags=re.MULTILINE | re.IGNORECASE)
 
     # Remove any remaining lines that are purely explanatory
-    lines = content.split('\n')
+    lines = content.split("\n")
     cleaned_lines = []
 
     for line in lines:
         stripped = line.strip()
         # Skip lines that look like explanatory text
-        if (stripped and
-            not stripped.startswith('###') and
-            not stripped.startswith('-') and
-            not stripped.startswith('*') and
-            any(phrase in stripped.lower() for phrase in [
-                'based on', 'here is', 'here\'s', 'changelog for', 'version',
-                'following changes', 'summary', 'commits', 'entry for'
-            ]) and
-            len(stripped) > 30):  # Only remove longer explanatory lines
+        if (
+            stripped
+            and not stripped.startswith("###")
+            and not stripped.startswith("-")
+            and not stripped.startswith("*")
+            and any(
+                phrase in stripped.lower()
+                for phrase in [
+                    "based on",
+                    "here is",
+                    "here's",
+                    "changelog for",
+                    "version",
+                    "following changes",
+                    "summary",
+                    "commits",
+                    "entry for",
+                ]
+            )
+            and len(stripped) > 30
+        ):  # Only remove longer explanatory lines
             continue
         cleaned_lines.append(line)
 
-    content = '\n'.join(cleaned_lines)
+    content = "\n".join(cleaned_lines)
 
     # Clean up any XML tags that might have leaked
     xml_tags = [
