@@ -340,6 +340,65 @@ class TestInitCommand:
         # Should only set model, not API key
         assert mock_set_key.call_count == 1
 
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_zai_with_coding_plan(self, mock_path, mock_set_key, mock_questionary):
+        """Test init command with Z.AI provider and coding plan enabled."""
+        mock_path.exists.return_value = False
+        mock_path.touch = Mock()
+
+        # Mock questionary responses
+        mock_questionary.select.return_value.ask.return_value = "Z.AI"
+        mock_questionary.text.return_value.ask.return_value = "glm-4.6"
+        mock_questionary.password.return_value.ask.return_value = "zai-api-key"
+        mock_questionary.confirm.return_value.ask.return_value = True  # coding plan enabled
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        assert result.exit_code == 0
+        assert "Welcome to kittylog initialization" in result.output
+
+        # Verify set_key calls
+        assert mock_set_key.call_count == 3  # model + API key + coding plan
+
+        # Check the specific calls
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_MODEL" in str(call) and "zai:glm-4.6" in str(call) for call in calls)
+        assert any("ZAI_API_KEY" in str(call) and "zai-api-key" in str(call) for call in calls)
+        assert any("KITTYLOG_ZAI_USE_CODING_PLAN" in str(call) and "true" in str(call) for call in calls)
+
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_zai_without_coding_plan(self, mock_path, mock_set_key, mock_questionary):
+        """Test init command with Z.AI provider and coding plan disabled."""
+        mock_path.exists.return_value = False
+        mock_path.touch = Mock()
+
+        # Mock questionary responses
+        mock_questionary.select.return_value.ask.return_value = "Z.AI"
+        mock_questionary.text.return_value.ask.return_value = "glm-4.6"
+        mock_questionary.password.return_value.ask.return_value = "zai-api-key"
+        mock_questionary.confirm.return_value.ask.return_value = False  # coding plan disabled
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        assert result.exit_code == 0
+        assert "Welcome to kittylog initialization" in result.output
+
+        # Verify set_key calls
+        assert mock_set_key.call_count == 2  # model + API key (no coding plan)
+
+        # Check the specific calls
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_MODEL" in str(call) and "zai:glm-4.6" in str(call) for call in calls)
+        assert any("ZAI_API_KEY" in str(call) and "zai-api-key" in str(call) for call in calls)
+        # Ensure coding plan was NOT set
+        assert not any("KITTYLOG_ZAI_USE_CODING_PLAN" in str(call) for call in calls)
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_with_no_config_dir(self, mock_path):
         """Test init command when config directory doesn't exist."""

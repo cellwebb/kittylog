@@ -13,7 +13,13 @@ def call_zai_api(model: str, messages: list[dict], temperature: float, max_token
     if not api_key:
         raise AIError.generation_error("ZAI_API_KEY not found in environment variables")
 
-    url = "https://api.z.ai/api/paas/v4/chat/completions"
+    # Support both regular and coding API endpoints
+    use_coding_api = os.getenv("KITTYLOG_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+    if use_coding_api:
+        url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
+    else:
+        url = "https://api.z.ai/api/paas/v4/chat/completions"
+
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
@@ -22,7 +28,21 @@ def call_zai_api(model: str, messages: list[dict], temperature: float, max_token
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["choices"][0]["message"]["content"]
+
+        # Handle different possible response structures
+        if "choices" in response_data and len(response_data["choices"]) > 0:
+            choice = response_data["choices"][0]
+            if "message" in choice and "content" in choice["message"]:
+                content = choice["message"]["content"]
+                if content is None:
+                    raise AIError.generation_error("Z.AI API returned null content")
+                if content == "":
+                    raise AIError.generation_error("Z.AI API returned empty content")
+                return content
+            else:
+                raise AIError.generation_error(f"Z.AI API response missing content: {response_data}")
+        else:
+            raise AIError.generation_error(f"Z.AI API unexpected response structure: {response_data}")
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Z.AI API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:

@@ -13,6 +13,7 @@ from kittylog.providers import (
     call_ollama_api,
     call_openai_api,
     call_openrouter_api,
+    call_zai_api,
 )
 
 
@@ -36,6 +37,7 @@ class TestProviderIntegration:
                         "GROQ_API_KEY",
                         "CEREBRAS_API_KEY",
                         "OLLAMA_HOST",
+                        "ZAI_API_KEY",
                     ]
                     and value is not None
                 ):
@@ -55,6 +57,7 @@ class TestProviderIntegration:
                         "GROQ_API_KEY",
                         "CEREBRAS_API_KEY",
                         "OLLAMA_HOST",
+                        "ZAI_API_KEY",
                     ]
                     and value is not None
                 ):
@@ -74,6 +77,7 @@ class TestProviderIntegration:
                         "GROQ_API_KEY",
                         "CEREBRAS_API_KEY",
                         "OLLAMA_HOST",
+                        "ZAI_API_KEY",
                     ]
                     and value is not None
                 ):
@@ -201,3 +205,54 @@ class TestProviderIntegration:
         )
 
         assert len(result) > 0  # Any response is considered success
+
+    @pytest.mark.skipif(not os.getenv("ZAI_API_KEY"), reason="ZAI_API_KEY not set")
+    def test_zai_provider_integration(self):
+        """Test Z.AI provider integration with a short message."""
+        # Test with a simple message
+        messages = [
+            {
+                "role": "user",
+                "content": "Reply with exactly: 'zai test success'",
+            }
+        ]
+
+        result = call_zai_api(
+            model="glm-4.5-air",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        assert len(result) > 0  # Any response is considered success
+
+    @pytest.mark.skipif(not os.getenv("ZAI_API_KEY"), reason="ZAI_API_KEY not set")
+    def test_zai_provider_integration_with_coding_plan(self):
+        """Test Z.AI provider integration with coding plan enabled."""
+        # Set the coding plan environment variable
+        original_value = os.environ.get("KITTYLOG_ZAI_USE_CODING_PLAN")
+        os.environ["KITTYLOG_ZAI_USE_CODING_PLAN"] = "true"
+
+        try:
+            # Test with a simple message
+            messages = [
+                {
+                    "role": "user",
+                    "content": "Reply with exactly: 'zai coding plan test success'",
+                }
+            ]
+
+            result = call_zai_api(
+                model="glm-4.5-air",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=100,
+            )
+
+            assert len(result) > 0  # Any response is considered success
+        finally:
+            # Restore original value
+            if original_value is None:
+                os.environ.pop("KITTYLOG_ZAI_USE_CODING_PLAN", None)
+            else:
+                os.environ["KITTYLOG_ZAI_USE_CODING_PLAN"] = original_value
