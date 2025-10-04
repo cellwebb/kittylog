@@ -223,6 +223,7 @@ API keys for different providers:
 - `GROQ_API_KEY`
 - `OLLAMA_HOST`
 - `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY`
 - `ZAI_API_KEY`
 - Provider-specific keys as required
 
