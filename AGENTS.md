@@ -161,12 +161,24 @@ make quickstart         # Quick setup for new contributors
 The project uses direct provider SDK integrations to support multiple AI providers:
 
 - Anthropic Claude
-- OpenAI GPT models
-- Groq
 - Cerebras
-- Z.AI
+- Chutes.ai
+- Custom Anthropic-compatible endpoints
+- Custom OpenAI-compatible endpoints (Azure/proxies)
+- DeepSeek
+- Fireworks AI
+- Gemini
+- Groq
+- LM Studio
+- MiniMax
+- Mistral
 - Ollama (for local models)
+- OpenAI GPT models
 - OpenRouter
+- StreamLake (Vanchin)
+- Synthetic.new
+- Together AI
+- Z.AI (standard and coding APIs)
 
 Configuration is handled through environment variables or the `~/.kittylog.env` file.
 
@@ -216,14 +228,32 @@ The tool can be configured through environment variables or a `~/.kittylog.env` 
 - `KITTYLOG_RETRIES` - Maximum retry attempts (default: 3)
 - `KITTYLOG_LOG_LEVEL` - Log level (DEBUG, INFO, WARNING, ERROR, default: WARNING)
 
-API keys for different providers:
+API keys and related settings for different providers:
 
 - `ANTHROPIC_API_KEY`
 - `CEREBRAS_API_KEY`
+- `CHUTES_API_KEY`
+- `CHUTES_BASE_URL`
+- `CUSTOM_ANTHROPIC_API_KEY`
+- `CUSTOM_ANTHROPIC_BASE_URL`
+- `CUSTOM_ANTHROPIC_VERSION`
+- `CUSTOM_OPENAI_API_KEY`
+- `CUSTOM_OPENAI_BASE_URL`
+- `DEEPSEEK_API_KEY`
+- `FIREWORKS_API_KEY`
+- `GEMINI_API_KEY`
 - `GROQ_API_KEY`
-- `OLLAMA_HOST`
+- `LMSTUDIO_API_KEY`
+- `LMSTUDIO_API_URL`
+- `MINIMAX_API_KEY`
+- `MISTRAL_API_KEY`
+- `OLLAMA_API_URL`
+- `OLLAMA_HOST` (legacy compatibility)
 - `OPENAI_API_KEY`
 - `OPENROUTER_API_KEY`
+- `STREAMLAKE_API_KEY` (alias: `VC_API_KEY`)
+- `SYNTHETIC_API_KEY` or `SYN_API_KEY`
+- `TOGETHER_API_KEY`
 - `ZAI_API_KEY`
 - Provider-specific keys as required
 

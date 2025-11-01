@@ -394,6 +394,72 @@ class TestInitCommand:
         assert any("KITTYLOG_MODEL" in str(call) and "zai:glm-4.6" in str(call) for call in calls)
         assert any("ZAI_API_KEY" in str(call) and "zai-api-key" in str(call) for call in calls)
 
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_custom_openai_provider(self, mock_path, mock_set_key, mock_questionary):
+        """Test init command with Custom (OpenAI) provider."""
+        mock_path.exists.return_value = True
+
+        mock_questionary.select.return_value.ask.return_value = "Custom (OpenAI)"
+        mock_questionary.text.return_value.ask.side_effect = [
+            "gpt-4o-mini",
+            "https://example.com/v1",
+        ]
+        mock_questionary.password.return_value.ask.return_value = "sk-custom"
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        assert result.exit_code == 0
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_MODEL" in str(call) and "custom-openai:gpt-4o-mini" in str(call) for call in calls)
+        assert any("CUSTOM_OPENAI_BASE_URL" in str(call) and "https://example.com/v1" in str(call) for call in calls)
+        assert any("CUSTOM_OPENAI_API_KEY" in str(call) and "sk-custom" in str(call) for call in calls)
+
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_lmstudio_optional_api_key(self, mock_path, mock_set_key, mock_questionary):
+        """Test init command with LM Studio provider without API key."""
+        mock_path.exists.return_value = True
+
+        mock_questionary.select.return_value.ask.return_value = "LM Studio"
+        mock_questionary.text.return_value.ask.side_effect = [
+            "gemma3:instruct",
+            "http://localhost:4321",
+        ]
+        mock_questionary.password.return_value.ask.return_value = ""
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        assert result.exit_code == 0
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_MODEL" in str(call) and "lm-studio:gemma3:instruct" in str(call) for call in calls)
+        assert any("LMSTUDIO_API_URL" in str(call) and "http://localhost:4321" in str(call) for call in calls)
+        # Should not set API key when skipped
+        assert not any("LMSTUDIO_API_KEY" in str(call) for call in calls)
+
+    @patch("kittylog.init_cli.questionary")
+    @patch("kittylog.init_cli.set_key")
+    @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
+    def test_init_streamlake_provider(self, mock_path, mock_set_key, mock_questionary):
+        """Test init command with Streamlake provider requiring endpoint ID."""
+        mock_path.exists.return_value = True
+
+        mock_questionary.select.return_value.ask.return_value = "Streamlake"
+        mock_questionary.text.return_value.ask.return_value = "endpoint-123"
+        mock_questionary.password.return_value.ask.return_value = "streamlake-key"
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+
+        assert result.exit_code == 0
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_MODEL" in str(call) and "streamlake:endpoint-123" in str(call) for call in calls)
+        assert any("STREAMLAKE_API_KEY" in str(call) and "streamlake-key" in str(call) for call in calls)
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_with_no_config_dir(self, mock_path):
         """Test init command when config directory doesn't exist."""

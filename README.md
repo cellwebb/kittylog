@@ -12,7 +12,7 @@
 ## Key Features
 
 - **LLM-powered analysis** of commits, file changes, and code patterns to categorize changes
-- **Multi-provider support** for Anthropic, OpenAI, Groq, Cerebras, Ollama, Z.AI (including coding plans), OpenRouter models
+- **Multi-provider support** for Anthropic, Cerebras, Chutes, Custom Anthropic/OpenAI endpoints, DeepSeek, Fireworks, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, StreamLake, Synthetic, Together AI, Z.AI (including coding plans)
 - **Smart tag detection** - automatically detects which tags need changelog entries
 - **Keep a Changelog format** with proper Added/Changed/Fixed categorization
 - **Unreleased section** tracking for commits since last tag

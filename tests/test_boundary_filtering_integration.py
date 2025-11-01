@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+import pytest
+
 from kittylog.changelog import find_existing_boundaries
 from kittylog.git_operations import generate_boundary_identifier
 
@@ -102,3 +104,17 @@ def test_boundary_filtering_regression_scenario():
     assert not new_logic_would_process, "Fix verification failed - new logic should work"
 
     print("✅ Regression scenario test passes - fix prevents the bug!")
+
+
+@pytest.mark.xfail(reason="Date boundary headers include nested brackets, causing identifier mismatch", strict=True)
+def test_date_boundary_existing_detection_handles_nested_brackets():
+    """Existing boundary detection should normalize date headings generated from display names."""
+    changelog_content = """# Changelog
+
+## [[2024-01-03] - January 03, 2024]
+- Some changes here
+"""
+
+    existing_boundaries = find_existing_boundaries(changelog_content)
+
+    assert "2024-01-03" in existing_boundaries

@@ -1,11 +1,10 @@
 """Integration tests for AI providers."""
 
 import os
-from pathlib import Path
 
 import pytest
-from dotenv import dotenv_values
 
+from kittylog.config import load_config
 from kittylog.providers import (
     call_anthropic_api,
     call_cerebras_api,
@@ -24,65 +23,7 @@ class TestProviderIntegration:
     @pytest.fixture(autouse=True)
     def load_test_env(self):
         """Load environment variables from .kittylog.env files for testing."""
-        # Load from user config file (lowest precedence)
-        user_config = Path.home() / ".kittylog.env"
-        if user_config.exists():
-            user_vars = dotenv_values(user_config)
-            for key, value in user_vars.items():
-                if (
-                    key
-                    in [
-                        "ANTHROPIC_API_KEY",
-                        "OPENAI_API_KEY",
-                        "OPENROUTER_API_KEY",
-                        "GROQ_API_KEY",
-                        "CEREBRAS_API_KEY",
-                        "OLLAMA_HOST",
-                        "ZAI_API_KEY",
-                    ]
-                    and value is not None
-                ):
-                    os.environ[key] = value
-
-        # Load from project .env file (medium precedence)
-        project_env = Path(".env")
-        if project_env.exists():
-            project_vars = dotenv_values(project_env)
-            for key, value in project_vars.items():
-                if (
-                    key
-                    in [
-                        "ANTHROPIC_API_KEY",
-                        "OPENAI_API_KEY",
-                        "OPENROUTER_API_KEY",
-                        "GROQ_API_KEY",
-                        "CEREBRAS_API_KEY",
-                        "OLLAMA_HOST",
-                        "ZAI_API_KEY",
-                    ]
-                    and value is not None
-                ):
-                    os.environ[key] = value
-
-        # Load from project .kittylog.env file (highest precedence)
-        project_config_env = Path(".kittylog.env")
-        if project_config_env.exists():
-            project_config_vars = dotenv_values(project_config_env)
-            for key, value in project_config_vars.items():
-                if (
-                    key
-                    in [
-                        "ANTHROPIC_API_KEY",
-                        "OPENAI_API_KEY",
-                        "OPENROUTER_API_KEY",
-                        "GROQ_API_KEY",
-                        "CEREBRAS_API_KEY",
-                        "OLLAMA_HOST",
-                        "ZAI_API_KEY",
-                    ]
-                    and value is not None
-                ):
-                    os.environ[key] = value
+        load_config()
 
     @pytest.mark.skipif(not os.getenv("ANTHROPIC_API_KEY"), reason="ANTHROPIC_API_KEY not set")
     def test_anthropic_provider_integration(self):

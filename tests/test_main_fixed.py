@@ -4,6 +4,8 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+import pytest
+
 from kittylog.main import main_business_logic
 
 
@@ -365,3 +367,65 @@ class TestMainBusinessLogicFixed:
         # In dry run mode, the function may return early if no changes are needed
         # In dry run mode, write_changelog should NOT be called
         mock_write.assert_not_called()
+
+
+@pytest.mark.xfail(reason="Non-tag grouping parameters are lost when invoking update_changelog", strict=True)
+def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
+    """Ensure date/gap configuration is forwarded to update_changelog."""
+    from datetime import datetime, timezone
+
+    from kittylog import main as main_module
+
+    boundary = {
+        "hash": "abc123",
+        "short_hash": "abc123",
+        "message": "Release boundary",
+        "author": "Test Author",
+        "date": datetime(2024, 1, 3, tzinfo=timezone.utc),
+        "files": [],
+        "boundary_type": "date",
+        "identifier": "2024-01-03",
+    }
+
+    recorded_calls: list[dict] = []
+
+    def fake_update_changelog(*, grouping_mode="tags", gap_threshold_hours=4.0, date_grouping="daily", **kwargs):
+        recorded_calls.append(
+            {
+                "grouping_mode": grouping_mode,
+                "gap_threshold_hours": gap_threshold_hours,
+                "date_grouping": date_grouping,
+            }
+        )
+        return "updated", None
+
+    monkeypatch.setattr(main_module, "update_changelog", fake_update_changelog)
+    monkeypatch.setattr(main_module, "read_changelog", lambda _: "# Changelog\n")
+    monkeypatch.setattr(main_module, "find_existing_boundaries", lambda _: set())
+    monkeypatch.setattr(
+        main_module,
+        "get_all_boundaries",
+        lambda mode, gap_threshold_hours, date_grouping: [boundary],
+    )
+    monkeypatch.setattr(main_module, "get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main_module, "generate_boundary_identifier", lambda b, mode: b["identifier"])
+
+    main_module.handle_auto_mode(
+        changelog_file="CHANGELOG.md",
+        model="openai:gpt-4o-mini",
+        hint="",
+        show_prompt=False,
+        quiet=True,
+        update_all_entries=True,
+        special_unreleased_mode=False,
+        no_unreleased=False,
+        grouping_mode="dates",
+        gap_threshold_hours=12.0,
+        date_grouping="weekly",
+        yes=True,
+    )
+
+    assert recorded_calls, "update_changelog should be invoked at least once"
+    assert recorded_calls[0]["grouping_mode"] == "dates"
+    assert recorded_calls[0]["gap_threshold_hours"] == 12.0
+    assert recorded_calls[0]["date_grouping"] == "weekly"

@@ -110,11 +110,39 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     project_config_env = Path(".kittylog.env")
     if project_config_env.exists():
         config_vars.update(dotenv_values(project_config_env))
-    api_keys = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "OLLAMA_HOST", "ZAI_API_KEY"]
+    env_keys = [
+        "ANTHROPIC_API_KEY",
+        "CEREBRAS_API_KEY",
+        "CHUTES_API_KEY",
+        "CHUTES_BASE_URL",
+        "CUSTOM_ANTHROPIC_API_KEY",
+        "CUSTOM_ANTHROPIC_BASE_URL",
+        "CUSTOM_ANTHROPIC_VERSION",
+        "CUSTOM_OPENAI_API_KEY",
+        "CUSTOM_OPENAI_BASE_URL",
+        "DEEPSEEK_API_KEY",
+        "FIREWORKS_API_KEY",
+        "GEMINI_API_KEY",
+        "GROQ_API_KEY",
+        "LMSTUDIO_API_KEY",
+        "LMSTUDIO_API_URL",
+        "MINIMAX_API_KEY",
+        "MISTRAL_API_KEY",
+        "OLLAMA_API_URL",
+        "OLLAMA_HOST",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "STREAMLAKE_API_KEY",
+        "SYNTHETIC_API_KEY",
+        "SYN_API_KEY",
+        "TOGETHER_API_KEY",
+        "VC_API_KEY",
+        "ZAI_API_KEY",
+    ]
 
     if user_config.exists():
         user_vars = dotenv_values(user_config)
-        for key in api_keys:
+        for key in env_keys:
             if key in user_vars:
                 value = user_vars[key]
                 if value is not None:
@@ -122,7 +150,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
 
     if project_env.exists():
         project_vars = dotenv_values(project_env)
-        for key in api_keys:
+        for key in env_keys:
             if key in project_vars:
                 value = project_vars[key]
                 if value is not None:
@@ -130,7 +158,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
 
     if project_config_env.exists():
         project_config_vars = dotenv_values(project_config_env)
-        for key in api_keys:
+        for key in env_keys:
             if key in project_config_vars:
                 value = project_config_vars[key]
                 if value is not None:
