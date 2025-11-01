@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import tiktoken
+from packaging.version import InvalidVersion, Version
 from rich.console import Console
 from rich.theme import Theme
 
@@ -372,3 +373,73 @@ def get_changelog_file_patterns() -> list[str]:
         List of pathspec patterns to exclude changelog files from git operations
     """
     return [":(exclude)CHANGELOG.md", ":(exclude)changelog.md", ":(exclude)CHANGES.md", ":(exclude)changes.md"]
+
+
+def determine_next_version(latest_version: str | None, commits: list[dict]) -> str:
+    """Determine the next logical version based on the latest version and commit analysis.
+
+    Args:
+        latest_version: The latest semantic version (with or without 'v' prefix)
+        commits: List of commit dictionaries to analyze for breaking changes
+
+    Returns:
+        The next version string (without 'v' prefix)
+    """
+    if not latest_version:
+        return "0.1.0"
+
+    # Normalize version by removing 'v' prefix
+    normalized_version = normalize_tag(latest_version)
+
+    try:
+        version = Version(normalized_version)
+    except InvalidVersion:
+        # If we can't parse the version, default to a patch bump
+        return f"{normalized_version}.1" if "." not in normalized_version else f"{normalized_version}.1"
+
+    # Analyze commits for breaking changes
+    has_breaking_changes = False
+    has_features = False
+
+    breaking_patterns = [
+        r"BREAKING CHANGE",
+        r"!:",
+        r"\b(break|breaking|major)\b",
+        r"remove.*deprecated",
+        r"deprecated.*remove",
+    ]
+
+    feature_patterns = [
+        r"\b(feat|feature|add|new)\b",
+        r"\b(minor)\b",
+    ]
+
+    for commit in commits:
+        message = commit.get("message", "").lower()
+
+        # Check for breaking changes first
+        for pattern in breaking_patterns:
+            if re.search(pattern, message, re.IGNORECASE):
+                has_breaking_changes = True
+                break
+
+        # Check for features if no breaking changes found
+        if not has_breaking_changes:
+            for pattern in feature_patterns:
+                if re.search(pattern, message, re.IGNORECASE):
+                    has_features = True
+                    break
+
+        # Early exit if we found breaking changes
+        if has_breaking_changes:
+            break
+
+    # Determine version bump based on analysis
+    if has_breaking_changes:
+        next_version = Version(f"{version.major + 1}.0.0")
+    elif has_features:
+        next_version = Version(f"{version.major}.{version.minor + 1}.0")
+    else:
+        next_version = Version(f"{version.major}.{version.minor}.{version.micro + 1}")
+
+    return str(next_version)

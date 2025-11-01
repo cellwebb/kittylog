@@ -342,19 +342,29 @@ def format_changelog_entry(
             display_tag = display_name.replace("## ", "")
             date_str = ""  # Date is already included in the display name
 
-    # For unreleased changes, we include the header UNLESS we're appending to an existing section
+    # For unreleased changes, the AI now generates the version header
+    # Check if AI content already includes a version header
     if tag is None:
-        # For unreleased changes, we want the header when creating a new section
-        # But we don't want it when replacing content in an existing section
-        if include_unreleased_header:
-            entry = "## [Unreleased]\n\n"
-        else:
-            entry = ""
+        entry = ""
         if ai_content.strip():
-            entry += ai_content.strip() + "\n\n"
+            # Check if AI content starts with a version header like ## [1.2.0]
+            ai_lines = ai_content.strip().split("\n")
+            first_line = ai_lines[0].strip() if ai_lines else ""
+            logger.debug(f"AI first line: {repr(first_line)}")
+            if ai_lines and re.match(r"^##\s*\[\d+\.\d+\.\d+\]", first_line):
+                # AI already included the version header, just use the content as-is
+                logger.info(f"AI generated version header: {first_line}")
+                entry = ai_content.strip() + "\n\n"
+            else:
+                # Fallback: no version header found, add the traditional Unreleased header
+                logger.warning(
+                    f"AI did not generate version header, using Unreleased. First line was: {repr(first_line)}"
+                )
+                entry = "## [Unreleased]\n\n" + ai_content.strip() + "\n\n"
         else:
             logger.warning("No AI content generated for tag: %s", tag)
-            # Fallback: create a simple list from commit messages
+            # Fallback: create a simple list from commit messages with traditional header
+            entry = "## [Unreleased]\n\n"
             entry += "### Changed\n\n"
             for commit in commits:
                 # Get first line of commit message
@@ -626,8 +636,8 @@ def update_changelog(
             diff_content = get_git_diff(from_tag, to_tag)
 
     # Generate AI content for this version
-    # For unreleased changes, use "Unreleased" as the tag name
-    tag_name = to_tag or "Unreleased"
+    # For unreleased changes, the AI will determine and include the version header
+    tag_name = to_tag or "Unreleased"  # Fallback for display purposes
 
     # If no_unreleased is True and we're processing unreleased content, skip processing
     if no_unreleased and to_tag is None:

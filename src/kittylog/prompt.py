@@ -44,6 +44,7 @@ def _build_system_prompt() -> str:
 2. **NO EXPLANATIONS**: Never write "Based on commits..." or "Here's the changelog..." or similar phrases
 3. **NO INTRODUCTIONS**: No preamble, analysis, or explanatory text whatsoever
 4. **DIRECT OUTPUT ONLY**: Your entire response must be valid changelog markdown sections
+5. **VERSION HEADER FOR UNRELEASED**: For unreleased changes, you MUST start with "## [X.Y.Z]" where X.Y.Z is the next semantic version
 
 ## Available Sections (use ONLY if you have content for them, in this exact order):
    1. **### Added** for completely new features/capabilities that didn't exist before
@@ -96,11 +97,13 @@ def _build_system_prompt() -> str:
 ## Formatting Requirements:
 - Use bullet points (- ) for changes
 - Separate sections with exactly one blank line
-- Start directly with "### SectionName" - NO other text before it
-- Do NOT include version numbers, dates, or "## [version]" headers
+- For unreleased changes: Start with "## [X.Y.Z]" where X.Y.Z is the determined next version, then add one blank line before sections
+- For tagged versions: Start directly with "### SectionName" - NO version headers
 - ALWAYS use the standard Keep a Changelog section order: Added, Changed, Deprecated, Removed, Fixed, Security
 
 ## EXAMPLE VALID OUTPUT (correct order):
+## [1.2.0]
+
 ### Added
 - Support for PostgreSQL database backend (new capability)
 - Bulk data export functionality via REST API
@@ -120,32 +123,6 @@ def _build_system_prompt() -> str:
 ### Fixed
 - Resolve memory leak causing application crashes
 - Correct timezone handling in date calculations
-
-## FORBIDDEN REDUNDANCY PATTERNS:
-❌ WRONG - Same architectural change split across sections:
-### Added
-- New modular provider architecture
-- Support for Cerebras through modular system
-### Changed
-- Refactor providers into separate modules
-### Removed
-- Monolithic provider file
-
-✅ CORRECT - Pick ONE primary impact:
-### Changed
-- Refactor AI providers into modular architecture with individual provider modules
-
-❌ WRONG - Dependency updates split:
-### Added
-- New dependency versions
-### Changed
-- Update halo and questionary
-### Removed
-- Old dependency versions
-
-✅ CORRECT - One classification:
-### Changed
-- Update dependencies to latest versions (halo >=0.0.31, questionary >=2.1.0)
 
 ## FORBIDDEN OUTPUTS:
 ❌ "Based on the commits, here's the changelog..."
@@ -168,7 +145,13 @@ def _build_user_prompt(
 
     # Start with boundary context
     if tag is None:
-        version_context = "Generate a changelog entry for unreleased changes"
+        version_context = "Generate a changelog entry for unreleased changes. "
+        version_context += "⚠️  CRITICAL: You MUST determine and include the next logical semantic version (major/minor/patch) at the VERY TOP of your response in the format: ## [X.Y.Z] followed by one blank line.\n\n"
+        version_context += "Based on commit analysis, determine the appropriate version increment:\n"
+        version_context += "- MAJOR bump (X+1.0.0): Breaking changes, 'feat!' or 'BREAKING CHANGE'\n"
+        version_context += "- MINOR bump (X.Y+1.0): New features, 'feat:' commits\n"
+        version_context += "- PATCH bump (X.Y.Z+1): Bug fixes, 'fix:' commits\n\n"
+        version_context += "The version header MUST be the very first line of your response - no exceptions!"
     else:
         if boundary_mode == "tags":
             version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
@@ -214,13 +197,17 @@ def _build_user_prompt(
     # Instructions
     instructions = """## Instructions:
 
-Generate ONLY the changelog sections for the above commits. Start immediately with "### SectionName" - no other text.
+⚠️  CRITICAL REMINDER: For unreleased changes, your response MUST start with "## [X.Y.Z]" as the very first line, followed by one blank line, then the changelog sections.
+
+Generate ONLY the changelog sections for the above commits. For unreleased changes, start with "## [X.Y.Z]" where X.Y.Z is the determined next version, then one blank line, then the sections.
 
 Focus on:
 1. User-facing changes and their impact
 2. Important technical improvements
 3. Bug fixes and their effects
 4. Breaking changes
+
+For unreleased changes: Analyze commits to determine if this should be a major (breaking changes), minor (new features), or patch (bug fixes) version bump.
 
 CRITICAL: OMIT SECTIONS WITHOUT CONTENT
 - If there are no bug fixes, DO NOT include the "### Fixed" section at all
@@ -263,11 +250,12 @@ REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
     return version_context + hint_section + commits_section + instructions
 
 
-def clean_changelog_content(content: str) -> str:
+def clean_changelog_content(content: str, preserve_version_header: bool = False) -> str:
     """Clean and format AI-generated changelog content.
 
     Args:
         content: Raw AI-generated content
+        preserve_version_header: Whether to preserve version headers (for unreleased changes)
 
     Returns:
         Cleaned and formatted changelog content
@@ -275,8 +263,9 @@ def clean_changelog_content(content: str) -> str:
     if not content:
         return ""
 
-    # Remove any version headers that might have been included
-    content = re.sub(r"^##\s*\[?v?\d+\.\d+\.\d+[^\n]*\n?", "", content, flags=re.MULTILINE)
+    # Remove version headers unless we want to preserve them (for unreleased changes)
+    if not preserve_version_header:
+        content = re.sub(r"^##\s*\[?v?\d+\.\d+\.\d+[^\n]*\n?", "", content, flags=re.MULTILINE)
 
     # Remove any "### Changelog" sections that might have been included
     content = re.sub(r"^###\s+Changelog\s*\n?", "", content, flags=re.MULTILINE)

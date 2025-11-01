@@ -2,8 +2,6 @@
 
 from datetime import datetime, timezone
 
-import pytest
-
 from kittylog.changelog import find_existing_boundaries
 from kittylog.git_operations import generate_boundary_identifier
 

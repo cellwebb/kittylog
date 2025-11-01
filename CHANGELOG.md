@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Introduce interactive configuration mode with questionary prompts for guided setup
+- Add optional git diff inclusion in AI context with cost warning notifications
+- Implement environment variable precedence over config files for API key handling
+
+### Changed
+
+- Enhance changelog boundary detection to support nested brackets in date headings
+- Propagate all configuration parameters through the complete call chain
+- Improve provider modules by removing trailing whitespace for cleaner code
+
+### Fixed
+
+- Resolve parameter propagation issues causing test failures
+- Correct config precedence problems to ensure proper environment variable handling
+
 ## [1.3.0] - 2025-10-31
 
 ### Added

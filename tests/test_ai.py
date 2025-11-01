@@ -36,7 +36,7 @@ class TestGenerateChangelogEntry:
         assert result[0] == "Cleaned AI content"
         mock_build_prompt.assert_called_once()
         mock_generate.assert_called_once()
-        mock_clean.assert_called_once_with("Raw AI content")
+        mock_clean.assert_called_once_with("Raw AI content", False)
 
     @patch("kittylog.ai.build_changelog_prompt")
     @patch("kittylog.ai.count_tokens")

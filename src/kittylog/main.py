@@ -24,10 +24,12 @@ from kittylog.git_operations import (
     get_commits_between_boundaries,
     get_commits_between_tags,
     get_latest_boundary,
+    get_latest_tag,
     get_previous_boundary,
     is_current_commit_tagged,
 )
 from kittylog.output import get_output_manager
+from kittylog.utils import determine_next_version
 
 logger = logging.getLogger(__name__)
 config = load_config()
@@ -59,25 +61,35 @@ def handle_unreleased_mode(
 
     logger.debug(f"Existing changelog content: {repr(changelog_content[:200])}")
 
+    # Get latest tag to determine next version
+    latest_tag = get_latest_tag()
+    latest_boundary = get_latest_boundary(grouping_mode)
+
+    # Get commits for version analysis
+    from_boundary = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+    commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
+
+    # Determine next version
+    next_version = determine_next_version(latest_tag, commits)
+
     # Process only the unreleased section
-    logger.info("Processing unreleased section only")
+    logger.info(f"Processing next version: {next_version}")
 
     if not quiet:
         output = get_output_manager()
-        output.processing("Processing unreleased section...")
+        output.processing(f"Processing version {next_version}...")
 
         # Ask for confirmation before making LLM call (unless --yes flag)
         if not yes:
             output.info(f"About to generate 1 changelog entry using model: {model}")
-            output.info("Entry to process: Unreleased")
+            output.info(f"Entry to process: {next_version}")
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
                 return changelog_content, None
 
     # Get latest boundary for commit range based on mode
-    latest_boundary = get_latest_boundary(grouping_mode)
-    from_boundary = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+    # (already calculated above as latest_boundary and from_boundary)
 
     logger.debug(f"From boundary: {from_boundary}")
 
@@ -206,10 +218,11 @@ def handle_auto_mode(
             else "none"
         )
         output = get_output_manager()
-        output.info(f"Found {len(all_boundaries)} boundaries: {boundary_list}")
+        output.info(f"Found {len(all_boundaries)} boundaries: {all_boundaries}")
 
     # Check for unreleased changes to include in the count
     has_unreleased_changes = False
+    next_version = None
     latest_boundary = get_latest_boundary(grouping_mode)
     if latest_boundary and not is_current_commit_tagged():
         # If the current commit isn't tagged, we have unreleased changes
@@ -218,8 +231,12 @@ def handle_auto_mode(
             unreleased_commits = get_commits_between_tags(latest_boundary.get("identifier"), None)
         else:
             unreleased_commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
-        if len(unreleased_commits) > 0:
+
+        if unreleased_commits:
             has_unreleased_changes = True
+            # Calculate next version for display
+            latest_tag = get_latest_tag()
+            next_version = determine_next_version(latest_tag, unreleased_commits)
     elif not latest_boundary and not is_current_commit_tagged():
         # If no boundaries exist in repo at all, check if we have commits
         if grouping_mode == "tags":
@@ -228,6 +245,8 @@ def handle_auto_mode(
             all_commits = get_commits_between_boundaries(None, None, grouping_mode)
         if all_commits:
             has_unreleased_changes = True
+            # Calculate next version for display (no latest tag)
+            next_version = determine_next_version(None, all_commits)
 
     # Calculate total entries that will require LLM calls
     total_entries = len(boundaries_to_process)
@@ -246,7 +265,7 @@ def handle_auto_mode(
                 [generate_boundary_display_name(boundary, grouping_mode) for boundary in boundaries_to_process]
             )
         if has_unreleased_changes or special_unreleased_mode:
-            entries_list.append("Unreleased")
+            entries_list.append(next_version or "Unreleased")
 
         entries_text = ", ".join(entries_list)
 
@@ -483,7 +502,32 @@ def handle_boundary_range_mode(
         # Ask for confirmation before making LLM call (unless --yes flag)
         if not yes:
             if special_unreleased_mode:
-                entry_text = "Unreleased"
+                # Calculate next version for display
+                # Find actual boundary objects from identifiers
+                from_boundary_obj = None
+                to_boundary_obj = None
+
+                if from_boundary:
+                    all_boundaries = get_all_boundaries(
+                        grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+                    )
+                    for boundary in all_boundaries:
+                        if generate_boundary_identifier(boundary, grouping_mode) == from_boundary:
+                            from_boundary_obj = boundary
+                            break
+
+                if to_boundary:
+                    all_boundaries = get_all_boundaries(
+                        grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+                    )
+                    for boundary in all_boundaries:
+                        if generate_boundary_identifier(boundary, grouping_mode) == to_boundary:
+                            to_boundary_obj = boundary
+                            break
+
+                commits = get_commits_between_boundaries(from_boundary_obj, to_boundary_obj, grouping_mode)
+                latest_tag = get_latest_tag()
+                entry_text = determine_next_version(latest_tag, commits)
             else:
                 entry_text = f"{from_boundary or 'beginning'} to {to_boundary}"
 

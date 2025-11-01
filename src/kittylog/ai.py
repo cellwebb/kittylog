@@ -177,7 +177,9 @@ def generate_changelog_entry(
         )
 
         # Clean and format the content
-        cleaned_content = clean_changelog_content(content)
+        # Preserve version header for unreleased changes (when tag is None)
+        preserve_version_header = tag is None
+        cleaned_content = clean_changelog_content(content, preserve_version_header)
 
         # Count completion tokens
         completion_tokens = count_tokens(cleaned_content, model)

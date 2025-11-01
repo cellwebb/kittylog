@@ -4,8 +4,6 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-import pytest
-
 from kittylog.main import main_business_logic
 
 
