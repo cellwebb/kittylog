@@ -12,7 +12,7 @@ import questionary
 from kittylog import __version__
 from kittylog.config import load_config
 from kittylog.config_cli import config as config_cli
-from kittylog.constants import Languages, Logging
+from kittylog.constants import Audiences, Languages, Logging
 from kittylog.errors import handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
@@ -47,6 +47,13 @@ def changelog_options(f):
         "-l",
         default=None,
         help="Override the language for changelog entries (e.g., 'Spanish', 'es', 'zh-CN', 'ja')",
+    )(f)
+    f = click.option(
+        "--audience",
+        "-u",
+        default=None,
+        type=click.Choice(Audiences.slugs(), case_sensitive=False),
+        help="Target audience for changelog tone (developers, users, stakeholders)",
     )(f)
     f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
     f = click.option(
@@ -121,7 +128,7 @@ def setup_command_logging(log_level, verbose, quiet):
     set_output_mode(quiet=quiet, verbose=verbose)
 
 
-def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet):
+def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience=None):
     """Interactive configuration using questionary prompts.
 
     Guides users through kittylog configuration with explanations and helpful defaults.
@@ -135,6 +142,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             date_grouping or "daily",
             include_diff or False,
             yes or True,  # Auto-accept in quiet mode for scripting
+            audience or (config.get("audience") if isinstance(config, dict) else None) or "stakeholders",
         )
 
     from kittylog.output import get_output_manager
@@ -197,6 +205,30 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             else:
                 selected_date_grouping = date_response
 
+        # Audience selection
+        output.echo("")
+        output.echo("👥 Who is your changelog for? This affects the tone and detail level.")
+
+        audience_choices = [
+            Audiences.OPTIONS[0],  # ("Developers (engineering-focused)", "developers", "...")
+            Audiences.OPTIONS[1],  # ("End Users (product-focused)", "users", "...")
+            Audiences.OPTIONS[2],  # ("Product & Stakeholders", "stakeholders", "...")
+        ]
+
+        # Create formatted choices for questionary
+        formatted_audience_choices = [
+            {"name": f"{option[0]}\n   {option[2]}", "value": option[1]} for option in audience_choices
+        ]
+
+        selected_audience = questionary.select(
+            "Who are you writing this changelog for?", choices=formatted_audience_choices
+        ).ask()
+
+        # Fallback if user cancels or something goes wrong
+        if not selected_audience:
+            config_audience = config.get("audience", "stakeholders") if isinstance(config, dict) else "stakeholders"
+            selected_audience = audience or config_audience or "stakeholders"
+
         # Git diff inclusion with clear warning about costs
         output.echo("")
         output.echo("⚠️  Git diff adds detailed code changes to help AI understand context better.")
@@ -217,6 +249,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
         output.echo("")
         output.echo("Should kittylog:")
         output.echo(f"   • Group entries by: {selected_grouping}")
+        output.echo(f"   • Target audience: {selected_audience}")
         if selected_grouping == "gaps":
             output.echo(f"   • Gap threshold: {selected_gap_threshold} hours")
         elif selected_grouping == "dates":
@@ -243,7 +276,14 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
         else:
             selected_yes = yes_response
 
-        return (selected_grouping, selected_gap_threshold, selected_date_grouping, selected_include_diff, selected_yes)
+        return (
+            selected_grouping,
+            selected_gap_threshold,
+            selected_date_grouping,
+            selected_include_diff,
+            selected_yes,
+            selected_audience,
+        )
 
     except KeyboardInterrupt:
         output.warning("")
@@ -260,6 +300,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             date_grouping or "daily",
             include_diff or False,
             yes or False,
+            audience or (config.get("audience") if isinstance(config, dict) else None) or "stakeholders",
         )
 
 
@@ -275,6 +316,7 @@ def add(
     yes,
     hint,
     language,
+    audience,
     model,
     dry_run,
     verbose,
@@ -318,8 +360,10 @@ def add(
 
         # Interactive mode configuration (now default behavior)
         if interactive:
-            grouping_mode, gap_threshold, date_grouping, include_diff, yes = interactive_configuration(
-                grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet
+            grouping_mode, gap_threshold, date_grouping, include_diff, yes, selected_audience = (
+                interactive_configuration(
+                    grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience
+                )
             )
 
         # Use interactive or provided values consistently
@@ -348,6 +392,10 @@ def add(
             click.echo("Warning: --gap-threshold is ignored when using --grouping-mode dates", err=True)
 
         resolved_language = Languages.resolve_code(language) if language else None
+        # Use interactively selected audience first, then command-line audience, then config/default
+        config_audience = config.get("audience") if isinstance(config, dict) else None
+        final_audience = selected_audience or audience or config_audience
+        resolved_audience = Audiences.resolve(final_audience) if final_audience else None
 
         # If a specific tag is provided, process only that tag
         if tag:
@@ -374,6 +422,7 @@ def add(
                 yes=yes,
                 include_diff=final_include_diff,
                 language=resolved_language,
+                audience=resolved_audience,
             )
         else:
             # Default behavior: process all missing tags
@@ -395,6 +444,7 @@ def add(
                 yes=yes,
                 include_diff=final_include_diff,
                 language=resolved_language,
+                audience=resolved_audience,
             )
 
         if not success:
@@ -429,6 +479,7 @@ def cli(ctx, version):
             yes=False,
             hint="",
             language=None,
+            audience=None,
             model=None,
             dry_run=False,
             verbose=False,

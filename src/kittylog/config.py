@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 
 from dotenv import dotenv_values
 
-from kittylog.constants import EnvDefaults, Logging
+from kittylog.constants import Audiences, EnvDefaults, Logging
 from kittylog.errors import ConfigError
 
 T = TypeVar("T")
@@ -179,6 +179,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     env_grouping_mode = os.getenv("KITTYLOG_GROUPING_MODE")
     env_gap_threshold_hours = os.getenv("KITTYLOG_GAP_THRESHOLD_HOURS")
     env_date_grouping = os.getenv("KITTYLOG_DATE_GROUPING")
+    env_audience = os.getenv("KITTYLOG_AUDIENCE")
     env_language = os.getenv("KITTYLOG_LANGUAGE")
     env_translate_headings = os.getenv("KITTYLOG_TRANSLATE_HEADINGS")
 
@@ -273,10 +274,9 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     )
 
     config["language"] = env_language
+    config["audience"] = Audiences.resolve(env_audience) if env_audience is not None else None
     config["translate_headings"] = (
-        env_translate_headings.lower() in ("true", "1", "yes", "on")
-        if env_translate_headings is not None
-        else None
+        env_translate_headings.lower() in ("true", "1", "yes", "on") if env_translate_headings is not None else None
     )
 
     # Apply file values as fallbacks (only if env vars weren't set or were None)
@@ -323,6 +323,13 @@ def load_config() -> dict[str, str | int | float | bool | None]:
 
     if config["language"] is None:
         config["language"] = config_vars.get("KITTYLOG_LANGUAGE")
+
+    if config["audience"] is None:
+        audience_value = config_vars.get("KITTYLOG_AUDIENCE")
+        config["audience"] = Audiences.resolve(audience_value) if audience_value is not None else EnvDefaults.AUDIENCE
+    else:
+        # Ensure env-derived audience is normalized
+        config["audience"] = Audiences.resolve(str(config["audience"]))
 
     if config["translate_headings"] is None:
         translate_headings_value = config_vars.get("KITTYLOG_TRANSLATE_HEADINGS")
@@ -382,6 +389,13 @@ def validate_config(config: dict) -> None:
         "Must be a boolean value",
     )
 
+    validate_config_value(
+        config.get("audience"),
+        lambda x: x in Audiences.slugs(),
+        "audience",
+        f"Must be one of {Audiences.slugs()}",
+    )
+
 
 def apply_config_defaults(config: dict) -> dict:
     """Apply default values for invalid configuration entries.
@@ -410,5 +424,6 @@ def apply_config_defaults(config: dict) -> dict:
     apply_default_if_invalid("gap_threshold_hours", lambda x: x > 0, EnvDefaults.GAP_THRESHOLD_HOURS)
     apply_default_if_invalid("date_grouping", lambda x: x in ["daily", "weekly", "monthly"], EnvDefaults.DATE_GROUPING)
     apply_default_if_invalid("translate_headings", lambda x: isinstance(x, bool), EnvDefaults.TRANSLATE_HEADINGS)
+    apply_default_if_invalid("audience", lambda x: x in Audiences.slugs(), Audiences.resolve(EnvDefaults.AUDIENCE))
 
     return validated_config

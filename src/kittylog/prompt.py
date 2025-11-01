@@ -6,6 +6,8 @@ This module creates prompts for AI models to generate changelog entries from git
 import logging
 import re
 
+from kittylog.constants import Audiences
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,6 +19,7 @@ def build_changelog_prompt(
     boundary_mode: str = "tags",
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
 
@@ -28,13 +31,21 @@ def build_changelog_prompt(
         boundary_mode: The boundary mode ('tags', 'dates', 'gaps')
         language: Optional language for the generated changelog
         translate_headings: Whether to translate section headings into the selected language
+        audience: Target audience slug controlling tone and emphasis
 
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
     system_prompt = _build_system_prompt()
     user_prompt = _build_user_prompt(
-        commits, tag, from_tag, hint, boundary_mode, language=language, translate_headings=translate_headings
+        commits,
+        tag,
+        from_tag,
+        hint,
+        boundary_mode,
+        language=language,
+        translate_headings=translate_headings,
+        audience=audience,
     )
 
     return system_prompt, user_prompt
@@ -148,6 +159,7 @@ def _build_user_prompt(
     boundary_mode: str = "tags",
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> str:
     """Build the user prompt with commit data."""
 
@@ -203,6 +215,29 @@ def _build_user_prompt(
                 "- KEEP the section headings (### Added, ### Changed, etc.) in English while translating their content.\n"
                 "- Maintain markdown syntax and the ## [X.Y.Z] version header format.\n\n"
             )
+
+    audience_instructions = {
+        "developers": (
+            "AUDIENCE FOCUS (Developers):\n"
+            "- Emphasize technical details, implementation specifics, and API/interface changes.\n"
+            "- Reference modules, services, database migrations, and configuration updates explicitly.\n"
+            "- Call out breaking changes, upgrade steps, or follow-up engineering work.\n\n"
+        ),
+        "users": (
+            "AUDIENCE FOCUS (End Users):\n"
+            "- Explain changes in benefit-driven, non-technical language.\n"
+            "- Highlight new capabilities, UX improvements, stability fixes, and resolved issues.\n"
+            "- Avoid implementation jargon—focus on what users can now do differently.\n\n"
+        ),
+        "stakeholders": (
+            "AUDIENCE FOCUS (Stakeholders):\n"
+            "- Summarize business impact, outcomes, risk mitigation, and strategic alignment.\n"
+            "- Mention affected product areas, customer value, and measurable results when possible.\n"
+            "- Keep language concise, professional, and easy to scan for status updates.\n\n"
+        ),
+    }
+    resolved_audience = Audiences.resolve(audience)
+    audience_section = audience_instructions.get(resolved_audience, audience_instructions["developers"])
 
     # Format commits
     commits_section = "## Commits to analyze:\n\n"
@@ -273,7 +308,7 @@ REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, 
 REMEMBER: Always follow the exact section order: Added, Changed, Deprecated, Removed, Fixed, Security.
 REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
 
-    return version_context + hint_section + language_section + commits_section + instructions
+    return version_context + hint_section + language_section + audience_section + commits_section + instructions
 
 
 def clean_changelog_content(content: str, preserve_version_header: bool = False) -> str:

@@ -75,6 +75,7 @@ def generate_changelog_entry(
     boundary_mode: str = "tags",
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int]]:
     """Generate a changelog entry using AI.
 
@@ -91,6 +92,7 @@ def generate_changelog_entry(
         max_retries: Maximum retry attempts
         language: Optional override language for the generated changelog
         translate_headings: Whether to translate section headings into the selected language
+        audience: Target audience slug controlling tone and emphasis
 
     Returns:
         Generated changelog content
@@ -120,6 +122,7 @@ def generate_changelog_entry(
         boundary_mode=boundary_mode,
         language=language,
         translate_headings=translate_headings,
+        audience=audience,
     )
 
     # Add diff content to user prompt if available, but limit its size to prevent timeouts

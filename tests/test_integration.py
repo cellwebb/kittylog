@@ -234,7 +234,12 @@ class TestConfigIntegration:
 
         # Mock questionary for init
         with patch("kittylog.init_cli.questionary") as mock_questionary:
-            mock_questionary.select.return_value.ask.return_value = "Anthropic"
+            # Mock all the questionary calls in the init process
+            mock_questionary.select.return_value.ask.side_effect = [
+                "Anthropic",  # Provider selection
+                "English",  # Language selection
+                "Developers (engineering-focused)",  # Audience selection
+            ]
             mock_questionary.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
             mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
 

@@ -548,6 +548,7 @@ def update_changelog(
     include_diff: bool = False,
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Update changelog with entries for new boundaries.
 
@@ -567,6 +568,7 @@ def update_changelog(
         include_diff: Whether to include git diff in AI context (warning: high token usage)
         language: Optional language override for changelog entries
         translate_headings: Whether to translate section headings into the selected language
+        audience: Target audience slug controlling tone and emphasis
 
     Returns:
         The updated changelog content
@@ -659,6 +661,7 @@ def update_changelog(
         boundary_mode=grouping_mode,
         language=language,
         translate_headings=translate_headings,
+        audience=audience,
     )
 
     # Post-process the AI content to ensure proper formatting

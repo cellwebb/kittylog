@@ -190,6 +190,8 @@ def mock_config():
         "max_retries": 3,
         "log_level": "WARNING",
         "warning_limit_tokens": 16384,
+        "audience": "developers",
+        "translate_headings": False,
     }
 
 
@@ -205,7 +207,11 @@ def mock_questionary():
     """Mock questionary for testing CLI interactions."""
     with patch("kittylog.init_cli.questionary") as mock:
         # Set up default responses
-        mock.select.return_value.ask.return_value = "Anthropic"
+        mock.select.return_value.ask.side_effect = [
+            "Anthropic",
+            "English",
+            "developers",
+        ]
         mock.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
         mock.password.return_value.ask.return_value = "test-api-key"
         yield mock

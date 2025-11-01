@@ -52,6 +52,7 @@ class TestUpdateCommand:
         assert call_args["require_confirmation"] is True
         assert call_args["quiet"] is False
         assert call_args["language"] is None
+        assert call_args["audience"] is None
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_with_all_options(self, mock_main_logic):
@@ -72,6 +73,8 @@ class TestUpdateCommand:
                 "openai:gpt-4",
                 "--language",
                 "es",
+                "--audience",
+                "users",
                 "--hint",
                 "Focus on breaking changes",
                 "--dry-run",
@@ -93,6 +96,7 @@ class TestUpdateCommand:
         assert call_args["require_confirmation"] is False
         assert call_args["quiet"] is True
         assert call_args["language"] == "Spanish"
+        assert call_args["audience"] == "users"
 
         # Clean up created file
         import os
@@ -115,6 +119,8 @@ class TestUpdateCommand:
                 "cerebras:qwen-3-coder-480b",
                 "-l",
                 "fr",
+                "-u",
+                "stakeholders",
                 "-h",
                 "Test hint",
                 "-y",
@@ -131,6 +137,7 @@ class TestUpdateCommand:
         assert call_args["require_confirmation"] is False  # --yes flag sets this to False
         assert call_args["quiet"] is True
         assert call_args["language"] == "French"
+        assert call_args["audience"] == "stakeholders"
 
         # Clean up created file
         import os
@@ -283,7 +290,11 @@ class TestInitCommand:
         mock_path.touch = Mock()
 
         # Mock questionary responses
-        mock_questionary.select.return_value.ask.return_value = "Anthropic"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Anthropic",  # provider
+            "English",  # language
+            "developers",  # audience
+        ]
         mock_questionary.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
         mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
 
@@ -296,7 +307,9 @@ class TestInitCommand:
 
         # Verify file operations
         mock_path.touch.assert_called_once()
-        assert mock_set_key.call_count == 2  # model + API key
+        assert mock_set_key.call_count == 3  # model + API key + audience
+        calls = mock_set_key.call_args_list
+        assert any("KITTYLOG_AUDIENCE" in str(call) and "developers" in str(call) for call in calls)
 
     @patch("kittylog.init_cli.questionary")
     @patch("kittylog.init_cli.set_key")
@@ -305,7 +318,11 @@ class TestInitCommand:
         """Test init command with existing config."""
         mock_path.exists.return_value = True
 
-        mock_questionary.select.return_value.ask.return_value = "OpenAI"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "OpenAI",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.return_value = "gpt-4"
         mock_questionary.password.return_value.ask.return_value = "sk-test123"
 
@@ -336,7 +353,11 @@ class TestInitCommand:
         mock_path.exists.return_value = False
         mock_path.touch = Mock()
 
-        mock_questionary.select.return_value.ask.return_value = "Groq"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Groq",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.return_value = "llama-4"
         mock_questionary.password.return_value.ask.return_value = ""  # No API key
 
@@ -345,7 +366,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
         # Should only set model, not API key
-        assert mock_set_key.call_count == 1
+        assert mock_set_key.call_count == 2  # model + audience
 
     @patch("kittylog.init_cli.questionary")
     @patch("kittylog.init_cli.set_key")
@@ -356,7 +377,11 @@ class TestInitCommand:
         mock_path.touch = Mock()
 
         # Mock questionary responses
-        mock_questionary.select.return_value.ask.return_value = "Z.AI Coding"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Z.AI Coding",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.return_value = "glm-4.6"
         mock_questionary.password.return_value.ask.return_value = "zai-api-key"
 
@@ -367,7 +392,7 @@ class TestInitCommand:
         assert "Welcome to kittylog initialization" in result.output
 
         # Verify set_key calls - should only be 2 (model + API key)
-        assert mock_set_key.call_count == 2
+        assert mock_set_key.call_count == 3  # model + API key + audience
 
         # Check the specific calls
         calls = mock_set_key.call_args_list
@@ -383,7 +408,11 @@ class TestInitCommand:
         mock_path.touch = Mock()
 
         # Mock questionary responses
-        mock_questionary.select.return_value.ask.return_value = "Z.AI"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Z.AI",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.return_value = "glm-4.6"
         mock_questionary.password.return_value.ask.return_value = "zai-api-key"
 
@@ -394,7 +423,7 @@ class TestInitCommand:
         assert "Welcome to kittylog initialization" in result.output
 
         # Verify set_key calls
-        assert mock_set_key.call_count == 2  # model + API key
+        assert mock_set_key.call_count == 3  # model + API key + audience
 
         # Check the specific calls
         calls = mock_set_key.call_args_list
@@ -408,7 +437,11 @@ class TestInitCommand:
         """Test init command with Custom (OpenAI) provider."""
         mock_path.exists.return_value = True
 
-        mock_questionary.select.return_value.ask.return_value = "Custom (OpenAI)"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Custom (OpenAI)",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.side_effect = [
             "gpt-4o-mini",
             "https://example.com/v1",
@@ -431,7 +464,11 @@ class TestInitCommand:
         """Test init command with LM Studio provider without API key."""
         mock_path.exists.return_value = True
 
-        mock_questionary.select.return_value.ask.return_value = "LM Studio"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "LM Studio",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.side_effect = [
             "gemma3:instruct",
             "http://localhost:4321",
@@ -455,7 +492,11 @@ class TestInitCommand:
         """Test init command with Streamlake provider requiring endpoint ID."""
         mock_path.exists.return_value = True
 
-        mock_questionary.select.return_value.ask.return_value = "Streamlake"
+        mock_questionary.select.return_value.ask.side_effect = [
+            "Streamlake",
+            "English",
+            "developers",
+        ]
         mock_questionary.text.return_value.ask.return_value = "endpoint-123"
         mock_questionary.password.return_value.ask.return_value = "streamlake-key"
 

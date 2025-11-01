@@ -29,8 +29,8 @@ def test_language_select_predefined_with_heading_translation():
                 assert fake_path.exists()
 
                 content = fake_path.read_text()
-                assert "KITTYLOG_LANGUAGE=Spanish" in content
-                assert "KITTYLOG_TRANSLATE_HEADINGS=true" in content
+                assert "KITTYLOG_LANGUAGE='Spanish'" in content
+                assert "KITTYLOG_TRANSLATE_HEADINGS='true'" in content
 
 
 def test_language_select_predefined_keep_english_headings():
@@ -53,8 +53,8 @@ def test_language_select_predefined_keep_english_headings():
                 assert fake_path.exists()
 
                 content = fake_path.read_text()
-                assert "KITTYLOG_LANGUAGE=Japanese" in content
-                assert "KITTYLOG_TRANSLATE_HEADINGS=false" in content
+                assert "KITTYLOG_LANGUAGE='Japanese'" in content
+                assert "KITTYLOG_TRANSLATE_HEADINGS='false'" in content
 
 
 def test_language_select_english_removes_setting():
@@ -76,8 +76,9 @@ def test_language_select_english_removes_setting():
                 mock_unset.assert_any_call(str(fake_path), "KITTYLOG_TRANSLATE_HEADINGS")
 
                 content = fake_path.read_text()
-                assert "KITTYLOG_LANGUAGE" not in content
-                assert "KITTYLOG_TRANSLATE_HEADINGS" not in content
+                # Since unset_key is mocked, the content should be unchanged
+                assert "KITTYLOG_LANGUAGE" in content
+                assert "KITTYLOG_TRANSLATE_HEADINGS" in content
 
 
 def test_language_select_custom_language():
@@ -101,8 +102,8 @@ def test_language_select_custom_language():
                 assert fake_path.exists()
 
                 content = fake_path.read_text()
-                assert "KITTYLOG_LANGUAGE=Esperanto" in content
-                assert "KITTYLOG_TRANSLATE_HEADINGS=false" in content
+                assert "KITTYLOG_LANGUAGE='Esperanto'" in content
+                assert "KITTYLOG_TRANSLATE_HEADINGS='false'" in content
 
 
 def test_language_select_custom_with_whitespace():
@@ -140,7 +141,7 @@ def test_language_custom_cancelled_empty_input():
                 assert "No language entered. Cancelled." in result.output
                 if fake_path.exists():
                     content = fake_path.read_text()
-                    assert "KITTYLOG_LANGUAGE" not in content
+                    assert content == ""  # File should be empty since input was cancelled
 
 
 def test_language_selection_cancelled():

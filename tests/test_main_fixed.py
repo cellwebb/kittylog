@@ -432,7 +432,7 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
 
 
 def test_main_logic_passes_language_preferences(monkeypatch):
-    """Verify language configuration flows into update_changelog."""
+    """Verify language and audience preferences flow into update_changelog."""
     from datetime import datetime, timezone
 
     from kittylog import main as main_module
@@ -450,8 +450,8 @@ def test_main_logic_passes_language_preferences(monkeypatch):
 
     recorded_kwargs: list[dict] = []
 
-    def fake_update_changelog(*, language=None, translate_headings=False, **kwargs):
-        recorded_kwargs.append({"language": language, "translate_headings": translate_headings})
+    def fake_update_changelog(*, language=None, translate_headings=False, audience=None, **kwargs):
+        recorded_kwargs.append({"language": language, "translate_headings": translate_headings, "audience": audience})
         return "updated changelog", None
 
     mock_output = Mock()
@@ -466,6 +466,7 @@ def test_main_logic_passes_language_preferences(monkeypatch):
         "model": "openai:gpt-4o-mini",
         "language": "Spanish",
         "translate_headings": True,
+        "audience": "stakeholders",
     }
 
     monkeypatch.setattr(main_module, "config", config_with_language)
@@ -497,3 +498,4 @@ def test_main_logic_passes_language_preferences(monkeypatch):
     assert recorded_kwargs, "update_changelog should be invoked"
     assert recorded_kwargs[0]["language"] == "Spanish"
     assert recorded_kwargs[0]["translate_headings"] is True
+    assert recorded_kwargs[0]["audience"] == "stakeholders"

@@ -16,7 +16,7 @@ from kittylog.changelog import (
     write_changelog,
 )
 from kittylog.config import load_config
-from kittylog.constants import Languages
+from kittylog.constants import Audiences, Languages
 from kittylog.errors import AIError, GitError, handle_error
 from kittylog.git_operations import (
     generate_boundary_display_name,
@@ -50,10 +50,13 @@ def handle_unreleased_mode(
     include_diff: bool = False,
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow for all boundary modes."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
     existing_content = read_changelog(changelog_file)
+
+    target_audience = audience
 
     # If changelog doesn't exist, create header
     if not existing_content.strip():
@@ -109,6 +112,7 @@ def handle_unreleased_mode(
         include_diff=include_diff,
         language=language,
         translate_headings=translate_headings,
+        audience=target_audience,
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
     return updated_content, token_usage
@@ -130,8 +134,11 @@ def handle_auto_mode(
     include_diff: bool = False,
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle automatic boundary detection workflow."""
+
+    target_audience = audience
 
     # In simplified mode by default, process all boundaries with proper AI-generated content
     all_boundaries = get_all_boundaries(
@@ -312,6 +319,7 @@ def handle_auto_mode(
             include_diff=include_diff,
             language=language,
             translate_headings=translate_headings,
+            audience=target_audience,
         )
 
     # Process unreleased changes if needed (has_unreleased_changes computed above)
@@ -338,6 +346,7 @@ def handle_auto_mode(
             include_diff=include_diff,
             language=language,
             translate_headings=translate_headings,
+            audience=target_audience,
         )
 
         # Keep the token usage for display
@@ -361,10 +370,13 @@ def handle_single_boundary_mode(
     include_diff: bool = False,
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle single boundary processing workflow."""
     # When only to_boundary is specified, find the previous boundary to use as from_boundary
     changelog_content = read_changelog(changelog_file)
+
+    target_audience = audience
 
     # If changelog doesn't exist, create header
     if not changelog_content.strip():
@@ -435,6 +447,7 @@ def handle_single_boundary_mode(
         include_diff=include_diff,
         language=language,
         translate_headings=translate_headings,
+        audience=target_audience,
     )
 
     return changelog_content, token_usage
@@ -457,10 +470,13 @@ def handle_boundary_range_mode(
     include_diff: bool = False,
     language: str | None = None,
     translate_headings: bool = False,
+    audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle boundary range processing workflow."""
     # Import needed for boundary identifier generation
     from kittylog.git_operations import generate_boundary_identifier
+
+    target_audience = audience
 
     # Process specific boundary range
     if to_boundary is None and not special_unreleased_mode:
@@ -568,6 +584,7 @@ def handle_boundary_range_mode(
         include_diff=include_diff,
         language=language,
         translate_headings=translate_headings,
+        audience=target_audience,
     )
 
     return changelog_content, token_usage
@@ -580,6 +597,7 @@ def main_business_logic(
     model: str | None = None,
     hint: str = "",
     language: str | None = None,
+    audience: str | None = None,
     show_prompt: bool = False,
     require_confirmation: bool = True,
     quiet: bool = False,
@@ -605,6 +623,7 @@ def main_business_logic(
         model: AI model to use for generation
         hint: Additional context for AI generation
         language: Override language for changelog entries
+        audience: Override audience slug influencing tone (developers/users/stakeholders)
         show_prompt: Display the AI prompt
         require_confirmation: Ask for user confirmation
         quiet: Suppress output
@@ -651,6 +670,10 @@ def main_business_logic(
     translate_headings = bool(translate_headings_value) if isinstance(translate_headings_value, bool) else False
     if not effective_language:
         translate_headings = False
+
+    config_audience_value = config.get("audience")
+    config_audience = config_audience_value if isinstance(config_audience_value, str) else None
+    effective_audience = Audiences.resolve(audience) if audience else Audiences.resolve(config_audience)
 
     try:
         # Validate we're in a git repository and have boundaries
@@ -716,6 +739,7 @@ def main_business_logic(
                     include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
             else:
                 changelog_content, token_usage = handle_unreleased_mode(
@@ -729,6 +753,7 @@ def main_business_logic(
                     include_diff=include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
         elif from_tag is None and to_tag is None:
             if grouping_mode != "tags":
@@ -749,6 +774,7 @@ def main_business_logic(
                     include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
             else:
                 changelog_content, token_usage = handle_auto_mode(
@@ -764,6 +790,7 @@ def main_business_logic(
                     include_diff=include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
         elif to_tag is not None and from_tag is None:
             if grouping_mode != "tags":
@@ -783,6 +810,7 @@ def main_business_logic(
                     include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
             else:
                 changelog_content, token_usage = handle_single_boundary_mode(
@@ -797,6 +825,7 @@ def main_business_logic(
                     include_diff=include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
         else:
             if grouping_mode != "tags":
@@ -818,6 +847,7 @@ def main_business_logic(
                     include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
             else:
                 changelog_content, token_usage = handle_boundary_range_mode(
@@ -834,6 +864,7 @@ def main_business_logic(
                     include_diff=include_diff,
                     language=effective_language,
                     translate_headings=translate_headings,
+                    audience=effective_audience,
                 )
     except Exception as e:
         handle_error(e)

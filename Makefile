@@ -41,6 +41,9 @@ format: ## Format code
 	ruff format .
 	ruff check --fix .
 
+type-check: ## Run static type checks
+	mypy src/kittylog
+
 check: lint test ## Run all checks (lint + test)
 
 # Cleaning

@@ -28,6 +28,7 @@ class TestLoadConfig:
         assert config["date_grouping"] == "daily"
         assert config["language"] is None
         assert config["translate_headings"] is False
+        assert config["audience"] == "stakeholders"
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -44,6 +45,7 @@ class TestLoadConfig:
         monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "weekly")
         monkeypatch.setenv("KITTYLOG_LANGUAGE", "es")
         monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "true")
+        monkeypatch.setenv("KITTYLOG_AUDIENCE", "stakeholders")
 
         config = load_config()
 
@@ -59,18 +61,22 @@ class TestLoadConfig:
         assert config["date_grouping"] == "weekly"
         assert config["language"] == "es"
         assert config["translate_headings"] is True
+        assert config["audience"] == "stakeholders"
 
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
         home_dir = isolated_config_test["home"]
         user_env_file = home_dir / ".kittylog.env"
 
-        user_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
+        user_env_file.write_text(
+            """KITTYLOG_MODEL=openai:gpt-4
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_LANGUAGE=French
 KITTYLOG_TRANSLATE_HEADINGS=true
+KITTYLOG_AUDIENCE=users
 OPENAI_API_KEY=sk-test123
-""")
+"""
+        )
 
         config = load_config()
 
@@ -80,20 +86,24 @@ OPENAI_API_KEY=sk-test123
         assert os.getenv("OPENAI_API_KEY") == "sk-test123"
         assert config["language"] == "French"
         assert config["translate_headings"] is True
+        assert config["audience"] == "users"
 
     def test_load_config_from_project_env_file(self, isolated_config_test):
         """Test loading config from project-level .env file."""
         cwd = isolated_config_test["cwd"]
         project_env_file = cwd / ".kittylog.env"
 
-        project_env_file.write_text("""KITTYLOG_MODEL=groq:llama-4
+        project_env_file.write_text(
+            """KITTYLOG_MODEL=groq:llama-4
 KITTYLOG_MAX_OUTPUT_TOKENS=512
 KITTYLOG_GROUPING_MODE=gaps
 KITTYLOG_GAP_THRESHOLD_HOURS=6.0
 KITTYLOG_DATE_GROUPING=monthly
 KITTYLOG_LANGUAGE=ja
 KITTYLOG_TRANSLATE_HEADINGS=false
-""")
+KITTYLOG_AUDIENCE=developers
+"""
+        )
 
         config = load_config()
 
@@ -105,6 +115,7 @@ KITTYLOG_TRANSLATE_HEADINGS=false
         assert config["date_grouping"] == "monthly"
         assert config["language"] == "ja"
         assert config["translate_headings"] is False
+        assert config["audience"] == "developers"
 
     def test_load_config_precedence(self, isolated_config_test, monkeypatch):
         """Test configuration precedence: env vars > project .env > user .env > defaults."""
@@ -113,7 +124,8 @@ KITTYLOG_TRANSLATE_HEADINGS=false
 
         # Create user-level config
         user_env_file = home_dir / ".kittylog.env"
-user_env_file.write_text("""KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
+        user_env_file.write_text(
+            """KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_MAX_OUTPUT_TOKENS=1024
 KITTYLOG_GROUPING_MODE=tags
@@ -121,17 +133,22 @@ KITTYLOG_GAP_THRESHOLD_HOURS=1.0
 KITTYLOG_DATE_GROUPING=daily
 KITTYLOG_LANGUAGE=Spanish
 KITTYLOG_TRANSLATE_HEADINGS=true
-""")
+KITTYLOG_AUDIENCE=users
+"""
+        )
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".kittylog.env"
-project_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
+        project_env_file.write_text(
+            """KITTYLOG_MODEL=openai:gpt-4
 KITTYLOG_TEMPERATURE=0.5
 KITTYLOG_GROUPING_MODE=gaps
 KITTYLOG_GAP_THRESHOLD_HOURS=2.0
 KITTYLOG_LANGUAGE=French
 KITTYLOG_TRANSLATE_HEADINGS=false
-""")
+KITTYLOG_AUDIENCE=stakeholders
+"""
+        )
 
         # Set environment variable (should override everything)
         monkeypatch.setenv("KITTYLOG_MODEL", "groq:llama-4")
@@ -151,6 +168,7 @@ KITTYLOG_TRANSLATE_HEADINGS=false
         # Language precedence: env > project > user
         assert config["language"] == "de"
         assert config["translate_headings"] is False
+        assert config["audience"] == "stakeholders"
 
     def test_load_config_preserves_exported_api_key(self, isolated_config_test, monkeypatch):
         """Environment secrets should not be clobbered by project config files."""
@@ -183,6 +201,7 @@ KITTYLOG_TRANSLATE_HEADINGS=false
         monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "invalid_number")
         monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "invalid_grouping")
         monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "notabool")
+        monkeypatch.setenv("KITTYLOG_AUDIENCE", "marketing")
 
         config = load_config()
 
@@ -195,6 +214,7 @@ KITTYLOG_TRANSLATE_HEADINGS=false
         assert config["gap_threshold_hours"] == 4.0  # default
         assert config["date_grouping"] == "daily"  # default
         assert config["translate_headings"] is False
+        assert config["audience"] == "stakeholders"
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -322,6 +342,26 @@ class TestValidateConfig:
             validate_config(config)
         assert "translate_headings" in str(exc_info.value).lower()
 
+    def test_validate_config_invalid_audience(self):
+        """Test validation of invalid audience flag."""
+        config = {
+            "model": "cerebras:qwen-3-coder-480b",
+            "temperature": 0.7,
+            "max_output_tokens": 1024,
+            "max_retries": 3,
+            "log_level": "INFO",
+            "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
+            "translate_headings": False,
+            "audience": "marketing",
+        }
+
+        with pytest.raises(ConfigError) as exc_info:
+            validate_config(config)
+        assert "audience" in str(exc_info.value).lower()
+
     def test_validate_config_invalid_grouping_mode(self):
         """Test validation of invalid grouping_mode."""
         config = {
@@ -419,23 +459,28 @@ class TestConfigurationIntegration:
 
         # Create user config
         user_env_file = home_dir / ".kittylog.env"
-user_env_file.write_text("""# User configuration
+        user_env_file.write_text(
+            """# User configuration
 KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_LANGUAGE=Italian
 KITTYLOG_TRANSLATE_HEADINGS=false
 ANTHROPIC_API_KEY=sk-ant-user123
-""")
+"""
+        )
 
         # Create project config
         project_env_file = cwd / ".kittylog.env"
-project_env_file.write_text("""# Project overrides
+        project_env_file.write_text(
+            """# Project overrides
 KITTYLOG_TEMPERATURE=0.7
 KITTYLOG_MAX_OUTPUT_TOKENS=2048
 KITTYLOG_GROUPING_MODE=dates
 KITTYLOG_DATE_GROUPING=weekly
 KITTYLOG_TRANSLATE_HEADINGS=true
-""")
+KITTYLOG_AUDIENCE=stakeholders
+"""
+        )
 
         # Load and validate config
         config = load_config()
@@ -450,6 +495,7 @@ KITTYLOG_TRANSLATE_HEADINGS=true
         assert config["date_grouping"] == "weekly"  # from project
         assert config["language"] == "Italian"  # from user
         assert config["translate_headings"] is True  # project override
+        assert config["audience"] == "stakeholders"  # project override
 
         # Check API key is available
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
@@ -460,11 +506,13 @@ KITTYLOG_TRANSLATE_HEADINGS=true
 
         # Create config with invalid values
         project_env_file = cwd / ".kittylog.env"
-        project_env_file.write_text("""KITTYLOG_TEMPERATURE=10.0
+        project_env_file.write_text(
+            """KITTYLOG_TEMPERATURE=10.0
 KITTYLOG_MAX_OUTPUT_TOKENS=-1
 KITTYLOG_GROUPING_MODE=invalid
 KITTYLOG_GAP_THRESHOLD_HOURS=-2.0
-""")
+"""
+        )
 
         # Load config (should handle invalid values gracefully)
         config = load_config()

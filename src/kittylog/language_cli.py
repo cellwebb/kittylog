@@ -40,9 +40,7 @@ def language() -> None:
         return
 
     if selection == "Custom":
-        custom_language = questionary.text(
-            "Enter the language name (e.g., 'Spanish', 'Français', '日本語'):"
-        ).ask()
+        custom_language = questionary.text("Enter the language name (e.g., 'Spanish', 'Français', '日本語'):").ask()
         if not custom_language or not custom_language.strip():
             click.echo("No language entered. Cancelled.")
             return

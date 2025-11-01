@@ -6,7 +6,7 @@ import click
 import questionary
 from dotenv import set_key
 
-from kittylog.constants import Languages
+from kittylog.constants import Audiences, Languages
 
 KITTYLOG_ENV_PATH = Path.home() / ".kittylog.env"
 
@@ -211,5 +211,25 @@ def init() -> None:
             set_key(str(kittylog_env_path), "KITTYLOG_TRANSLATE_HEADINGS", "true" if translate_headings else "false")
             click.echo(f"Set KITTYLOG_LANGUAGE={language_value}")
             click.echo(f"Set KITTYLOG_TRANSLATE_HEADINGS={'true' if translate_headings else 'false'}")
+
+    click.echo("")
+
+    audience_choices = [
+        questionary.Choice(
+            title=f"{label} — {description}",
+            value=slug,
+        )
+        for label, slug, description in Audiences.OPTIONS
+    ]
+
+    audience_selection = questionary.select(
+        "Who's the primary audience for your changelog updates?", choices=audience_choices
+    ).ask()
+
+    if not audience_selection:
+        click.echo("Audience selection cancelled. Using developers (default).")
+    else:
+        set_key(str(kittylog_env_path), "KITTYLOG_AUDIENCE", audience_selection)
+        click.echo(f"Set KITTYLOG_AUDIENCE={audience_selection}")
 
     click.echo(f"\nkittylog environment setup complete. You can edit {kittylog_env_path} to update values later.")

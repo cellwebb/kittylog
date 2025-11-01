@@ -308,6 +308,9 @@ class TestUpdateChangelog:
             no_unreleased=False,
         )
 
+        mock_generate.assert_called_once()
+        assert mock_generate.call_args.kwargs.get("audience") is None
+
         assert "## [0.2.0] - 2024-01-20" in result
         assert "### Added" in result
         assert "New feature" in result

@@ -27,19 +27,16 @@ dependencies = [
     # AI components - base providers
     "httpx>=0.27.0",
     "tiktoken>=0.11.0",
-
     # Core functionality
     "pydantic>=2.11.9",
     "python-dotenv>=1.1.1",
-
     # CLI and formatting
     "click>=8.3.0",
     "halo>=0.0.31",
     "questionary>=2.1.0",
     "rich>=14.1.0",
-
     # Git operations
-    "GitPython>=3.1.45",
+    "gitpython>=3.1.45",
 ]
 
 [project.scripts]

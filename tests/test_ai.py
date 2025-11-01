@@ -35,6 +35,8 @@ class TestGenerateChangelogEntry:
 
         assert result[0] == "Cleaned AI content"
         mock_build_prompt.assert_called_once()
+        assert "audience" in mock_build_prompt.call_args.kwargs
+        assert mock_build_prompt.call_args.kwargs["audience"] is None
         mock_generate.assert_called_once()
         mock_clean.assert_called_once_with("Raw AI content", False)
 
@@ -357,6 +359,9 @@ class TestAIIntegration:
             from_tag="v0.9.0",
             hint="Focus on user-facing changes",
             boundary_mode="tags",
+            language=None,
+            translate_headings=False,
+            audience=None,
         )
 
         # Verify AI client was called
