@@ -429,3 +429,71 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     assert recorded_calls[0]["grouping_mode"] == "dates"
     assert recorded_calls[0]["gap_threshold_hours"] == 12.0
     assert recorded_calls[0]["date_grouping"] == "weekly"
+
+
+def test_main_logic_passes_language_preferences(monkeypatch):
+    """Verify language configuration flows into update_changelog."""
+    from datetime import datetime, timezone
+
+    from kittylog import main as main_module
+
+    boundary = {
+        "hash": "def456",
+        "short_hash": "def456",
+        "message": "Release boundary",
+        "author": "Test Author",
+        "date": datetime(2024, 1, 4, tzinfo=timezone.utc),
+        "files": [],
+        "boundary_type": "tag",
+        "identifier": "v1.1.0",
+    }
+
+    recorded_kwargs: list[dict] = []
+
+    def fake_update_changelog(*, language=None, translate_headings=False, **kwargs):
+        recorded_kwargs.append({"language": language, "translate_headings": translate_headings})
+        return "updated changelog", None
+
+    mock_output = Mock()
+    mock_output.panel = Mock()
+    mock_output.warning = Mock()
+    mock_output.info = Mock()
+    mock_output.echo = Mock()
+    mock_output.processing = Mock()
+    mock_output.print = Mock()
+
+    config_with_language = {
+        "model": "openai:gpt-4o-mini",
+        "language": "Spanish",
+        "translate_headings": True,
+    }
+
+    monkeypatch.setattr(main_module, "config", config_with_language)
+    monkeypatch.setattr(main_module, "update_changelog", fake_update_changelog)
+    monkeypatch.setattr(main_module, "read_changelog", lambda _: "# Changelog\n")
+    monkeypatch.setattr(main_module, "write_changelog", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main_module, "find_existing_boundaries", lambda _: set())
+    monkeypatch.setattr(
+        main_module,
+        "get_all_boundaries",
+        lambda mode, gap_threshold_hours, date_grouping: [boundary],
+    )
+    monkeypatch.setattr(main_module, "get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main_module, "generate_boundary_identifier", lambda b, mode: b["identifier"])
+    monkeypatch.setattr(main_module, "get_latest_boundary", lambda *args, **kwargs: boundary)
+    monkeypatch.setattr(main_module, "is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr(main_module, "get_output_manager", lambda: mock_output)
+
+    success, _usage = main_module.main_business_logic(
+        changelog_file="CHANGELOG.md",
+        model="openai:gpt-4o-mini",
+        quiet=True,
+        require_confirmation=False,
+        update_all_entries=True,
+        dry_run=True,
+    )
+
+    assert success is True
+    assert recorded_kwargs, "update_changelog should be invoked"
+    assert recorded_kwargs[0]["language"] == "Spanish"
+    assert recorded_kwargs[0]["translate_headings"] is True

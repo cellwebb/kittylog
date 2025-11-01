@@ -6,6 +6,8 @@ import click
 import questionary
 from dotenv import set_key
 
+from kittylog.constants import Languages
+
 KITTYLOG_ENV_PATH = Path.home() / ".kittylog.env"
 
 
@@ -167,5 +169,47 @@ def init() -> None:
         click.echo(f"Set {api_key_name} (hidden)")
     elif is_ollama or is_lmstudio:
         click.echo("Skipping API key. You can add one later if needed.")
+
+    # Language selection mirrors gac's i18n flow
+    click.echo("\n")
+    display_names = [lang[0] for lang in Languages.LANGUAGES]
+    language_selection = questionary.select(
+        "Select a language for changelog entries:", choices=display_names, use_shortcuts=True, use_arrow_keys=True
+    ).ask()
+
+    if not language_selection:
+        click.echo("Language selection cancelled. Using English (default).")
+    elif language_selection == "English":
+        click.echo("Set language to English (default)")
+    else:
+        if language_selection == "Custom":
+            custom_language = questionary.text("Enter the language name (e.g., 'Spanish', 'Français', '日本語'):").ask()
+            if not custom_language or not custom_language.strip():
+                click.echo("No language entered. Using English (default).")
+                language_value = None
+            else:
+                language_value = custom_language.strip()
+        else:
+            language_value = next(lang[1] for lang in Languages.LANGUAGES if lang[0] == language_selection)
+
+        if language_value:
+            heading_choice = questionary.select(
+                "How should changelog section headings be handled?",
+                choices=[
+                    "Keep section headings in English (Added, Changed, etc.)",
+                    f"Translate section headings into {language_value}",
+                ],
+            ).ask()
+
+            if not heading_choice:
+                click.echo("Section heading selection cancelled. Using English headings.")
+                translate_headings = False
+            else:
+                translate_headings = heading_choice.startswith("Translate section headings")
+
+            set_key(str(kittylog_env_path), "KITTYLOG_LANGUAGE", language_value)
+            set_key(str(kittylog_env_path), "KITTYLOG_TRANSLATE_HEADINGS", "true" if translate_headings else "false")
+            click.echo(f"Set KITTYLOG_LANGUAGE={language_value}")
+            click.echo(f"Set KITTYLOG_TRANSLATE_HEADINGS={'true' if translate_headings else 'false'}")
 
     click.echo(f"\nkittylog environment setup complete. You can edit {kittylog_env_path} to update values later.")

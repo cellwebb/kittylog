@@ -15,6 +15,8 @@ def build_changelog_prompt(
     from_tag: str | None = None,
     hint: str = "",
     boundary_mode: str = "tags",
+    language: str | None = None,
+    translate_headings: bool = False,
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
 
@@ -24,12 +26,16 @@ def build_changelog_prompt(
         from_tag: The previous boundary identifier (for context)
         hint: Additional context hint
         boundary_mode: The boundary mode ('tags', 'dates', 'gaps')
+        language: Optional language for the generated changelog
+        translate_headings: Whether to translate section headings into the selected language
 
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
     system_prompt = _build_system_prompt()
-    user_prompt = _build_user_prompt(commits, tag, from_tag, hint, boundary_mode)
+    user_prompt = _build_user_prompt(
+        commits, tag, from_tag, hint, boundary_mode, language=language, translate_headings=translate_headings
+    )
 
     return system_prompt, user_prompt
 
@@ -140,6 +146,8 @@ def _build_user_prompt(
     from_tag: str | None = None,
     hint: str = "",
     boundary_mode: str = "tags",
+    language: str | None = None,
+    translate_headings: bool = False,
 ) -> str:
     """Build the user prompt with commit data."""
 
@@ -177,6 +185,24 @@ def _build_user_prompt(
     hint_section = ""
     if hint.strip():
         hint_section = f"Additional context: {hint.strip()}\n\n"
+
+    language_section = ""
+    if language:
+        if translate_headings:
+            language_section = (
+                "CRITICAL LANGUAGE REQUIREMENTS:\n"
+                f"- Write the entire changelog (section headings and bullet text) in {language}.\n"
+                "- Translate the standard section names (Added, Changed, Deprecated, Removed, Fixed, Security) while preserving their order.\n"
+                "- Keep the markdown syntax (#, ##, ###, bullet lists) unchanged.\n"
+                "- The version header MUST remain in the format ## [X.Y.Z] with numeric values.\n\n"
+            )
+        else:
+            language_section = (
+                "CRITICAL LANGUAGE REQUIREMENTS:\n"
+                f"- Write all descriptive text and bullet points in {language}.\n"
+                "- KEEP the section headings (### Added, ### Changed, etc.) in English while translating their content.\n"
+                "- Maintain markdown syntax and the ## [X.Y.Z] version header format.\n\n"
+            )
 
     # Format commits
     commits_section = "## Commits to analyze:\n\n"
@@ -247,7 +273,7 @@ REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, 
 REMEMBER: Always follow the exact section order: Added, Changed, Deprecated, Removed, Fixed, Security.
 REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
 
-    return version_context + hint_section + commits_section + instructions
+    return version_context + hint_section + language_section + commits_section + instructions
 
 
 def clean_changelog_content(content: str, preserve_version_header: bool = False) -> str:

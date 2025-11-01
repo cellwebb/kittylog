@@ -26,6 +26,8 @@ class TestLoadConfig:
         assert config["grouping_mode"] == "tags"
         assert config["gap_threshold_hours"] == 4.0
         assert config["date_grouping"] == "daily"
+        assert config["language"] is None
+        assert config["translate_headings"] is False
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -40,6 +42,8 @@ class TestLoadConfig:
         monkeypatch.setenv("KITTYLOG_GROUPING_MODE", "dates")
         monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "2.5")
         monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "weekly")
+        monkeypatch.setenv("KITTYLOG_LANGUAGE", "es")
+        monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "true")
 
         config = load_config()
 
@@ -53,6 +57,8 @@ class TestLoadConfig:
         assert config["grouping_mode"] == "dates"
         assert config["gap_threshold_hours"] == 2.5
         assert config["date_grouping"] == "weekly"
+        assert config["language"] == "es"
+        assert config["translate_headings"] is True
 
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
@@ -61,6 +67,8 @@ class TestLoadConfig:
 
         user_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
 KITTYLOG_TEMPERATURE=0.3
+KITTYLOG_LANGUAGE=French
+KITTYLOG_TRANSLATE_HEADINGS=true
 OPENAI_API_KEY=sk-test123
 """)
 
@@ -70,6 +78,8 @@ OPENAI_API_KEY=sk-test123
         assert config["temperature"] == 0.3
         # API key should be available in environment
         assert os.getenv("OPENAI_API_KEY") == "sk-test123"
+        assert config["language"] == "French"
+        assert config["translate_headings"] is True
 
     def test_load_config_from_project_env_file(self, isolated_config_test):
         """Test loading config from project-level .env file."""
@@ -81,6 +91,8 @@ KITTYLOG_MAX_OUTPUT_TOKENS=512
 KITTYLOG_GROUPING_MODE=gaps
 KITTYLOG_GAP_THRESHOLD_HOURS=6.0
 KITTYLOG_DATE_GROUPING=monthly
+KITTYLOG_LANGUAGE=ja
+KITTYLOG_TRANSLATE_HEADINGS=false
 """)
 
         config = load_config()
@@ -91,6 +103,8 @@ KITTYLOG_DATE_GROUPING=monthly
         assert config["grouping_mode"] == "gaps"
         assert config["gap_threshold_hours"] == 6.0
         assert config["date_grouping"] == "monthly"
+        assert config["language"] == "ja"
+        assert config["translate_headings"] is False
 
     def test_load_config_precedence(self, isolated_config_test, monkeypatch):
         """Test configuration precedence: env vars > project .env > user .env > defaults."""
@@ -99,24 +113,29 @@ KITTYLOG_DATE_GROUPING=monthly
 
         # Create user-level config
         user_env_file = home_dir / ".kittylog.env"
-        user_env_file.write_text("""KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
+user_env_file.write_text("""KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_MAX_OUTPUT_TOKENS=1024
 KITTYLOG_GROUPING_MODE=tags
 KITTYLOG_GAP_THRESHOLD_HOURS=1.0
 KITTYLOG_DATE_GROUPING=daily
+KITTYLOG_LANGUAGE=Spanish
+KITTYLOG_TRANSLATE_HEADINGS=true
 """)
 
         # Create project-level config (should override user config)
         project_env_file = cwd / ".kittylog.env"
-        project_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
+project_env_file.write_text("""KITTYLOG_MODEL=openai:gpt-4
 KITTYLOG_TEMPERATURE=0.5
 KITTYLOG_GROUPING_MODE=gaps
 KITTYLOG_GAP_THRESHOLD_HOURS=2.0
+KITTYLOG_LANGUAGE=French
+KITTYLOG_TRANSLATE_HEADINGS=false
 """)
 
         # Set environment variable (should override everything)
         monkeypatch.setenv("KITTYLOG_MODEL", "groq:llama-4")
+        monkeypatch.setenv("KITTYLOG_LANGUAGE", "de")
 
         config = load_config()
 
@@ -129,6 +148,9 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         # User file provides value not overridden
         assert config["max_output_tokens"] == 1024
         assert config["date_grouping"] == "daily"
+        # Language precedence: env > project > user
+        assert config["language"] == "de"
+        assert config["translate_headings"] is False
 
     def test_load_config_preserves_exported_api_key(self, isolated_config_test, monkeypatch):
         """Environment secrets should not be clobbered by project config files."""
@@ -160,6 +182,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         monkeypatch.setenv("KITTYLOG_GROUPING_MODE", "invalid_mode")
         monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "invalid_number")
         monkeypatch.setenv("KITTYLOG_DATE_GROUPING", "invalid_grouping")
+        monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "notabool")
 
         config = load_config()
 
@@ -171,6 +194,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         assert config["grouping_mode"] == "tags"  # default
         assert config["gap_threshold_hours"] == 4.0  # default
         assert config["date_grouping"] == "daily"  # default
+        assert config["translate_headings"] is False
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -201,6 +225,7 @@ class TestValidateConfig:
             "grouping_mode": "dates",
             "gap_threshold_hours": 4.0,
             "date_grouping": "weekly",
+            "translate_headings": False,
         }
 
         # Should not raise any exception
@@ -278,6 +303,25 @@ class TestValidateConfig:
             validate_config(config)
         assert "log_level" in str(exc_info.value).lower()
 
+    def test_validate_config_invalid_translate_headings(self):
+        """Test validation of invalid translate_headings flag."""
+        config = {
+            "model": "cerebras:qwen-3-coder-480b",
+            "temperature": 0.7,
+            "max_output_tokens": 1024,
+            "max_retries": 3,
+            "log_level": "INFO",
+            "warning_limit_tokens": 16384,
+            "grouping_mode": "tags",
+            "gap_threshold_hours": 4.0,
+            "date_grouping": "daily",
+            "translate_headings": "yes",
+        }
+
+        with pytest.raises(ConfigError) as exc_info:
+            validate_config(config)
+        assert "translate_headings" in str(exc_info.value).lower()
+
     def test_validate_config_invalid_grouping_mode(self):
         """Test validation of invalid grouping_mode."""
         config = {
@@ -345,6 +389,7 @@ class TestValidateConfig:
             "grouping_mode": "tags",
             "gap_threshold_hours": 0.1,  # minimum positive value
             "date_grouping": "daily",
+            "translate_headings": False,
         }
         validate_config(config)
 
@@ -359,6 +404,7 @@ class TestValidateConfig:
             "grouping_mode": "gaps",
             "gap_threshold_hours": 999999.0,
             "date_grouping": "monthly",
+            "translate_headings": True,
         }
         validate_config(config)
 
@@ -373,19 +419,22 @@ class TestConfigurationIntegration:
 
         # Create user config
         user_env_file = home_dir / ".kittylog.env"
-        user_env_file.write_text("""# User configuration
+user_env_file.write_text("""# User configuration
 KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
 KITTYLOG_TEMPERATURE=0.3
+KITTYLOG_LANGUAGE=Italian
+KITTYLOG_TRANSLATE_HEADINGS=false
 ANTHROPIC_API_KEY=sk-ant-user123
 """)
 
         # Create project config
         project_env_file = cwd / ".kittylog.env"
-        project_env_file.write_text("""# Project overrides
+project_env_file.write_text("""# Project overrides
 KITTYLOG_TEMPERATURE=0.7
 KITTYLOG_MAX_OUTPUT_TOKENS=2048
 KITTYLOG_GROUPING_MODE=dates
 KITTYLOG_DATE_GROUPING=weekly
+KITTYLOG_TRANSLATE_HEADINGS=true
 """)
 
         # Load and validate config
@@ -399,6 +448,8 @@ KITTYLOG_DATE_GROUPING=weekly
         assert config["max_retries"] == 3  # default
         assert config["grouping_mode"] == "dates"  # from project
         assert config["date_grouping"] == "weekly"  # from project
+        assert config["language"] == "Italian"  # from user
+        assert config["translate_headings"] is True  # project override
 
         # Check API key is available
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
@@ -456,6 +507,8 @@ KITTYLOG_DATE_GROUPING=monthly
         assert config["grouping_mode"] == "gaps"
         assert config["gap_threshold_hours"] == 3.5
         assert config["date_grouping"] == "monthly"
+        assert config["language"] is None
+        assert config["translate_headings"] is False
 
 
 class TestConfigUtils:

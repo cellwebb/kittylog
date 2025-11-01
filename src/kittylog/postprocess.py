@@ -37,7 +37,7 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
             processed_lines.append("")
 
         # Check if this is a category section header (### Added/Changed/Fixed/etc.)
-        elif re.match(r"^###\s+[A-Z][a-z]+", stripped_line):
+        elif re.match(r"^###\s+\S+", stripped_line):
             # Always add blank line before category header if there are existing lines
             if processed_lines and processed_lines[-1].strip():
                 processed_lines.append("")
@@ -81,7 +81,7 @@ def clean_duplicate_sections(lines: list[str]) -> list[str]:
             current_version_sections = set()
             processed_lines.append(line)
         # Check for category section headers (### Added/Changed/Fixed/etc.)
-        elif re.match(r"^###\s+[A-Z][a-z]+", stripped_line):
+        elif re.match(r"^###\s+\S+", stripped_line):
             # Only check for duplicates within the current version section
             if stripped_line in current_version_sections:
                 continue  # Skip duplicate section header within this version

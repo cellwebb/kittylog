@@ -51,6 +51,7 @@ class TestUpdateCommand:
         assert call_args["dry_run"] is False
         assert call_args["require_confirmation"] is True
         assert call_args["quiet"] is False
+        assert call_args["language"] is None
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_with_all_options(self, mock_main_logic):
@@ -69,6 +70,8 @@ class TestUpdateCommand:
                 "v1.1.0",
                 "--model",
                 "openai:gpt-4",
+                "--language",
+                "es",
                 "--hint",
                 "Focus on breaking changes",
                 "--dry-run",
@@ -89,6 +92,7 @@ class TestUpdateCommand:
         assert call_args["dry_run"] is True
         assert call_args["require_confirmation"] is False
         assert call_args["quiet"] is True
+        assert call_args["language"] == "Spanish"
 
         # Clean up created file
         import os
@@ -109,6 +113,8 @@ class TestUpdateCommand:
                 "CHANGES.md",
                 "-m",
                 "cerebras:qwen-3-coder-480b",
+                "-l",
+                "fr",
                 "-h",
                 "Test hint",
                 "-y",
@@ -124,6 +130,7 @@ class TestUpdateCommand:
         assert call_args["hint"] == "Test hint"
         assert call_args["require_confirmation"] is False  # --yes flag sets this to False
         assert call_args["quiet"] is True
+        assert call_args["language"] == "French"
 
         # Clean up created file
         import os

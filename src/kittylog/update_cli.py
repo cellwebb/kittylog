@@ -8,7 +8,7 @@ import click
 
 from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
 from kittylog.config import load_config
-from kittylog.constants import Logging
+from kittylog.constants import Languages, Logging
 from kittylog.errors import handle_error
 from kittylog.git_operations import get_previous_tag
 from kittylog.main import main_business_logic
@@ -28,6 +28,12 @@ config = load_config()
 @click.option("--to-tag", "-t", default=None, help="Update up to specific tag")
 @click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")
 @click.option("--hint", "-h", default="", help="Additional context for the prompt")
+@click.option(
+    "--language",
+    "-l",
+    default=None,
+    help="Override the language for changelog entries (e.g., 'Spanish', 'es', 'zh-CN')",
+)
 @click.option("--model", "-m", default=None, help="Override default model")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
@@ -44,6 +50,7 @@ def update_version(
     file,
     model,
     hint,
+    language,
     quiet,
     verbose,
     log_level,
@@ -81,6 +88,7 @@ def update_version(
 
         # If no version is specified, process all tags (update behavior)
         if version is None:
+            resolved_language = Languages.resolve_code(language) if language else None
             # Run main business logic with update behavior (process all tags)
             success, token_usage = main_business_logic(
                 changelog_file=file,
@@ -94,6 +102,7 @@ def update_version(
                 dry_run=dry_run,
                 update_all_entries=True,  # Update command processes all entries by default
                 yes=yes,
+                language=resolved_language,
             )
 
             if not success:
@@ -117,6 +126,7 @@ def update_version(
         previous_tag = get_previous_tag(git_version)
 
         # Run main business logic for this specific version
+        resolved_language = Languages.resolve_code(language) if language else None
         success, token_usage = main_business_logic(
             changelog_file=file,
             from_tag=from_tag or previous_tag,  # Use provided from_tag or fallback to previous_tag
@@ -128,6 +138,7 @@ def update_version(
             quiet=quiet,
             dry_run=dry_run,
             yes=yes,
+            language=resolved_language,
         )
 
         if not success:

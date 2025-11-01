@@ -12,10 +12,11 @@ import questionary
 from kittylog import __version__
 from kittylog.config import load_config
 from kittylog.config_cli import config as config_cli
-from kittylog.constants import Logging
+from kittylog.constants import Languages, Logging
 from kittylog.errors import handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
+from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
 from kittylog.output import get_output_manager, set_output_mode
 from kittylog.update_cli import update_version
@@ -41,6 +42,12 @@ def changelog_options(f):
     f = click.option("--to-tag", "-t", default=None, help="Update up to specific tag")(f)
     f = click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")(f)
     f = click.option("--hint", "-h", default="", help="Additional context for the prompt")(f)
+    f = click.option(
+        "--language",
+        "-l",
+        default=None,
+        help="Override the language for changelog entries (e.g., 'Spanish', 'es', 'zh-CN', 'ja')",
+    )(f)
     f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
     f = click.option(
         "--include-diff",
@@ -267,6 +274,7 @@ def add(
     quiet,
     yes,
     hint,
+    language,
     model,
     dry_run,
     verbose,
@@ -339,6 +347,8 @@ def add(
         if final_grouping_mode == "dates" and gap_threshold:
             click.echo("Warning: --gap-threshold is ignored when using --grouping-mode dates", err=True)
 
+        resolved_language = Languages.resolve_code(language) if language else None
+
         # If a specific tag is provided, process only that tag
         if tag:
             # Normalize tag (remove 'v' prefix if present)
@@ -363,6 +373,7 @@ def add(
                 date_grouping=final_date_grouping,
                 yes=yes,
                 include_diff=final_include_diff,
+                language=resolved_language,
             )
         else:
             # Default behavior: process all missing tags
@@ -383,6 +394,7 @@ def add(
                 date_grouping=final_date_grouping,
                 yes=yes,
                 include_diff=final_include_diff,
+                language=resolved_language,
             )
 
         if not success:
@@ -416,6 +428,7 @@ def cli(ctx, version):
             quiet=False,
             yes=False,
             hint="",
+            language=None,
             model=None,
             dry_run=False,
             verbose=False,
@@ -434,9 +447,20 @@ def cli(ctx, version):
 # Add subcommands
 cli.add_command(config_cli)
 cli.add_command(init_cli)
+cli.add_command(language_cli)
 cli.add_command(init_changelog)
 cli.add_command(add)
 cli.add_command(update_version, "update")
+
+
+@click.command(context_settings=language_cli.context_settings)
+@click.pass_context
+def lang(ctx):
+    """Set the language for changelog entries interactively. (Alias for 'language')"""
+    ctx.forward(language_cli)
+
+
+cli.add_command(lang)
 
 
 if __name__ == "__main__":

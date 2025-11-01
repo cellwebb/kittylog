@@ -546,6 +546,8 @@ def update_changelog(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Update changelog with entries for new boundaries.
 
@@ -563,6 +565,8 @@ def update_changelog(
         gap_threshold_hours: Hours threshold for gap detection
         date_grouping: Date grouping granularity ('daily', 'weekly', 'monthly')
         include_diff: Whether to include git diff in AI context (warning: high token usage)
+        language: Optional language override for changelog entries
+        translate_headings: Whether to translate section headings into the selected language
 
     Returns:
         The updated changelog content
@@ -653,6 +657,8 @@ def update_changelog(
         quiet=quiet,
         diff_content=diff_content,
         boundary_mode=grouping_mode,
+        language=language,
+        translate_headings=translate_headings,
     )
 
     # Post-process the AI content to ensure proper formatting
