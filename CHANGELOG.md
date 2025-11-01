@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-31
+
+### Added
+
+- Support for 11 new AI providers including Chutes, DeepSeek, Fireworks, Gemini, LM Studio, MiniMax, Mistral, StreamLake, Synthetic, Together AI, and custom Anthropic/OpenAI endpoints
+- Interactive CLI setup for new AI providers with custom endpoint configuration
+- Special handling for local providers like LM Studio and Ollama with optional API keys and default URLs
+- Expanded environment variable configuration support for new providers
+
+### Changed
+
+- Enhance provider registry system to integrate new AI provider implementations
+- Improve provider integration tests with centralized configuration loading
+- Update documentation to include expanded provider support and configuration guidelines
+
+### Removed
+
+- Monolithic provider file replaced by individual provider modules
+
+### Fixed
+
+- Unit test coverage for new providers including API key validation and error handling scenarios
+
+### Security
+
+- No security vulnerabilities addressed in this release
+
 ## [1.2.0] - 2025-10-04
 
 ### Added
