@@ -81,7 +81,7 @@ setup-dev: ## Complete development setup
 
 run-example: ## Run example usage
 	@echo "Running example changelog update..."
-	python -m changelog_updater update --dry-run --from-tag v0.1.0 --to-tag v0.2.0
+	python -m kittylog.cli --no-interactive --dry-run --from-tag v0.1.0 --to-tag v0.2.0
 
 # Git hooks
 pre-commit: ## Run pre-commit hooks
@@ -119,7 +119,7 @@ bump-major: bump
 # Security
 security-check: ## Run security checks
 	safety check
-	bandit -r src/changelog_updater/
+	bandit -r src/kittylog/
 
 # Dependencies
 update-deps: ## Update dependencies
