@@ -54,4 +54,3 @@ def call_lmstudio_api(model: str, messages: list[dict[str, Any]], temperature: f
         raise AIError.timeout_error(f"LM Studio API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling LM Studio API: {str(e)}") from e
-

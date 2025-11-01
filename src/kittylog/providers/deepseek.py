@@ -36,4 +36,3 @@ def call_deepseek_api(model: str, messages: list[dict], temperature: float, max_
         raise AIError.timeout_error(f"DeepSeek API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling DeepSeek API: {str(e)}") from e
-

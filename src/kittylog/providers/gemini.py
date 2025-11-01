@@ -83,4 +83,3 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
         raise AIError.timeout_error(f"Gemini API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Gemini API: {str(e)}") from e
-

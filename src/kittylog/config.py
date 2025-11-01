@@ -143,7 +143,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     if user_config.exists():
         user_vars = dotenv_values(user_config)
         for key in env_keys:
-            if key in user_vars:
+            if key in user_vars and key not in os.environ:
                 value = user_vars[key]
                 if value is not None:
                     os.environ[key] = value
@@ -151,7 +151,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     if project_env.exists():
         project_vars = dotenv_values(project_env)
         for key in env_keys:
-            if key in project_vars:
+            if key in project_vars and key not in os.environ:
                 value = project_vars[key]
                 if value is not None:
                     os.environ[key] = value
@@ -159,7 +159,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     if project_config_env.exists():
         project_config_vars = dotenv_values(project_config_env)
         for key in env_keys:
-            if key in project_config_vars:
+            if key in project_config_vars and key not in os.environ:
                 value = project_config_vars[key]
                 if value is not None:
                     os.environ[key] = value

@@ -130,7 +130,6 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
         assert config["max_output_tokens"] == 1024
         assert config["date_grouping"] == "daily"
 
-    @pytest.mark.xfail(reason="File-based config currently overwrites exported API keys", strict=True)
     def test_load_config_preserves_exported_api_key(self, isolated_config_test, monkeypatch):
         """Environment secrets should not be clobbered by project config files."""
         home_dir = isolated_config_test["home"]
@@ -143,7 +142,6 @@ KITTYLOG_GAP_THRESHOLD_HOURS=2.0
 
         assert os.getenv("OPENAI_API_KEY") == "from-env"
 
-    @pytest.mark.xfail(reason="Zero values are coerced back to defaults", strict=True)
     def test_load_config_allows_zero_temperature(self, isolated_config_test, monkeypatch):
         """A temperature of zero is valid and should survive validation."""
         monkeypatch.setenv("KITTYLOG_TEMPERATURE", "0")

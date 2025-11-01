@@ -7,6 +7,7 @@ import logging
 import sys
 
 import click
+import questionary
 
 from kittylog import __version__
 from kittylog.config import load_config
@@ -41,6 +42,17 @@ def changelog_options(f):
     f = click.option("--show-prompt", "-p", is_flag=True, help="Show the prompt sent to the LLM")(f)
     f = click.option("--hint", "-h", default="", help="Additional context for the prompt")(f)
     f = click.option("--no-unreleased", is_flag=True, help="Skip creating unreleased section")(f)
+    f = click.option(
+        "--include-diff",
+        is_flag=True,
+        help="Include git diff in AI context (warning: can dramatically increase token usage)",
+    )(f)
+    f = click.option(
+        "--interactive/--no-interactive",
+        "-i",
+        default=True,
+        help="Interactive mode with guided questions for configuration (default: enabled)",
+    )(f)
     f = click.option(
         "--grouping-mode",
         type=click.Choice(["tags", "dates", "gaps"], case_sensitive=False),
@@ -102,6 +114,148 @@ def setup_command_logging(log_level, verbose, quiet):
     set_output_mode(quiet=quiet, verbose=verbose)
 
 
+def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet):
+    """Interactive configuration using questionary prompts.
+
+    Guides users through kittylog configuration with explanations and helpful defaults.
+    Less tech-savvy users get clear guidance and warnings about options like git diff costs.
+    """
+    if quiet:
+        # Skip prompts in quiet mode, use sensible defaults
+        return (
+            grouping_mode or "tags",
+            gap_threshold or 4.0,
+            date_grouping or "daily",
+            include_diff or False,
+            yes or True,  # Auto-accept in quiet mode for scripting
+        )
+
+    from kittylog.output import get_output_manager
+
+    output = get_output_manager()
+    output.echo("🔧 Welcome to kittylog! Let's configure your changelog generation...")
+    output.echo("")
+
+    try:
+        # Grouping mode selection with explanations
+        grouping_mode_choices = [
+            {"name": "Tags (Recommended) - Use git tags for version changes", "value": "tags"},
+            {"name": "Dates - Group commits by time periods (daily/weekly/monthly)", "value": "dates"},
+            {"name": "Gaps - Detect natural breaks in commit timing", "value": "gaps"},
+        ]
+
+        # Use the actual string value as default, not the variable
+        default_grouping = grouping_mode or "tags"
+        selected_grouping = questionary.select(
+            "How would you like to group your changelog entries?", choices=grouping_mode_choices
+        ).ask()
+
+        if not selected_grouping:
+            selected_grouping = default_grouping
+
+        # Mode-specific configuration
+        selected_gap_threshold = gap_threshold or 4.0
+        selected_date_grouping = date_grouping or "daily"
+
+        if selected_grouping == "gaps":
+            output.echo("")
+            output.echo("💡 Gap mode detects natural breaks in your development timeline.")
+
+            gap_threshold_response = questionary.text(
+                "How many hours of silence should indicate a new changelog section?",
+                default=str(gap_threshold or 4.0),
+                validate=lambda text: text.replace(".", "").isdigit() and float(text) > 0,
+            ).ask()
+
+            if not gap_threshold_response:
+                selected_gap_threshold = gap_threshold or 4.0
+            else:
+                selected_gap_threshold = float(gap_threshold_response)
+
+        elif selected_grouping == "dates":
+            output.echo("")
+            output.echo("📅 Date mode groups commits by time periods.")
+
+            date_response = questionary.select(
+                "How would you like to group commits by date?",
+                choices=[
+                    {"name": "Daily - Separate entry for each day", "value": "daily"},
+                    {"name": "Weekly - One entry per week", "value": "weekly"},
+                    {"name": "Monthly - One entry per month", "value": "monthly"},
+                ],
+            ).ask()
+
+            if not date_response:
+                selected_date_grouping = date_grouping or "daily"
+            else:
+                selected_date_grouping = date_response
+
+        # Git diff inclusion with clear warning about costs
+        output.echo("")
+        output.echo("⚠️  Git diff adds detailed code changes to help AI understand context better.")
+        output.echo("   However, this can dramatically increase API costs and processing time!")
+
+        diff_response = questionary.confirm(
+            "Include git diff? (Not recommended for regular use)", default=include_diff or False
+        ).ask()
+
+        if diff_response is None:
+            selected_include_diff = include_diff or False
+        else:
+            selected_include_diff = diff_response
+
+        # Confirmation prompt before proceeding
+        output.echo("")
+        output.echo("✨ Configuration complete!")
+        output.echo("")
+        output.echo("Should kittylog:")
+        output.echo(f"   • Group entries by: {selected_grouping}")
+        if selected_grouping == "gaps":
+            output.echo(f"   • Gap threshold: {selected_gap_threshold} hours")
+        elif selected_grouping == "dates":
+            output.echo(f"   • Date grouping: {selected_date_grouping}")
+        output.echo(f"   • Include git diff: {'Yes (⚠️ higher costs)' if selected_include_diff else 'No'}")
+        output.echo("")
+
+        proceed_response = questionary.confirm("Proceed with this configuration?", default=True).ask()
+
+        if proceed_response is None:
+            raise KeyboardInterrupt()
+
+        if not proceed_response:
+            output.echo("Configuration cancelled. Exiting...")
+            sys.exit(0)
+
+        # Auto-accept prompts for convenience
+        yes_response = questionary.confirm(
+            "Automatically accept generated changelog entries without manual confirmation?", default=True
+        ).ask()
+
+        if yes_response is None:
+            selected_yes = yes or False
+        else:
+            selected_yes = yes_response
+
+        return (selected_grouping, selected_gap_threshold, selected_date_grouping, selected_include_diff, selected_yes)
+
+    except KeyboardInterrupt:
+        output.warning("")
+        output.warning("🛑 Configuration cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        output.warning("")
+        output.warning(f"⚠️  Interactive configuration failed: {e}")
+        output.warning("Falling back to default configuration...")
+
+        return (
+            grouping_mode or "tags",
+            gap_threshold or 4.0,
+            date_grouping or "daily",
+            include_diff or False,
+            yes or False,
+        )
+
+
 @click.command(context_settings={"ignore_unknown_options": True})
 @common_options
 @click.argument("tag", required=False)
@@ -120,35 +274,51 @@ def add(
     all,
     tag,
     no_unreleased,
+    include_diff,
+    interactive,
     grouping_mode,
     gap_threshold,
     date_grouping,
 ):
     """Add missing changelog entries or update a specific tag entry.
 
-    When run without arguments, adds entries for tags missing from changelog.
-    When run with a specific tag, processes only that tag (overwrites if exists).
-    When --all flag is used, updates all entries in changelog.
+        When run without arguments, adds entries for tags missing from changelog.
+        When run with a specific tag, processes only that tag (overwrites if exists).
+        When --all flag is used, updates all entries in changelog.
 
-    BOUNDARY DETECTION MODES:
+        INTERACTIVE MODE:
+        Interactive mode is enabled by default to guide you through configuration options.
+    Use --no-interactive to disable guided setup for automation/advanced usage.
 
-    --grouping-mode tags (default): Use git tags to create changelog sections
-    Example: kittylog --grouping-mode tags
+        BOUNDARY DETECTION MODES:
 
-    --grouping-mode dates: Group commits by time periods
-    Example: kittylog --grouping-mode dates --date-grouping weekly
+        --grouping-mode tags (default): Use git tags to create changelog sections
+        Example: kittylog --grouping-mode tags
 
-    --grouping-mode gaps: Detect natural breaks in commit timing
-    Example: kittylog --grouping-mode gaps --gap-threshold 6.0
+        --grouping-mode dates: Group commits by time periods
+        Example: kittylog --grouping-mode dates --date-grouping weekly
+
+        --grouping-mode gaps: Detect natural breaks in commit timing
+        Example: kittylog --grouping-mode gaps --gap-threshold 6.0
+
+        GIT DIFF OPTION:
+        --include-diff: Add detailed git diff to AI context (⚠️  Warning: can dramatically increase token usage)
     """
     try:
         setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting kittylog")
 
-        # Process and validate boundary detection parameters
+        # Interactive mode configuration (now default behavior)
+        if interactive:
+            grouping_mode, gap_threshold, date_grouping, include_diff, yes = interactive_configuration(
+                grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet
+            )
+
+        # Use interactive or provided values consistently
         final_grouping_mode = grouping_mode or config["grouping_mode"] or "tags"
         final_gap_threshold = gap_threshold or config["gap_threshold_hours"] or 4.0
         final_date_grouping = date_grouping or config["date_grouping"] or "daily"
+        final_include_diff = include_diff or False
 
         # Validate gap threshold
         if final_gap_threshold <= 0:
@@ -192,6 +362,7 @@ def add(
                 gap_threshold_hours=final_gap_threshold,
                 date_grouping=final_date_grouping,
                 yes=yes,
+                include_diff=final_include_diff,
             )
         else:
             # Default behavior: process all missing tags
@@ -211,6 +382,7 @@ def add(
                 gap_threshold_hours=final_gap_threshold,
                 date_grouping=final_date_grouping,
                 yes=yes,
+                include_diff=final_include_diff,
             )
 
         if not success:
@@ -251,6 +423,8 @@ def cli(ctx, version):
             all=False,
             tag=None,
             no_unreleased=False,
+            include_diff=False,
+            interactive=True,
             grouping_mode=None,
             gap_threshold=None,
             date_grouping=None,

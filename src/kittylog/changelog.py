@@ -76,7 +76,8 @@ def find_existing_boundaries(content: str) -> set[str]:
 
     for line in lines:
         # Match patterns like ## [0.1.0], ## [v0.1.0], ## [Unreleased], ## [2024-01-15], ## [Gap-2024-01-15], etc.
-        match = re.match(r"##\s*\[\s*([^\]]+)\s*\]", line, re.IGNORECASE)
+        # Handle nested brackets like ## [[2024-01-03] - January 03, 2024]
+        match = re.match(r"##\s*\[+\s*([^\]]+)\s*\]+", line, re.IGNORECASE)
         if match:
             boundary_name = match.group(1).strip()
             if boundary_name.lower() != "unreleased":
@@ -534,6 +535,7 @@ def update_changelog(
     grouping_mode: str = "tags",
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
+    include_diff: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Update changelog with entries for new boundaries.
 
@@ -550,6 +552,7 @@ def update_changelog(
         grouping_mode: Boundary grouping mode ('tags', 'dates', 'gaps')
         gap_threshold_hours: Hours threshold for gap detection
         date_grouping: Date grouping granularity ('daily', 'weekly', 'monthly')
+        include_diff: Whether to include git diff in AI context (warning: high token usage)
 
     Returns:
         The updated changelog content
@@ -612,13 +615,15 @@ def update_changelog(
     if len(existing_content.strip()) < 50:
         existing_content = create_changelog_header(include_unreleased=not no_unreleased)
 
-    # Get git diff for better context
-    if grouping_mode != "tags":
-        from kittylog.git_operations import get_git_diff_by_boundaries
+    # Get git diff for better context (only if requested)
+    diff_content = ""
+    if include_diff:
+        if grouping_mode != "tags":
+            from kittylog.git_operations import get_git_diff_by_boundaries
 
-        diff_content = get_git_diff_by_boundaries(from_tag, to_tag, grouping_mode)
-    else:
-        diff_content = get_git_diff(from_tag, to_tag)
+            diff_content = get_git_diff_by_boundaries(from_tag, to_tag, grouping_mode)
+        else:
+            diff_content = get_git_diff(from_tag, to_tag)
 
     # Generate AI content for this version
     # For unreleased changes, use "Unreleased" as the tag name

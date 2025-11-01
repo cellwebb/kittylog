@@ -53,4 +53,3 @@ def call_chutes_api(model: str, messages: list[dict], temperature: float, max_to
         raise AIError.timeout_error(f"Chutes.ai API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Chutes.ai API: {str(e)}") from e
-

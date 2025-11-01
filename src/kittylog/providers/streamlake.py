@@ -49,4 +49,3 @@ def call_streamlake_api(model: str, messages: list[dict], temperature: float, ma
         raise AIError.timeout_error(f"StreamLake API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling StreamLake API: {str(e)}") from e
-

@@ -44,6 +44,7 @@ def handle_unreleased_mode(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     yes: bool = False,
+    include_diff: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow for all boundary modes."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
@@ -90,6 +91,7 @@ def handle_unreleased_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         no_unreleased=no_unreleased,
+        include_diff=include_diff,
     )
     logger.debug(f"Updated changelog_content different from original: {updated_content != changelog_content}")
     return updated_content, token_usage
@@ -108,6 +110,7 @@ def handle_auto_mode(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     yes: bool = False,
+    include_diff: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle automatic boundary detection workflow."""
 
@@ -277,6 +280,10 @@ def handle_auto_mode(
             show_prompt=show_prompt,
             quiet=quiet,
             no_unreleased=no_unreleased,
+            grouping_mode=grouping_mode,
+            gap_threshold_hours=gap_threshold_hours,
+            date_grouping=date_grouping,
+            include_diff=include_diff,
         )
 
     # Process unreleased changes if needed (has_unreleased_changes computed above)
@@ -297,6 +304,10 @@ def handle_auto_mode(
             show_prompt=show_prompt,
             quiet=quiet,
             no_unreleased=no_unreleased,
+            grouping_mode=grouping_mode,
+            gap_threshold_hours=gap_threshold_hours,
+            date_grouping=date_grouping,
+            include_diff=include_diff,
         )
 
         # Keep the token usage for display
@@ -317,6 +328,7 @@ def handle_single_boundary_mode(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     yes: bool = False,
+    include_diff: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle single boundary processing workflow."""
     # When only to_boundary is specified, find the previous boundary to use as from_boundary
@@ -388,6 +400,7 @@ def handle_single_boundary_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         no_unreleased=no_unreleased,
+        include_diff=include_diff,
     )
 
     return changelog_content, token_usage
@@ -407,6 +420,7 @@ def handle_boundary_range_mode(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     yes: bool = False,
+    include_diff: bool = False,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle boundary range processing workflow."""
     # Import needed for boundary identifier generation
@@ -490,6 +504,7 @@ def handle_boundary_range_mode(
         show_prompt=show_prompt,
         quiet=quiet,
         no_unreleased=no_unreleased,
+        include_diff=include_diff,
     )
 
     return changelog_content, token_usage
@@ -512,6 +527,7 @@ def main_business_logic(
     gap_threshold_hours: float = 4.0,
     date_grouping: str = "daily",
     yes: bool = False,
+    include_diff: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
     """Main application logic for kittylog.
 
@@ -618,10 +634,11 @@ def main_business_logic(
                     gap_threshold_hours,
                     date_grouping,
                     yes,
+                    include_diff,
                 )
             else:
                 changelog_content, token_usage = handle_unreleased_mode(
-                    changelog_file, model, hint, show_prompt, quiet, no_unreleased, yes=yes
+                    changelog_file, model, hint, show_prompt, quiet, no_unreleased, yes=yes, include_diff=include_diff
                 )
         elif from_tag is None and to_tag is None:
             if grouping_mode != "tags":
@@ -639,6 +656,7 @@ def main_business_logic(
                     gap_threshold_hours,
                     date_grouping,
                     yes,
+                    include_diff,
                 )
             else:
                 changelog_content, token_usage = handle_auto_mode(
@@ -651,6 +669,7 @@ def main_business_logic(
                     special_unreleased_mode,
                     no_unreleased,
                     yes=yes,
+                    include_diff=include_diff,
                 )
         elif to_tag is not None and from_tag is None:
             if grouping_mode != "tags":
@@ -667,10 +686,19 @@ def main_business_logic(
                     gap_threshold_hours,
                     date_grouping,
                     yes,
+                    include_diff,
                 )
             else:
                 changelog_content, token_usage = handle_single_boundary_mode(
-                    changelog_file, to_tag, model, hint, show_prompt, quiet, no_unreleased, yes=yes
+                    changelog_file,
+                    to_tag,
+                    model,
+                    hint,
+                    show_prompt,
+                    quiet,
+                    no_unreleased,
+                    yes=yes,
+                    include_diff=include_diff,
                 )
         else:
             if grouping_mode != "tags":
@@ -689,6 +717,7 @@ def main_business_logic(
                     gap_threshold_hours,
                     date_grouping,
                     yes,
+                    include_diff,
                 )
             else:
                 changelog_content, token_usage = handle_boundary_range_mode(
@@ -702,6 +731,7 @@ def main_business_logic(
                     special_unreleased_mode,
                     no_unreleased,
                     yes=yes,
+                    include_diff=include_diff,
                 )
     except Exception as e:
         handle_error(e)

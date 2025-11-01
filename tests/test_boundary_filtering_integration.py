@@ -106,7 +106,6 @@ def test_boundary_filtering_regression_scenario():
     print("✅ Regression scenario test passes - fix prevents the bug!")
 
 
-@pytest.mark.xfail(reason="Date boundary headers include nested brackets, causing identifier mismatch", strict=True)
 def test_date_boundary_existing_detection_handles_nested_brackets():
     """Existing boundary detection should normalize date headings generated from display names."""
     changelog_content = """# Changelog

@@ -36,4 +36,3 @@ def call_mistral_api(model: str, messages: list[dict], temperature: float, max_t
         raise AIError.timeout_error(f"Mistral API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Mistral API: {str(e)}") from e
-

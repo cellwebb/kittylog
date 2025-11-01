@@ -64,13 +64,7 @@ def init() -> None:
         click.echo("Provider selection cancelled. Exiting.")
         return
 
-    provider_key = (
-        provider.lower()
-        .replace(".", "")
-        .replace(" ", "-")
-        .replace("(", "")
-        .replace(")", "")
-    )
+    provider_key = provider.lower().replace(".", "").replace(" ", "-").replace("(", "").replace(")", "")
 
     is_streamlake = provider_key == "streamlake"
     is_zai_provider = provider_key in {"zai", "zai-coding"}
@@ -88,7 +82,9 @@ def init() -> None:
     else:
         model_suggestion = dict(providers)[provider]
         model_prompt = (
-            "Enter the model (required):" if model_suggestion == "" else f"Enter the model (default: {model_suggestion}):"
+            "Enter the model (required):"
+            if model_suggestion == ""
+            else f"Enter the model (default: {model_suggestion}):"
         )
         model = questionary.text(model_prompt, default=model_suggestion).ask()
         if model is None:

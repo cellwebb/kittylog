@@ -36,4 +36,3 @@ def call_minimax_api(model: str, messages: list[dict], temperature: float, max_t
         raise AIError.timeout_error(f"MiniMax API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling MiniMax API: {str(e)}") from e
-

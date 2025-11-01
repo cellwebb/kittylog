@@ -36,4 +36,3 @@ def call_together_api(model: str, messages: list[dict], temperature: float, max_
         raise AIError.timeout_error(f"Together AI API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Together AI API: {str(e)}") from e
-

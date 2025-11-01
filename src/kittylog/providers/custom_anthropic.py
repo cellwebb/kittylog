@@ -101,4 +101,3 @@ def call_custom_anthropic_api(model: str, messages: list[dict], temperature: flo
         raise
     except Exception as e:
         raise AIError.model_error(f"Error calling Custom Anthropic API: {str(e)}") from e
-

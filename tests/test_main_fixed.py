@@ -369,7 +369,6 @@ class TestMainBusinessLogicFixed:
         mock_write.assert_not_called()
 
 
-@pytest.mark.xfail(reason="Non-tag grouping parameters are lost when invoking update_changelog", strict=True)
 def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     """Ensure date/gap configuration is forwarded to update_changelog."""
     from datetime import datetime, timezone
@@ -409,6 +408,9 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     )
     monkeypatch.setattr(main_module, "get_previous_boundary", lambda *args, **kwargs: None)
     monkeypatch.setattr(main_module, "generate_boundary_identifier", lambda b, mode: b["identifier"])
+    # Mock git operations to prevent actual git repo access
+    monkeypatch.setattr(main_module, "get_latest_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main_module, "is_current_commit_tagged", lambda: False)
 
     main_module.handle_auto_mode(
         changelog_file="CHANGELOG.md",

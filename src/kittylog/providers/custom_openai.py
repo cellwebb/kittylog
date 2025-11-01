@@ -66,4 +66,3 @@ def call_custom_openai_api(model: str, messages: list[dict], temperature: float,
         raise
     except Exception as e:
         raise AIError.model_error(f"Error calling Custom OpenAI API: {str(e)}") from e
-

@@ -36,4 +36,3 @@ def call_fireworks_api(model: str, messages: list[dict], temperature: float, max
         raise AIError.timeout_error(f"Fireworks AI API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Fireworks AI API: {str(e)}") from e
-
