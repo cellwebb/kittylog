@@ -459,10 +459,10 @@ def add(
 
 
 @click.group(invoke_without_command=True)
-@click.option("--version", is_flag=True, help="Show the version of the Changelog Updater tool")
+@click.option("--version", is_flag=True, help="Show the kittylog version")
 @click.pass_context
 def cli(ctx, version):
-    """Changelog Updater - Generate changelog entries from git tags with AI."""
+    """kittylog - Generate polished changelog entries from your git history."""
     if version:
         output = get_output_manager()
         output.echo(f"kittylog version: {__version__}")
