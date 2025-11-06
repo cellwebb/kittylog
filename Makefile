@@ -18,16 +18,16 @@ install-dev: ## Install development dependencies
 
 # Testing
 test: ## Run tests (excluding actual API calls)
-	pytest --ignore=tests/test_actual_provider_integration.py
+	uv run pytest --ignore=tests/test_actual_provider_integration.py
 
 test-all: ## Run all tests including actual API calls
-	pytest
+	uv run pytest
 
 test-coverage: ## Run tests with coverage report
-	pytest --cov=kittylog --cov-report=html --cov-report=term-missing
+	uv run pytest --cov=kittylog --cov-report=html --cov-report=term-missing
 
 test-watch: ## Run tests in watch mode
-	pytest-watch
+	uv run pytest-watch
 
 test-integration: ## Run integration tests only
 	pytest tests/test_integration.py -v

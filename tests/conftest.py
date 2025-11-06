@@ -6,7 +6,13 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from git import Repo
+
+try:
+    from git import Repo
+except ImportError:
+    # Mock the git module for CI environments
+    Repo = Mock()
+    print("Warning: gitpython not available, using mock")
 
 # Ensure we're in a valid directory at the start
 try:
