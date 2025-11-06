@@ -10,8 +10,9 @@ from kittylog.changelog import create_changelog_header, find_existing_boundaries
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages, Logging
 from kittylog.errors import handle_error
-from kittylog.git_operations import get_previous_tag
+from kittylog.git_operations import get_all_tags_with_dates
 from kittylog.main import main_business_logic
+from kittylog.tag_operations import generate_boundary_identifier
 from kittylog.utils import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -133,7 +134,16 @@ def update_version(
                 click.echo(f"Updating existing entry for {version}")
 
         # Get previous tag for commit range
-        previous_tag = get_previous_tag(git_version)
+        all_tags = get_all_tags_with_dates()
+        current_tag_index = None
+        for i, tag in enumerate(all_tags):
+            if tag["identifier"] == git_version:
+                current_tag_index = i
+                break
+
+        previous_tag = None
+        if current_tag_index is not None and current_tag_index > 0:
+            previous_tag = generate_boundary_identifier(all_tags[current_tag_index - 1], "tags")
 
         # Run main business logic for this specific version
         resolved_language = Languages.resolve_code(language) if language else None
