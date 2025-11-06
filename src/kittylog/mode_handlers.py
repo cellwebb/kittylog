@@ -1,0 +1,465 @@
+"""Mode handlers for different changelog processing modes.
+
+This module contains handlers for unreleased mode, single boundary mode,
+range mode, and update-all mode workflows.
+"""
+
+import logging
+
+import click
+
+from kittylog.changelog import (
+    create_changelog_header,
+    find_existing_boundaries,
+    read_changelog,
+    update_changelog,
+)
+from kittylog.git_operations import (
+    generate_boundary_display_name,
+    generate_boundary_identifier,
+    get_all_boundaries,
+    get_commits_between_boundaries,
+    get_commits_between_tags,
+    get_latest_boundary,
+    get_latest_tag,
+    get_previous_boundary,
+    is_current_commit_tagged,
+)
+from kittylog.output import get_output_manager
+from kittylog.utils import determine_next_version
+
+logger = logging.getLogger(__name__)
+
+
+def handle_unreleased_mode(
+    changelog_file: str,
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    no_unreleased: bool,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
+    yes: bool = False,
+    include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
+    audience: str | None = None,
+) -> tuple[str, dict[str, int] | None]:
+    """Handle unreleased changes workflow for all boundary modes."""
+    logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
+    existing_content = read_changelog(changelog_file)
+
+    # If changelog doesn't exist, create header
+    if not existing_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+        logger.info("Created new changelog header")
+    else:
+        changelog_content = existing_content
+
+    logger.debug(f"Existing changelog content: {repr(changelog_content[:200])}")
+
+    # Get latest tag to determine next version
+    latest_tag = get_latest_tag()
+    latest_boundary = get_latest_boundary(grouping_mode)
+
+    # Get commits for version analysis
+    from_boundary = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+    commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
+
+    # Determine next version
+    next_version = determine_next_version(latest_tag, commits)
+
+    # Process only the unreleased section
+    logger.info(f"Processing next version: {next_version}")
+
+    if not quiet:
+        output = get_output_manager()
+        output.processing(f"Processing version {next_version}...")
+
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info(f"Entry to process: {next_version}")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return changelog_content, None
+
+    # Get latest boundary for commit range based on mode
+    # (already calculated above as latest_boundary and from_boundary)
+
+    logger.debug(f"From boundary: {from_boundary}")
+    logger.debug("To boundary: None (unreleased)")
+
+    # Update changelog for this version
+    changelog_content, token_usage = update_changelog(
+        existing_content=changelog_content,
+        from_tag=from_boundary,
+        to_tag=None,  # None indicates unreleased
+        model=model,
+        hint=hint,
+        show_prompt=show_prompt,
+        quiet=quiet,
+        no_unreleased=no_unreleased,
+        include_diff=include_diff,
+        language=language,
+        translate_headings=translate_headings,
+        audience=audience,
+    )
+
+    return changelog_content, token_usage
+
+
+def handle_single_boundary_mode(
+    changelog_file: str,
+    to_boundary: str,
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    no_unreleased: bool,
+    yes: bool = False,
+    include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
+    audience: str | None = None,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
+) -> tuple[str, dict[str, int] | None]:
+    """Handle single boundary processing workflow."""
+    # Read existing changelog content
+    existing_content = read_changelog(changelog_file)
+
+    # If changelog doesn't exist, create header
+    if not existing_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+        logger.info("Created new changelog header")
+    else:
+        changelog_content = existing_content
+
+    # Determine previous boundary for context
+    if grouping_mode != "tags":
+        # Import needed for non-tags mode boundary operations
+        from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
+
+        # For dates/gaps mode, we need to find the boundary object first
+        all_boundaries = get_all_boundaries(
+            mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+        )
+        previous_boundary = None
+        for i, boundary in enumerate(all_boundaries):
+            if generate_boundary_identifier(boundary, grouping_mode) == to_boundary:
+                if i > 0:
+                    previous_boundary = generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
+                break
+    else:
+        # Import needed for tags mode boundary operations
+        from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
+
+        # For tags mode, we need to find the boundary object first
+        target_boundary = None
+        for boundary in get_all_boundaries(mode="tags"):
+            if generate_boundary_identifier(boundary, "tags") == to_boundary:
+                target_boundary = boundary
+                break
+
+        if target_boundary:
+            prev_boundary = get_previous_boundary(target_boundary, "tags")
+            previous_boundary = generate_boundary_identifier(prev_boundary, "tags") if prev_boundary else None
+        else:
+            previous_boundary = None
+
+    if not quiet:
+        output = get_output_manager()
+        output.info(f"Processing boundary {to_boundary} (from {previous_boundary or 'beginning'} to {to_boundary})")
+
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info(f"Entry to process: {to_boundary}")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return changelog_content, None
+
+    # Update changelog for this specific boundary only (overwrite if exists)
+    changelog_content, token_usage = update_changelog(
+        existing_content=changelog_content,
+        from_tag=previous_boundary,
+        to_tag=to_boundary,
+        model=model,
+        hint=hint,
+        show_prompt=show_prompt,
+        quiet=quiet,
+        no_unreleased=no_unreleased,
+        include_diff=include_diff,
+        language=language,
+        translate_headings=translate_headings,
+        audience=audience,
+    )
+
+    return changelog_content, token_usage
+
+
+def handle_boundary_range_mode(
+    changelog_file: str,
+    from_boundary: str | None,
+    to_boundary: str | None,
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    special_unreleased_mode: bool = False,
+    no_unreleased: bool = False,
+    grouping_mode: str = "tags",
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
+    yes: bool = False,
+    include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
+    audience: str | None = None,
+) -> tuple[str, dict[str, int] | None]:
+    """Handle boundary range processing workflow."""
+    # Import needed for boundary identifier generation
+    from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries
+
+    # Process specific boundary range
+    if to_boundary is None and not special_unreleased_mode:
+        latest_boundary = get_latest_boundary(grouping_mode)
+        to_boundary = generate_boundary_identifier(latest_boundary, grouping_mode) if latest_boundary else None
+
+        if to_boundary is None and grouping_mode == "tags":
+            output = get_output_manager()
+            output.error("No tags found in repository.")
+            raise ValueError("No tags found in repository")
+    elif from_boundary is None and to_boundary is not None and not special_unreleased_mode:
+        # When only to_boundary is specified, find the previous boundary to use as from_boundary
+        if grouping_mode != "tags":
+            from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries
+
+            # We need to find the boundary corresponding to to_boundary
+            all_boundaries = get_all_boundaries(
+                mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+            )
+            from_boundary = None
+            for i, boundary in enumerate(all_boundaries):
+                if generate_boundary_identifier(boundary, grouping_mode) == to_boundary:
+                    if i > 0:
+                        from_boundary = generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
+                    break
+        else:
+            # Tags mode - find previous tag
+            all_boundaries = get_all_boundaries(mode="tags")
+            from_boundary = None
+            for i, boundary in enumerate(all_boundaries):
+                if generate_boundary_identifier(boundary, "tags") == to_boundary:
+                    if i > 0:
+                        from_boundary = generate_boundary_identifier(all_boundaries[i - 1], "tags")
+                    break
+
+    # Read existing changelog content
+    existing_content = read_changelog(changelog_file)
+
+    # If changelog doesn't exist, create header
+    if not existing_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+        logger.info("Created new changelog header")
+    else:
+        changelog_content = existing_content
+
+    if not quiet:
+        output = get_output_manager()
+        output.info(
+            f"Processing range from {from_boundary or 'beginning'} to {to_boundary or 'HEAD'} (mode: {grouping_mode})"
+        )
+
+        # Ask for confirmation before making LLM call (unless --yes flag)
+        if not yes:
+            output.info(f"About to generate 1 changelog entry using model: {model}")
+            output.info(f"Range: {from_boundary or 'beginning'} → {to_boundary or 'HEAD'}")
+
+            if not click.confirm("\nProceed with generating changelog entry?", default=True):
+                output.warning("Operation cancelled by user.")
+                return existing_content, None
+
+    # Update changelog for this range
+    changelog_content, token_usage = update_changelog(
+        existing_content=changelog_content,
+        from_tag=from_boundary,
+        to_tag=to_boundary,
+        model=model,
+        hint=hint,
+        show_prompt=show_prompt,
+        quiet=quiet,
+        no_unreleased=no_unreleased,
+        include_diff=include_diff,
+        language=language,
+        translate_headings=translate_headings,
+        audience=audience,
+    )
+
+    return changelog_content, token_usage
+
+
+def handle_update_all_mode(
+    changelog_file: str,
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    no_unreleased: bool,
+    grouping_mode: str,
+    gap_threshold_hours: float,
+    date_grouping: str,
+    yes: bool = False,
+    include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
+    audience: str | None = None,
+) -> tuple[str, dict[str, int] | None]:
+    """Handle update all entries mode."""
+    # Get all boundaries
+    all_boundaries = get_all_boundaries(
+        mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+    )
+
+    # Read existing changelog content and find existing boundaries
+    existing_content = read_changelog(changelog_file)
+    existing_boundaries = find_existing_boundaries(existing_content)
+
+    # Filter to only existing boundaries that need updating
+    boundaries_to_process = []
+    for boundary in all_boundaries:
+        boundary_id = generate_boundary_identifier(boundary, grouping_mode)
+        if boundary_id in existing_boundaries:
+            boundaries_to_process.append(boundary)
+
+    if not quiet:
+        boundary_list = (
+            ", ".join([generate_boundary_display_name(boundary, grouping_mode) for boundary in boundaries_to_process])
+            if boundaries_to_process
+            else "none"
+        )
+        output = get_output_manager()
+        output.info(f"Will update all {len(boundaries_to_process)} existing boundaries: {boundary_list}")
+
+    # If changelog doesn't exist, create header
+    if not existing_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+        logger.info("Created new changelog header")
+    else:
+        changelog_content = existing_content
+
+    # Ask for confirmation before making LLM calls
+    if boundaries_to_process and not quiet and not yes:
+        output = get_output_manager()
+        entry_word = "entry" if len(boundaries_to_process) == 1 else "entries"
+
+        entries_list = [generate_boundary_display_name(boundary, grouping_mode) for boundary in boundaries_to_process]
+        entries_text = ", ".join(entries_list)
+
+        output.info(f"\nAbout to update {len(boundaries_to_process)} changelog {entry_word} using model: {model}")
+        output.info(f"Entries to update: {entries_text}")
+
+        if not click.confirm("\nProceed with updating changelog entries?", default=True):
+            output.warning("Operation cancelled by user.")
+            return existing_content, None
+
+    # Process each boundary
+    total_token_usage: dict[str, int] = {}
+    for boundary in boundaries_to_process:
+        boundary_id = generate_boundary_identifier(boundary, grouping_mode)
+
+        # Get previous boundary for context
+        prev_boundary = get_previous_boundary(boundary, grouping_mode)
+        from_boundary_id = generate_boundary_identifier(prev_boundary, grouping_mode) if prev_boundary else None
+
+        if not quiet:
+            output = get_output_manager()
+            output.processing(f"Updating {generate_boundary_display_name(boundary, grouping_mode)}...")
+
+        # Update this specific boundary (overwrite existing content)
+        changelog_content, token_usage = update_changelog(
+            existing_content=changelog_content,
+            from_tag=from_boundary_id,
+            to_tag=boundary_id,
+            model=model,
+            hint=hint,
+            show_prompt=show_prompt,
+            quiet=quiet,
+            no_unreleased=no_unreleased,
+            include_diff=include_diff,
+            language=language,
+            translate_headings=translate_headings,
+            audience=audience,
+        )
+
+        # Accumulate token usage
+        if token_usage:
+            for key, value in token_usage.items():
+                total_token_usage[key] = total_token_usage.get(key, 0) + value
+
+    return changelog_content, total_token_usage
+
+
+def determine_missing_entries(
+    changelog_file: str,
+    grouping_mode: str,
+    gap_threshold_hours: float,
+    date_grouping: str,
+    no_unreleased: bool,
+    special_unreleased_mode: bool,
+) -> tuple[list, bool]:
+    """Determine which boundaries have missing changelog entries."""
+    # Get all boundaries from git
+    all_boundaries = get_all_boundaries(
+        mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+    )
+
+    # Read existing changelog and find boundaries already covered
+    existing_content = read_changelog(changelog_file)
+    existing_boundaries = find_existing_boundaries(existing_content)
+
+    # Filter to only missing boundaries (exclude ones already in changelog)
+    boundaries_to_process = []
+    for boundary in all_boundaries:
+        boundary_id = generate_boundary_identifier(boundary, grouping_mode)
+        if boundary_id not in existing_boundaries:
+            boundaries_to_process.append(boundary)
+
+    # Check for unreleased changes to include in the count
+    has_unreleased_changes = False
+    latest_boundary = get_latest_boundary(grouping_mode)
+    if latest_boundary and not is_current_commit_tagged():
+        # If the current commit isn't tagged, we have unreleased changes
+        # But only if there are actually commits since the last boundary
+        if grouping_mode == "tags":
+            unreleased_commits = get_commits_between_tags(latest_boundary.get("identifier"), None)
+        else:
+            unreleased_commits = get_commits_between_boundaries(latest_boundary, None, grouping_mode)
+
+        if unreleased_commits:
+            has_unreleased_changes = True
+            # Calculate next version for display
+            latest_tag = get_latest_tag()
+            _ = determine_next_version(latest_tag, unreleased_commits)
+    elif not latest_boundary and not is_current_commit_tagged():
+        # If no boundaries exist in repo at all, check if we have commits
+        if grouping_mode == "tags":
+            all_commits = get_commits_between_tags(None, None)
+        else:
+            all_commits = get_commits_between_boundaries(None, None, grouping_mode)
+        if all_commits:
+            has_unreleased_changes = True
+            # Calculate next version for display (no latest tag)
+            _ = determine_next_version(None, all_commits)
+
+    # If no missing boundaries and no unreleased changes, we're done
+    if not boundaries_to_process and not has_unreleased_changes and not special_unreleased_mode:
+        return [], False
+
+    return boundaries_to_process, has_unreleased_changes
