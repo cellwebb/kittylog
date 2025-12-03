@@ -373,6 +373,19 @@ def isolated_config_test(temp_dir, monkeypatch):
         "OPENAI_API_KEY",
         "GROQ_API_KEY",
         "OLLAMA_HOST",
+        # Clear all KITTYLOG_* environment variables for isolated testing
+        "KITTYLOG_MODEL",
+        "KITTYLOG_TEMPERATURE",
+        "KITTYLOG_MAX_OUTPUT_TOKENS",
+        "KITTYLOG_RETRIES",
+        "KITTYLOG_LOG_LEVEL",
+        "KITTYLOG_WARNING_LIMIT_TOKENS",
+        "KITTYLOG_GROUPING_MODE",
+        "KITTYLOG_GAP_THRESHOLD_HOURS",
+        "KITTYLOG_DATE_GROUPING",
+        "KITTYLOG_LANGUAGE",
+        "KITTYLOG_TRANSLATE_HEADINGS",
+        "KITTYLOG_AUDIENCE",
     ]
 
     for var in env_vars_to_clear:

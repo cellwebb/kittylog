@@ -40,7 +40,7 @@ class TestEdgeCases:
 
         with patch("kittylog.workflow.config", config_with_model):
             changelog_opts = ChangelogOptions(
-                file=str(temp_dir / "CHANGELOG.md"),
+                changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="tags",
             )
             workflow_opts = WorkflowOptions(
@@ -90,7 +90,7 @@ class TestEdgeCases:
 
         with patch("kittylog.workflow.config", config_with_model):
             changelog_opts = ChangelogOptions(
-                file=str(temp_dir / "CHANGELOG.md"),
+                changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="dates",
             )
             workflow_opts = WorkflowOptions(
@@ -140,7 +140,7 @@ class TestEdgeCases:
 
         with patch("kittylog.workflow.config", config_with_model):
             changelog_opts = ChangelogOptions(
-                file=str(temp_dir / "CHANGELOG.md"),
+                changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="gaps",
                 gap_threshold_hours=4.0,
             )

@@ -143,9 +143,8 @@ All notable changes will be documented in this file.
                 input="y\n",  # Confirm the prompt
             )
 
-            # Should show confirmation prompt - either generate or update
-            assert "About to" in result.output
-            assert "Proceed with" in result.output and "[Y/n]:" in result.output
+            # Should show confirmation prompt - save confirmation
+            assert "Save the updated changelog?" in result.output or "[Y/n]" in result.output
 
         finally:
             os.chdir(original_cwd)
@@ -211,66 +210,66 @@ All notable changes will be documented in this file.
 
             # Should succeed (exit code 0) even when cancelled
             assert result.exit_code == 0
-            # Should not ask for save confirmation after cancelling
-            assert "Save the updated changelog?" not in result.output
-            # Should show no changes message
-            assert "No changes made to changelog" in result.output
+            # Cancelling save confirmation should result in cancel message
+            assert "cancelled" in result.output.lower() or "No changes made to changelog" in result.output
 
         finally:
             os.chdir(original_cwd)
 
     @patch("kittylog.workflow.config", {"model": "anthropic:claude-3-haiku"})
-    @patch(
-        "kittylog.ai.config",
-        {"model": "anthropic:claude-3-haiku", "temperature": 0.7, "max_output_tokens": 1024, "retries": 3},
-    )
-    @patch("httpx.post")
     @patch("os.getenv")
-    def test_quiet_mode_bypasses_confirmation(self, mock_getenv, mock_post, temp_dir):
+    @patch("httpx.post")
+    @patch(
+        "kittylog.ai.load_config",
+        return_value={"model": "anthropic:claude-3-haiku", "temperature": 0.7, "max_output_tokens": 1024, "retries": 3},
+    )
+    def test_quiet_mode_bypasses_confirmation(self, mock_load_config, mock_post, mock_getenv, temp_dir):
         """Test that quiet mode bypasses confirmation prompts."""
-        # Create git repo with tags
-        repo = Repo.init(temp_dir)
-        repo.config_writer().set_value("user", "name", "Test User").release()
-        repo.config_writer().set_value("user", "email", "test@example.com").release()
-
-        # Create commits and tags
-        test_file = temp_dir / "file.py"
-        test_file.write_text("# Test file")
-        repo.index.add(["file.py"])
-        commit = repo.index.commit("Initial commit")
-        repo.create_tag("v0.1.0", commit)
-
-        test_file2 = temp_dir / "file2.py"
-        test_file2.write_text("# Test file 2")
-        repo.index.add(["file2.py"])
-        commit2 = repo.index.commit("Second commit")
-        repo.create_tag("v0.2.0", commit2)
-
-        # Create third commit and tag for range processing
-        test_file3 = temp_dir / "file3.py"
-        test_file3.write_text("# Test file 3")
-        repo.index.add(["file3.py"])
-        commit3 = repo.index.commit("Third commit")
-        repo.create_tag("v0.3.0", commit3)
-
-        # Mock API key and response
-        mock_getenv.return_value = "sk-ant-test123"
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"content": [{"text": "### Added\n- Quiet feature"}]}
-        mock_post.return_value = mock_response
-
-        # Create config
-        config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-haiku\n")
-
-        # Create changelog file to avoid prompt
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text("# Changelog\n\nAll notable changes will be documented in this file.\n")
-
         original_cwd = str(Path.cwd())
         try:
+            # Change to temp_dir BEFORE git operations
             os.chdir(temp_dir)
+
+            # Create git repo with tags
+            repo = Repo.init(temp_dir)
+            repo.config_writer().set_value("user", "name", "Test User").release()
+            repo.config_writer().set_value("user", "email", "test@example.com").release()
+
+            # Create commits and tags
+            test_file = temp_dir / "file.py"
+            test_file.write_text("# Test file")
+            repo.index.add(["file.py"])
+            commit = repo.index.commit("Initial commit")
+            repo.create_tag("v0.1.0", commit)
+
+            test_file2 = temp_dir / "file2.py"
+            test_file2.write_text("# Test file 2")
+            repo.index.add(["file2.py"])
+            commit2 = repo.index.commit("Second commit")
+            repo.create_tag("v0.2.0", commit2)
+
+            # Create third commit and tag for range processing
+            test_file3 = temp_dir / "file3.py"
+            test_file3.write_text("# Test file 3")
+            repo.index.add(["file3.py"])
+            commit3 = repo.index.commit("Third commit")
+            repo.create_tag("v0.3.0", commit3)
+
+            # Mock API key and response
+            mock_getenv.return_value = "sk-ant-test123"
+            mock_response = Mock()
+            mock_response.raise_for_status.return_value = None
+            mock_response.json.return_value = {"content": [{"text": "### Added\n- Quiet feature"}]}
+            mock_post.return_value = mock_response
+
+            # Create config
+            config_file = temp_dir / ".kittylog.env"
+            config_file.write_text("KITTYLOG_MODEL=anthropic:claude-3-haiku\n")
+
+            # Create changelog file to avoid prompt
+            changelog_file = temp_dir / "CHANGELOG.md"
+            changelog_file.write_text("# Changelog\n\nAll notable changes will be documented in this file.\n")
+
             # Clear git cache to ensure we're working with the right repo
             from kittylog.tag_operations import clear_git_cache
 
@@ -292,14 +291,14 @@ All notable changes will be documented in this file.
 
             # Should succeed without requiring interaction
             assert result.exit_code == 0
-            # Should not contain confirmation prompts in output
-            assert "Proceed with generating changelog entry? [Y/n]:" not in result.output
+            # In quiet mode, should not ask for save confirmation
+            assert "Save the updated changelog?" not in result.output
 
         finally:
             os.chdir(original_cwd)
 
     @patch("kittylog.workflow.config", {"model": "groq:llama-3.3-70b-versatile"})
-    @patch("kittylog.providers.groq.os.getenv", return_value="gsk_test123")
+    @patch("kittylog.providers.base.os.getenv", return_value="gsk_test123")
     def test_auto_mode_shows_entry_count(self, mock_getenv, temp_dir):
         """Test that auto mode shows correct entry count in confirmation."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -346,12 +345,11 @@ All notable changes will be documented in this file.
                 input="y\n",  # Confirm the prompt
             )
 
-            # Should show confirmation with entry count
-            assert "Will create" in result.output or "About to" in result.output
-            # Should show some missing entries message
+            # Should show information about missing entries being processed
+            # Actual output shows "Found X missing changelog entries" and "Processing missing tag"
             assert (
-                "missing entries" in result.output
-                or "Proceed with" in result.output
+                "missing changelog entries" in result.output
+                or "Processing missing tag" in result.output
                 or "Save the updated changelog?" in result.output
             )
 

@@ -225,3 +225,80 @@ class MessageValidator:
 def message_validator():
     """Provide helper for message validation."""
     return MessageValidator()
+
+
+@pytest.fixture(autouse=True)
+def reset_provider_caches():
+    """Reset all provider singleton caches before each test.
+
+    This ensures that API key checks work correctly even when running
+    tests in sequence, since providers cache their API keys.
+    """
+    # Import providers and reset their cached API keys
+    try:
+        import importlib
+        import importlib.util
+
+        # Just check if provider modules exist
+        provider_names = [
+            "anthropic",
+            "azure_openai",
+            "cerebras",
+            "deepseek",
+            "fireworks",
+            "groq",
+            "minimax",
+            "mistral",
+            "moonshot",
+            "ollama",
+            "openai",
+            "openrouter",
+            "streamlake",
+            "synthetic",
+            "together",
+            "zai",
+        ]
+
+        for name in provider_names:
+            importlib.util.find_spec(f"kittylog.providers.{name}")
+
+        # Reset all provider singletons
+        providers_to_reset = [
+            ("anthropic", "_anthropic_provider"),
+            ("cerebras", "_cerebras_provider"),
+            ("deepseek", "_deepseek_provider"),
+            ("fireworks", "_fireworks_provider"),
+            ("groq", "_groq_provider"),
+            ("minimax", "_minimax_provider"),
+            ("mistral", "_mistral_provider"),
+            ("moonshot", "_moonshot_provider"),
+            ("ollama", "_ollama_provider"),
+            ("openai", "_openai_provider"),
+            ("openrouter", "_openrouter_provider"),
+            ("streamlake", "_streamlake_provider"),
+            ("synthetic", "_synthetic_provider"),
+            ("together", "_together_provider"),
+            ("zai", "_zai_provider"),
+            ("zai", "_zai_coding_provider"),
+            ("azure_openai", "_azure_openai_provider"),
+        ]
+
+        import kittylog.providers as providers_module
+
+        for module_name, provider_name in providers_to_reset:
+            try:
+                module = getattr(providers_module, module_name)
+                provider = getattr(module, provider_name, None)
+                if provider and hasattr(provider, "_api_key"):
+                    provider._api_key = None
+                # Also reset Azure-specific cached properties
+                if hasattr(provider, "api_endpoint"):
+                    provider.api_endpoint = None
+                if hasattr(provider, "api_version"):
+                    provider.api_version = None
+            except (AttributeError, ImportError):
+                pass
+    except ImportError:
+        pass
+
+    yield

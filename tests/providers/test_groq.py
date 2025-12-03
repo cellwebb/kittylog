@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 class TestGroqProvider:
     """Test Groq provider functionality."""
 
-    @patch("kittylog.providers.groq.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
     def test_call_groq_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Groq API call."""
@@ -54,7 +54,7 @@ class TestGroqProvider:
 
         assert "GROQ_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.groq.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
     def test_call_groq_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Groq API call handles HTTP errors."""
@@ -72,7 +72,7 @@ class TestGroqProvider:
 
         assert "Error calling Groq API" in str(exc_info.value)
 
-    @patch("kittylog.providers.groq.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
     def test_call_groq_api_general_error(self, mock_post, dummy_messages):
         """Test Groq API call handles general errors."""
@@ -108,7 +108,7 @@ class TestGroqProvider:
 
         assert len(result) > 0  # Any response is considered success
 
-    @patch("kittylog.providers.groq.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
     def test_call_groq_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -131,7 +131,7 @@ class TestGroqProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.groq.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
     def test_call_groq_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

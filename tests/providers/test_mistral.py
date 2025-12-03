@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.mistral.ai/v1/chat/completions"
 class TestMistralProvider:
     """Test Mistral provider functionality."""
 
-    @patch("kittylog.providers.mistral.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"MISTRAL_API_KEY": API_KEY})
     def test_call_mistral_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Mistral API call."""
@@ -54,7 +54,7 @@ class TestMistralProvider:
 
         assert "MISTRAL_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.mistral.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"MISTRAL_API_KEY": API_KEY})
     def test_call_mistral_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Mistral API call handles HTTP errors."""
@@ -72,7 +72,7 @@ class TestMistralProvider:
 
         assert "Mistral API error" in str(exc_info.value) or "Error calling Mistral API" in str(exc_info.value)
 
-    @patch("kittylog.providers.mistral.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"MISTRAL_API_KEY": API_KEY})
     def test_call_mistral_api_general_error(self, mock_post, dummy_messages):
         """Test Mistral API call handles general errors."""
@@ -88,7 +88,7 @@ class TestMistralProvider:
 
         assert "Error calling Mistral API" in str(exc_info.value)
 
-    @patch("kittylog.providers.mistral.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"MISTRAL_API_KEY": API_KEY})
     def test_call_mistral_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestMistralProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.mistral.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"MISTRAL_API_KEY": API_KEY})
     def test_call_mistral_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

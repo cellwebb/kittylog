@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 class TestOpenAIProvider:
     """Test OpenAI provider functionality."""
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful OpenAI API call."""
@@ -54,7 +54,7 @@ class TestOpenAIProvider:
 
         assert "OPENAI_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test OpenAI API call handles HTTP errors."""
@@ -72,7 +72,7 @@ class TestOpenAIProvider:
 
         assert "Error calling OpenAI API" in str(exc_info.value)
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_general_error(self, mock_post, dummy_messages):
         """Test OpenAI API call handles general errors."""
@@ -108,7 +108,7 @@ class TestOpenAIProvider:
 
         assert len(result) > 0  # Any response is considered success
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -131,7 +131,7 @@ class TestOpenAIProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper
@@ -152,7 +152,7 @@ class TestOpenAIProvider:
         data = api_test_helper.extract_call_data(mock_post)
         assert len(data["messages"]) == 3
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_different_models(
         self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper, openai_models
@@ -173,7 +173,7 @@ class TestOpenAIProvider:
             data = api_test_helper.extract_call_data(mock_post)
             assert data["model"] == model
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_with_json_mode(
         self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper
@@ -195,7 +195,7 @@ class TestOpenAIProvider:
         data = api_test_helper.extract_call_data(mock_post)
         assert data["response_format"] == {"type": "json_object"}
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_empty_response(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test OpenAI API call handles empty response."""
@@ -211,7 +211,7 @@ class TestOpenAIProvider:
 
         assert result == ""  # Empty string should be returned
 
-    @patch("kittylog.providers.openai.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_no_choices(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test OpenAI API call handles response with no choices."""

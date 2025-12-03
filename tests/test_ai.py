@@ -26,7 +26,7 @@ class TestGenerateChangelogEntry:
         mock_generate.return_value = "Raw AI content"
         mock_clean.return_value = "Cleaned AI content"
 
-        with patch("kittylog.ai.config", mock_config):
+        with patch("kittylog.ai.load_config", return_value=mock_config):
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
@@ -51,7 +51,7 @@ class TestGenerateChangelogEntry:
         mock_count_tokens.return_value = 100
 
         with (
-            patch("kittylog.ai.config", mock_config),
+            patch("kittylog.ai.load_config", return_value=mock_config),
             patch("kittylog.ai.generate_with_retries") as mock_generate,
             patch("kittylog.ai.clean_changelog_content") as mock_clean,
         ):
@@ -73,7 +73,7 @@ class TestGenerateChangelogEntry:
 
     def test_generate_changelog_entry_no_model(self, sample_commits):
         """Test error when no model is specified."""
-        with patch("kittylog.ai.config", {"model": None}):
+        with patch("kittylog.ai.load_config", return_value={"model": None}):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,
@@ -93,7 +93,7 @@ class TestGenerateChangelogEntry:
         mock_count_tokens.return_value = 100
         mock_generate.side_effect = Exception("AI service error")
 
-        with patch("kittylog.ai.config", mock_config), pytest.raises(AIError):
+        with patch("kittylog.ai.load_config", return_value=mock_config), pytest.raises(AIError):
             generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
@@ -330,7 +330,7 @@ class TestAIIntegration:
 
         mock_clean.return_value = mock_response.json.return_value["choices"][0]["message"]["content"]
 
-        with patch("kittylog.ai.config", mock_config):
+        with patch("kittylog.ai.load_config", return_value=mock_config):
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
@@ -363,7 +363,7 @@ class TestAIIntegration:
 
     def test_ai_error_propagation(self, sample_commits):
         """Test that AI errors are properly propagated."""
-        with patch("kittylog.ai.config", {"model": None}):
+        with patch("kittylog.ai.load_config", return_value={"model": None}):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,
@@ -395,7 +395,7 @@ class TestProviderRegistry:
 
     def test_supported_providers_is_sorted(self):
         """Test that SUPPORTED_PROVIDERS is sorted alphabetically."""
-        assert SUPPORTED_PROVIDERS == sorted(PROVIDER_REGISTRY.keys()), (
+        assert sorted(PROVIDER_REGISTRY.keys()) == SUPPORTED_PROVIDERS, (
             "SUPPORTED_PROVIDERS should be sorted alphabetically"
         )
 

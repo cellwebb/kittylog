@@ -1,9 +1,9 @@
 """Tests for CLI module."""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from kittylog.cli import cli
@@ -52,7 +52,7 @@ class TestUpdateCommand:
 
         # Check changelog_opts
         changelog_opts = call_args["changelog_opts"]
-        assert changelog_opts.file == "CHANGELOG.md"
+        assert changelog_opts.changelog_file == "CHANGELOG.md"
 
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
@@ -100,7 +100,7 @@ class TestUpdateCommand:
 
         # Check changelog_opts
         changelog_opts = call_args["changelog_opts"]
-        assert changelog_opts.file == "CHANGES.md"
+        assert changelog_opts.changelog_file == "CHANGES.md"
         assert changelog_opts.from_tag == "v1.0.0"
         assert changelog_opts.to_tag == "v1.1.0"
 
@@ -149,7 +149,7 @@ class TestUpdateCommand:
 
         # Check changelog_opts
         changelog_opts = call_args["changelog_opts"]
-        assert changelog_opts.file == "CHANGES.md"
+        assert changelog_opts.changelog_file == "CHANGES.md"
 
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
@@ -232,8 +232,8 @@ class TestConfigCommand:
         # The functionality is verified by manual testing
         pass
 
-    @patch("kittylog.config_cli.set_key")
-    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
+    @patch("kittylog.config.cli.set_key")
+    @patch("kittylog.config.cli.KITTYLOG_ENV_PATH")
     def test_config_set(self, mock_path, mock_set_key):
         """Test config set command."""
         mock_path.touch = Mock()
@@ -246,8 +246,8 @@ class TestConfigCommand:
         mock_set_key.assert_called_once()
         assert "Set TEST_KEY" in result.output
 
-    @patch("kittylog.config_cli.load_dotenv")
-    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
+    @patch("kittylog.config.cli.load_dotenv")
+    @patch("kittylog.config.cli.KITTYLOG_ENV_PATH")
     @patch("os.getenv")
     def test_config_get_existing_key(self, mock_getenv, mock_path, mock_load_dotenv):
         """Test config get for existing key."""
@@ -259,8 +259,8 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "test_value" in result.output
 
-    @patch("kittylog.config_cli.load_dotenv")
-    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
+    @patch("kittylog.config.cli.load_dotenv")
+    @patch("kittylog.config.cli.KITTYLOG_ENV_PATH")
     @patch("os.getenv")
     def test_config_get_nonexistent_key(self, mock_getenv, mock_path, mock_load_dotenv):
         """Test config get for non-existent key."""
@@ -272,7 +272,7 @@ class TestConfigCommand:
         assert result.exit_code == 0
         assert "NONEXISTENT not set" in result.output
 
-    @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
+    @patch("kittylog.config.cli.KITTYLOG_ENV_PATH")
     def test_config_unset_no_file(self, mock_path):
         """Test config unset when no config file exists."""
         mock_path.exists.return_value = False
