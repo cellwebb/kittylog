@@ -118,7 +118,14 @@ kittylog -m "openai:gpt-4"
 1. Clone the repo
 2. Install dependencies with `uv pip install -e ".[dev,test]"` or use `make install-dev`
 3. Install pre-commit hooks with `pre-commit install` (or use `make install-dev` which does this automatically)
-4. Run tests with `pytest` or `make test`
+4. Run tests with `uv run pytest` or `make test`
+
+**Important for AI Agents:** Always use `uv run` prefix for Python commands:
+- Use `uv run python` instead of `python`
+- Use `uv run pytest` instead of `pytest`
+- Use `uv run python -m pytest` for specific test modules
+- Use `uv run python -c "..."` for inline Python execution
+- Use `uv run ruff check/format` instead of `ruff check/format`
 
 ### Development Commands
 
@@ -131,12 +138,20 @@ make test               # Run tests
 make test-coverage      # Run tests with coverage report
 make test-integration   # Run integration tests only
 make test-watch         # Run tests in watch mode
+# Agent-specific commands:
+uv run pytest                               # Run tests directly
+uv run python -m pytest tests/module.py    # Run specific test module
+uv run python -m pytest tests/module.py::test_name  # Run specific test
 
 # Code Quality
 make lint               # Run linting (ruff check and mypy)
 make format             # Format code (ruff format)
 make check              # Run both linting and tests
 make pre-commit         # Run all pre-commit hooks
+# Agent-specific commands:
+uv run ruff check .                        # Run linting directly
+uv run ruff format .                       # Format code directly
+uv run mypy src/                          # Run type checking directly
 
 # Other
 make clean              # Clean build artifacts
@@ -155,6 +170,7 @@ make quickstart         # Quick setup for new contributors
 - Use conventional commit messages
 - All code quality checks are run through pre-commit hooks
 - Use `uv` or `uvx` for package management and tool execution instead of `pip` when possible, including for tools like `ruff`
+- **For AI agents:** ALWAYS use `uv run` prefix for executing Python, pytest, ruff, mypy, and other development tools to ensure proper environment isolation and dependency management
 
 ## AI Integration
 
@@ -263,8 +279,18 @@ The project has comprehensive test coverage with 200+ tests. Tests are written u
 
 ```bash
 make test
-# or
-pytest
+# or (for agents)
+uv run pytest
+# or (for specific modules)
+uv run python -m pytest tests/test_config.py
+# or (for specific tests)
+uv run python -m pytest tests/test_config.py::TestLoadConfig::test_load_config_from_user_env_file
 ```
+
+**Important for AI Agents:**
+- Always use `uv run pytest` instead of `pytest` to ensure proper dependency resolution
+- Use `uv run python -m pytest` for more control over test execution
+- When running individual tests, use the full module path format
+- All test execution should go through `uv run` to maintain consistency
 
 Tests are isolated from global configuration files to prevent side effects during execution.

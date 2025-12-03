@@ -34,17 +34,16 @@ test-integration: ## Run integration tests only
 
 # Code Quality
 lint: ## Run linting
-	ruff check .
-	mypy src/kittylog
+	uv run ruff check .
 
 format: ## Format code
-	ruff format .
-	ruff check --fix .
+	uv run ruff format .
+	uv run ruff check --fix .
 
 type-check: ## Run static type checks
-	mypy src/kittylog
+	uv run mypy src/kittylog
 
-check: lint test ## Run all checks (lint + test)
+check: lint type-check test ## Run all checks (lint + type-check + test)
 
 # Cleaning
 clean: ## Clean build artifacts
