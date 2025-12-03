@@ -78,7 +78,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
     result: _OAuthResult
     received_event: threading.Event
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         """Handle GET request from OAuth redirect."""
         logger.info("OAuth callback received: path=%s", self.path)
         parsed = urlparse(self.path)
@@ -99,7 +99,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
         self.received_event.set()
 
-    def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+    def log_message(self, format: str, *args: Any) -> None:
         """Suppress HTTP server logs."""
         return
 
