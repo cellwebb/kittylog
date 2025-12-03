@@ -7,7 +7,7 @@ for changelog files.
 import logging
 from pathlib import Path
 
-# create_changelog_header is defined below to avoid circular import
+from kittylog.errors import ChangelogError
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +61,9 @@ def write_changelog(file_path: str, content: str) -> None:
         Path(file_path).write_text(content, encoding="utf-8")
 
         logger.info(f"Successfully wrote changelog to {file_path}")
-    except Exception as e:
+    except (PermissionError, FileNotFoundError, OSError) as e:
         logger.error(f"Error writing changelog file: {e}")
-        raise
+        raise ChangelogError(f"Failed to write changelog file: {e}") from e
 
 
 def ensure_changelog_exists(file_path: str, no_unreleased: bool = False) -> str:

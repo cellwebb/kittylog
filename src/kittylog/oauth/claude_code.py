@@ -329,7 +329,7 @@ def perform_oauth_flow(quiet: bool = False) -> dict[str, Any] | None:
         print("✓ Authorization code received")
         print("  Exchanging for access token...\n")
 
-    tokens = exchange_code_for_tokens(result.code, context)  # type: ignore[arg-type]
+    tokens = exchange_code_for_tokens(result.code, context)  # type: ignore[arg-type]  # result.code is validated as non-None above
     if not tokens:
         if not quiet:
             print("❌ Token exchange failed. Please try again.")

@@ -295,6 +295,7 @@ def with_error_handling(
             except Exception as e:
                 # Create a specific error with our message and the original error
                 specific_error = error_type(f"{error_message}: {e}")
+                specific_error.__cause__ = e  # Preserve traceback chain
                 # Handle the error using our standardized handler
                 handle_error(specific_error, quiet=quiet, exit_program=exit_on_error)
                 return None
