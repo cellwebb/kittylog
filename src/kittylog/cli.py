@@ -14,7 +14,7 @@ from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.config_cli import config as config_cli
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
-from kittylog.init_changelog import init_changelog
+from kittylog.init_changelog_cli import init_changelog
 from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
