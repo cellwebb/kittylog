@@ -17,7 +17,8 @@ from kittylog.changelog_parser import (
     find_unreleased_section,
     limit_bullets_in_sections,
 )
-from kittylog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date, is_current_commit_tagged
+from kittylog.commit_analyzer import get_commits_between_tags, get_git_diff
+from kittylog.tag_operations import get_tag_date, is_current_commit_tagged
 from kittylog.postprocess import remove_unreleased_sections
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ def handle_unreleased_section_update(
     audience: str | None,
 ) -> str:
     """Handle updating the unreleased section of the changelog."""
-    from kittylog.git_operations import get_latest_tag
+    from kittylog.tag_operations import get_latest_tag
 
     logger.debug("Processing unreleased section with intelligent behavior")
 
@@ -220,7 +221,7 @@ def _update_unreleased_section(
     current_commit_is_tagged: bool,
 ) -> str:
     """Handle updating the unreleased section of the changelog with intelligent behavior."""
-    from kittylog.git_operations import get_latest_tag
+    from kittylog.tag_operations import get_latest_tag
 
     logger.debug("Processing unreleased section with intelligent behavior")
 

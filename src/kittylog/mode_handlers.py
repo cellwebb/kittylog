@@ -14,16 +14,18 @@ from kittylog.changelog import (
     read_changelog,
     update_changelog,
 )
-from kittylog.git_operations import (
+from kittylog.tag_operations import (
     generate_boundary_display_name,
     generate_boundary_identifier,
     get_all_boundaries,
-    get_commits_between_boundaries,
-    get_commits_between_tags,
     get_latest_boundary,
     get_latest_tag,
     get_previous_boundary,
     is_current_commit_tagged,
+)
+from kittylog.commit_analyzer import (
+    get_commits_between_boundaries,
+    get_commits_between_tags,
 )
 from kittylog.output import get_output_manager
 from kittylog.utils import determine_next_version

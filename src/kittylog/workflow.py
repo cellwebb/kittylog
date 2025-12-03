@@ -13,7 +13,7 @@ from kittylog.changelog import read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
-from kittylog.git_operations import get_all_boundaries
+from kittylog.tag_operations import get_all_boundaries
 from kittylog.mode_handlers import (
     handle_boundary_range_mode,
     handle_single_boundary_mode,
@@ -235,7 +235,7 @@ def validate_workflow_prereqs(
     """
     import os
 
-    from kittylog.git_operations import get_repo
+    from kittylog.tag_operations import get_repo
 
     # Validate changelog file is writable
     try:

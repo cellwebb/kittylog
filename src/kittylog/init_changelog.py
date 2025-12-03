@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
-from kittylog.git_operations import get_all_tags
+from kittylog.tag_operations import get_all_tags
 
 logger = logging.getLogger(__name__)
 

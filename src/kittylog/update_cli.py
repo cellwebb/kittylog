@@ -10,7 +10,7 @@ from kittylog.changelog import create_changelog_header, find_existing_boundaries
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
-from kittylog.git_operations import get_all_tags_with_dates
+from kittylog.commit_analyzer import get_all_tags_with_dates
 from kittylog.main import main_business_logic
 from kittylog.tag_operations import generate_boundary_identifier
 from kittylog.utils import setup_logging
