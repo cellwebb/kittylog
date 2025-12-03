@@ -343,3 +343,62 @@ def is_version_in_changelog(content: str, version: str) -> bool:
             return True
 
     return False
+
+
+def extract_preceding_entries(content: str, n: int = 3) -> str:
+    """Extract the N most recent changelog entries for context.
+
+    This provides preceding entries to help AI understand the existing
+    changelog style, format, and level of detail.
+
+    Args:
+        content: The changelog content
+        n: Number of preceding entries to extract (default 3)
+
+    Returns:
+        String containing the extracted entries, or empty string if none found
+    """
+    if n <= 0 or not content:
+        return ""
+
+    lines = content.split("\n")
+    entries = []
+    current_entry_lines: list[str] = []
+    in_entry = False
+
+    for line in lines:
+        # Check for version header (not Unreleased)
+        match = re.match(r"##\s*\[\s*([^\]]+)\s*\]", line, re.IGNORECASE)
+        if match:
+            version = match.group(1).strip()
+            # Skip unreleased section
+            if version.lower() == "unreleased":
+                continue
+
+            # Save previous entry if we were in one
+            if in_entry and current_entry_lines:
+                entries.append("\n".join(current_entry_lines))
+                if len(entries) >= n:
+                    break
+
+            # Start new entry
+            current_entry_lines = [line]
+            in_entry = True
+        elif in_entry:
+            # Stop at the next major header (# )
+            if line.startswith("# ") and not line.startswith("## "):
+                break
+            current_entry_lines.append(line)
+
+    # Don't forget the last entry if we're still in one
+    if in_entry and current_entry_lines and len(entries) < n:
+        entries.append("\n".join(current_entry_lines))
+
+    if not entries:
+        return ""
+
+    # Format for context
+    header = (
+        f"## Previous {len(entries)} Changelog {'Entry' if len(entries) == 1 else 'Entries'} (for style reference):\n\n"
+    )
+    return header + "\n\n---\n\n".join(entries[:n])
