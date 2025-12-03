@@ -33,15 +33,15 @@ def call_kimi_coding_api(model: str, messages: list[dict], temperature: float, m
         if not choices or not isinstance(choices, list):
             logger.error(f"Unexpected response format from Kimi Coding API. Response: {json.dumps(response_data)}")
             raise AIError.model_error(
-                f"Kimi Coding API returned unexpected format. Expected OpenAI-compatible response with "
-                f"'choices[0].message.content', but got: missing choices. Check logs for full response structure."
+                "Kimi Coding API returned unexpected format. Expected OpenAI-compatible response with "
+                "'choices[0].message.content', but got: missing choices. Check logs for full response structure."
             )
         content = choices[0].get("message", {}).get("content")
         if content is None:
             logger.error(f"Unexpected response format from Kimi Coding API. Response: {json.dumps(response_data)}")
             raise AIError.model_error(
-                f"Kimi Coding API returned unexpected format. Expected OpenAI-compatible response with "
-                f"'choices[0].message.content', but got: missing content. Check logs for full response structure."
+                "Kimi Coding API returned unexpected format. Expected OpenAI-compatible response with "
+                "'choices[0].message.content', but got: missing content. Check logs for full response structure."
             )
 
         if content is None:

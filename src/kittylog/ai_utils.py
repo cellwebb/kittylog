@@ -6,7 +6,7 @@ This module contains retry logic and other AI utilities.
 import logging
 import time
 
-from kittylog.config import _secure_config, inject_provider_keys
+from kittylog.config import inject_provider_keys
 from kittylog.errors import AIError
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,9 @@ def generate_with_retries(
             # Use SecureConfig to temporarily inject API keys for this provider
             provider_mapping = provider_mappings.get(provider, {})
             with inject_provider_keys(provider, provider_mapping):
-                content = provider_func(model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                content = provider_func(
+                    model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens
+                )
 
             if content:
                 return content.strip()

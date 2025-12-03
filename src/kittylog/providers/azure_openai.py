@@ -67,21 +67,16 @@ def call_azure_openai_api(model: str, messages: list[dict], temperature: float, 
         if not choices or not isinstance(choices, list):
             logger.error(f"Unexpected response format from Azure OpenAI API. Response: {json.dumps(response_data)}")
             raise AIError.model_error(
-                f"Azure OpenAI API returned unexpected format. Expected response with "
-                f"'choices[0].message.content', but got: missing choices. Check logs for full response structure."
+                "Azure OpenAI API returned unexpected format. Expected response with "
+                "'choices[0].message.content', but got: missing choices. Check logs for full response structure."
             )
         content = choices[0].get("message", {}).get("content")
         if content is None:
             logger.error(f"Unexpected response format from Azure OpenAI API. Response: {json.dumps(response_data)}")
             raise AIError.model_error(
-                f"Azure OpenAI API returned unexpected format. Expected response with "
-                f"'choices[0].message.content', but got: missing content. Check logs for full response structure."
+                "Azure OpenAI API returned unexpected format. Expected response with "
+                "'choices[0].message.content', but got: missing content. Check logs for full response structure."
             )
-            logger.error(f"Unexpected response format from Azure OpenAI API. Response: {json.dumps(response_data)}")
-            raise AIError.model_error(
-                f"Azure OpenAI API returned unexpected format. Expected response with "
-                f"'choices[0].message.content', but got: {type(e).__name__}. Check logs for full response structure."
-            ) from e
 
         if content is None:
             raise AIError.model_error("Azure OpenAI API returned null content")

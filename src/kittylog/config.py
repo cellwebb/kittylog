@@ -461,7 +461,7 @@ def load_config() -> dict:
     ]
 
     # Extract API keys for secure return without polluting os.environ
-    api_keys = {}
+    api_keys: dict[str, str | None] = {}
     for var in api_key_vars:
         # Check environment variables first (highest precedence)
         env_value = os.getenv(var)
@@ -643,7 +643,7 @@ def load_config() -> dict:
 
     # Add API keys to the config dictionary for secure access
     config["api_keys"] = api_keys
-    
+
     return config
 
 

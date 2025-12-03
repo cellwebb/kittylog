@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 __all__ = [
-    "KittylogError",
-    "ConfigError", 
-    "GitError",
     "AIError",
     "ChangelogError",
-    "handle_error",
-    "format_error_for_user",
+    "ConfigError",
+    "GitError",
+    "KittylogError",
     "classify_error",
+    "format_error_for_user",
+    "handle_error",
 ]
 
 
