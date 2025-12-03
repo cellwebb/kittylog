@@ -52,9 +52,7 @@ def ensure_newlines_around_section_headers(lines: list[str]) -> list[str]:
     # Remove excess trailing empty lines but ensure file ends with a single newline
     while processed_lines and not processed_lines[-1].strip() and len(processed_lines) > 1:
         processed_lines.pop()
-    if processed_lines and processed_lines[-1].strip():
-        processed_lines.append("")
-    elif not processed_lines:
+    if (processed_lines and processed_lines[-1].strip()) or not processed_lines:
         processed_lines.append("")
 
     return processed_lines

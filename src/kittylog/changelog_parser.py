@@ -216,10 +216,8 @@ def find_insertion_point_by_version(content: str, new_version: str) -> int:
         match = re.match(r"##\s*\[\s*([^\]]+)\s*\]", line, re.IGNORECASE)
         if match:
             version_text = match.group(1).strip()
-            if version_text.lower() != "unreleased":
-                # Extract version from the text (handle dates and other formats)
-                if re.match(r"v?\d+\.\d+", version_text):
-                    version_positions.append((i, version_text, version_key(version_text)))
+            if version_text.lower() != "unreleased" and re.match(r"v?\d+\.\d+", version_text):
+                version_positions.append((i, version_text, version_key(version_text)))
 
     # If no version sections found, use the original insertion point logic
     if not version_positions:
