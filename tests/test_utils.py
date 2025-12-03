@@ -213,7 +213,7 @@ Is there anything else you'd like me to adjust?"""
 class TestSetupLogging:
     """Test setup_logging function."""
 
-    @patch("kittylog.utils_logging.logging")
+    @patch("kittylog.utils.logging.logging")
     def test_setup_logging_debug(self, mock_logging):
         """Test setting up debug logging."""
         setup_logging("DEBUG")
@@ -222,7 +222,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.DEBUG
 
-    @patch("kittylog.utils_logging.logging")
+    @patch("kittylog.utils.logging.logging")
     def test_setup_logging_info(self, mock_logging):
         """Test setting up info logging."""
         setup_logging("INFO")
@@ -230,7 +230,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.INFO
 
-    @patch("kittylog.utils_logging.logging")
+    @patch("kittylog.utils.logging.logging")
     def test_setup_logging_warning(self, mock_logging):
         """Test setting up warning logging (default)."""
         setup_logging("WARNING")
@@ -238,7 +238,7 @@ class TestSetupLogging:
         call_args = mock_logging.basicConfig.call_args[1]
         assert call_args["level"] == mock_logging.WARNING
 
-    @patch("kittylog.utils_logging.logging")
+    @patch("kittylog.utils.logging.logging")
     def test_setup_logging_invalid_level(self, mock_logging):
         """Test handling of invalid log level."""
         import logging

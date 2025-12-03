@@ -23,7 +23,7 @@ def run_subprocess_with_encoding(
     Returns:
         CompletedProcess with results
     """
-    from kittylog.utils_logging import get_safe_encodings
+    from .logging import get_safe_encodings
 
     encodings_to_try = [*get_safe_encodings(), encoding] if encoding else []
 
@@ -95,7 +95,7 @@ def exit_with_error(message: str, exit_code: int = 1) -> NoReturn:
         message: Error message to display
         exit_code: Exit code to use
     """
-    from kittylog.utils_logging import print_message
+    from .logging import print_message
 
     print_message(message, "error")
     exit(exit_code)

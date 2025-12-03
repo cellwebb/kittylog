@@ -4,18 +4,18 @@ This module provides a unified interface to all utility functions.
 """
 
 # Import all utility functions from specialized modules
-from .utils_commit import format_commit_for_display
-from .utils_logging import (
+from .commit import format_commit_for_display
+from .logging import (
     get_safe_encodings,
     print_message,
     setup_logging,
 )
-from .utils_system import (
+from .system import (
     exit_with_error,
     run_subprocess,
     run_subprocess_with_encoding,
 )
-from .utils_text import (
+from .text import (
     clean_changelog_content,
     count_tokens,
     determine_next_version,
