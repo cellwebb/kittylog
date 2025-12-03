@@ -1,5 +1,39 @@
 # Qwen Code Context for kittylog
 
+## 🚨 CRITICAL: AI AGENT COMMAND REQUIREMENTS
+
+**ALWAYS use `uv run` prefix for ALL Python-related commands. NEVER use vanilla commands.**
+
+### ✅ CORRECT (Always use these):
+```bash
+uv run python script.py          # NEVER: python script.py
+uv run pytest                    # NEVER: pytest
+uv run python -m pytest tests/   # NEVER: python -m pytest tests/
+uv run python -c "print('test')" # NEVER: python -c "print('test')"
+uv run ruff check .              # NEVER: ruff check .
+uv run ruff format .             # NEVER: ruff format .
+uv run mypy src/                 # NEVER: mypy src/
+uv run pip install package      # NEVER: pip install package
+```
+
+### ❌ FORBIDDEN (Never use these):
+- `python` (any form)
+- `pytest` (any form) 
+- `pip` (any form)
+- `ruff` (any form)
+- `mypy` (any form)
+- `black`, `isort`, `flake8`, or any other Python tools
+
+**Why?** All development tools must go through `uv run` to ensure:
+- Proper environment isolation
+- Consistent dependency resolution
+- No interference with global Python installations
+- Reliable tool execution across different systems
+
+**This requirement is NON-NEGOTIABLE for AI agents working with this project.**
+
+---
+
 ## Project Overview
 
 **kittylog** is an AI-powered changelog generator that automatically analyzes git tags and commits to create well-structured changelog entries following the [Keep a Changelog](https://keepachangelog.com/) format. The tool uses multiple AI providers to categorize changes into sections like Added, Changed, Fixed, etc.
@@ -116,16 +150,20 @@ kittylog -m "openai:gpt-4"
 ## Development Setup
 
 1. Clone the repo
-2. Install dependencies with `uv pip install -e ".[dev,test]"` or use `make install-dev`
-3. Install pre-commit hooks with `pre-commit install` (or use `make install-dev` which does this automatically)
+2. Install dependencies with `uv run pip install -e ".[dev,test]"` or use `make install-dev`
+3. Install pre-commit hooks with `uv run pre-commit install` (or use `make install-dev` which does this automatically)
 4. Run tests with `uv run pytest` or `make test`
 
-**Important for AI Agents:** Always use `uv run` prefix for Python commands:
+**🚨 REMINDER FOR AI AGENTS:** ALL Python commands MUST use `uv run` prefix:
 - Use `uv run python` instead of `python`
 - Use `uv run pytest` instead of `pytest`
 - Use `uv run python -m pytest` for specific test modules
 - Use `uv run python -c "..."` for inline Python execution
 - Use `uv run ruff check/format` instead of `ruff check/format`
+- Use `uv run pip install` instead of `pip install`
+- Use `uv run pre-commit install` instead of `pre-commit install`
+
+**NO EXCEPTIONS!**
 
 ### Development Commands
 
@@ -287,10 +325,11 @@ uv run python -m pytest tests/test_config.py
 uv run python -m pytest tests/test_config.py::TestLoadConfig::test_load_config_from_user_env_file
 ```
 
-**Important for AI Agents:**
-- Always use `uv run pytest` instead of `pytest` to ensure proper dependency resolution
-- Use `uv run python -m pytest` for more control over test execution
-- When running individual tests, use the full module path format
-- All test execution should go through `uv run` to maintain consistency
+**🚨 CRITICAL FOR AI AGENTS:**
+- **ALWAYS** use `uv run pytest` instead of `pytest`
+- **ALWAYS** use `uv run python -m pytest` for specific modules
+- **ALWAYS** use full module path format for individual tests
+- **NEVER** use any form of testing command without `uv run` prefix
+- All test execution MUST go through `uv run` to maintain consistency
 
 Tests are isolated from global configuration files to prevent side effects during execution.
