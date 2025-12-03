@@ -87,18 +87,18 @@ def generate_with_retries(
 
             if error_type in ["authentication", "model_not_found", "context_length"]:
                 # Don't retry these errors
-                raise AIError.generation_error(f"AI generation failed: {str(e)}") from e
+                raise AIError.generation_error(f"AI generation failed: {e!s}") from e
 
             if attempt < max_retries - 1:
                 # Exponential backoff
                 wait_time = 2**attempt
                 if not quiet:
-                    logger.warning(f"AI generation failed (attempt {attempt + 1}), retrying in {wait_time}s: {str(e)}")
+                    logger.warning(f"AI generation failed (attempt {attempt + 1}), retrying in {wait_time}s: {e!s}")
                 time.sleep(wait_time)
             else:
-                logger.error(f"AI generation failed after {max_retries} attempts: {str(e)}")
+                logger.error(f"AI generation failed after {max_retries} attempts: {e!s}")
 
     # If we get here, all retries failed
     raise AIError.generation_error(
-        f"AI generation failed after {max_retries} attempts: {str(last_exception)}"
+        f"AI generation failed after {max_retries} attempts: {last_exception!s}"
     ) from last_exception

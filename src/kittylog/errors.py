@@ -205,7 +205,7 @@ def handle_error(error: Exception, exit_program: bool = False, quiet: bool = Fal
     error_message = format_error_for_user(error)
     output = get_output_manager()
     output.error(error_message)
-    logger.error(f"Error: {str(error)}")
+    logger.error(f"Error: {error!s}")
 
     if isinstance(error, GitError):
         logger.error("Git operation failed. Please check your repository status.")
@@ -260,7 +260,7 @@ def format_error_for_user(error: Exception) -> str:
     }
 
     # Generic remediation for unexpected errors
-    if not any(isinstance(error, t) for t in remediation_steps.keys()):
+    if not any(isinstance(error, t) for t in remediation_steps):
         return f"{base_message}\n\nIf this issue persists, please report it as a bug."
 
     # Get remediation steps for the specific error type
