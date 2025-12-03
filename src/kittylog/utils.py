@@ -13,6 +13,19 @@ from rich.theme import Theme
 from kittylog.constants import Logging, Utility
 from kittylog.errors import KittylogError
 
+__all__ = [
+    "print_message",
+    "count_tokens", 
+    "format_commit_for_display",
+    "clean_changelog_content",
+    "truncate_text",
+    "is_semantic_version",
+    "normalize_tag",
+    "find_changelog_file",
+    "get_changelog_file_patterns",
+    "determine_next_version",
+]
+
 logger = logging.getLogger(__name__)
 
 

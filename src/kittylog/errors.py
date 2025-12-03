@@ -10,6 +10,16 @@ from kittylog.output import get_output_manager
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
+__all__ = [
+    "KittylogError",
+    "ConfigError", 
+    "GitError",
+    "AIError",
+    "ChangelogError",
+    "handle_error",
+    "format_error_for_user",
+]
+
 
 class KittylogError(Exception):
     """Base exception class for all kittylog errors."""
