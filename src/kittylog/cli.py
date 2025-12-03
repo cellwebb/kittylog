@@ -13,11 +13,12 @@ from kittylog import __version__
 from kittylog.config import load_config
 from kittylog.config_cli import config as config_cli
 from kittylog.constants import Audiences, Languages, Logging
-from kittylog.errors import handle_error
+from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
+from kittylog.ui.prompts import interactive_configuration
 from kittylog.output import get_output_manager, set_output_mode
 from kittylog.update_cli import update_version
 from kittylog.utils import setup_logging
@@ -128,180 +129,7 @@ def setup_command_logging(log_level, verbose, quiet):
     set_output_mode(quiet=quiet, verbose=verbose)
 
 
-def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience=None):
-    """Interactive configuration using questionary prompts.
-
-    Guides users through kittylog configuration with explanations and helpful defaults.
-    Less tech-savvy users get clear guidance and warnings about options like git diff costs.
-    """
-    if quiet:
-        # Skip prompts in quiet mode, use sensible defaults
-        return (
-            grouping_mode or "tags",
-            gap_threshold or 4.0,
-            date_grouping or "daily",
-            include_diff or False,
-            yes or True,  # Auto-accept in quiet mode for scripting
-            audience or (config.get("audience") if isinstance(config, dict) else None) or "stakeholders",
-        )
-
-    from kittylog.output import get_output_manager
-
-    output = get_output_manager()
-    output.echo("🔧 Welcome to kittylog! Let's configure your changelog generation...")
-    output.echo("")
-
-    try:
-        # Grouping mode selection with explanations
-        grouping_mode_choices = [
-            {"name": "Tags (Recommended) - Use git tags for version changes", "value": "tags"},
-            {"name": "Dates - Group commits by time periods (daily/weekly/monthly)", "value": "dates"},
-            {"name": "Gaps - Detect natural breaks in commit timing", "value": "gaps"},
-        ]
-
-        # Use the actual string value as default, not the variable
-        default_grouping = grouping_mode or "tags"
-        selected_grouping = questionary.select(
-            "How would you like to group your changelog entries?", choices=grouping_mode_choices
-        ).ask()
-
-        if not selected_grouping:
-            selected_grouping = default_grouping
-
-        # Mode-specific configuration
-        selected_gap_threshold = gap_threshold or 4.0
-        selected_date_grouping = date_grouping or "daily"
-
-        if selected_grouping == "gaps":
-            output.echo("")
-            output.echo("💡 Gap mode detects natural breaks in your development timeline.")
-
-            gap_threshold_response = questionary.text(
-                "How many hours of silence should indicate a new changelog section?",
-                default=str(gap_threshold or 4.0),
-                validate=lambda text: text.replace(".", "").isdigit() and float(text) > 0,
-            ).ask()
-
-            if not gap_threshold_response:
-                selected_gap_threshold = gap_threshold or 4.0
-            else:
-                selected_gap_threshold = float(gap_threshold_response)
-
-        elif selected_grouping == "dates":
-            output.echo("")
-            output.echo("📅 Date mode groups commits by time periods.")
-
-            date_response = questionary.select(
-                "How would you like to group commits by date?",
-                choices=[
-                    {"name": "Daily - Separate entry for each day", "value": "daily"},
-                    {"name": "Weekly - One entry per week", "value": "weekly"},
-                    {"name": "Monthly - One entry per month", "value": "monthly"},
-                ],
-            ).ask()
-
-            if not date_response:
-                selected_date_grouping = date_grouping or "daily"
-            else:
-                selected_date_grouping = date_response
-
-        # Audience selection
-        output.echo("")
-        output.echo("👥 Who is your changelog for? This affects the tone and detail level.")
-
-        audience_choices = [
-            Audiences.OPTIONS[0],  # ("Developers (engineering-focused)", "developers", "...")
-            Audiences.OPTIONS[1],  # ("End Users (product-focused)", "users", "...")
-            Audiences.OPTIONS[2],  # ("Product & Stakeholders", "stakeholders", "...")
-        ]
-
-        # Create formatted choices for questionary
-        formatted_audience_choices = [
-            {"name": f"{option[0]}\n   {option[2]}", "value": option[1]} for option in audience_choices
-        ]
-
-        selected_audience = questionary.select(
-            "Who are you writing this changelog for?", choices=formatted_audience_choices
-        ).ask()
-
-        # Fallback if user cancels or something goes wrong
-        if not selected_audience:
-            config_audience = config.get("audience", "stakeholders") if isinstance(config, dict) else "stakeholders"
-            selected_audience = audience or config_audience or "stakeholders"
-
-        # Git diff inclusion with clear warning about costs
-        output.echo("")
-        output.echo("⚠️  Git diff adds detailed code changes to help AI understand context better.")
-        output.echo("   However, this can dramatically increase API costs and processing time!")
-
-        diff_response = questionary.confirm(
-            "Include git diff? (Not recommended for regular use)", default=include_diff or False
-        ).ask()
-
-        if diff_response is None:
-            selected_include_diff = include_diff or False
-        else:
-            selected_include_diff = diff_response
-
-        # Confirmation prompt before proceeding
-        output.echo("")
-        output.echo("✨ Configuration complete!")
-        output.echo("")
-        output.echo("Should kittylog:")
-        output.echo(f"   • Group entries by: {selected_grouping}")
-        output.echo(f"   • Target audience: {selected_audience}")
-        if selected_grouping == "gaps":
-            output.echo(f"   • Gap threshold: {selected_gap_threshold} hours")
-        elif selected_grouping == "dates":
-            output.echo(f"   • Date grouping: {selected_date_grouping}")
-        output.echo(f"   • Include git diff: {'Yes (⚠️ higher costs)' if selected_include_diff else 'No'}")
-        output.echo("")
-
-        proceed_response = questionary.confirm("Proceed with this configuration?", default=True).ask()
-
-        if proceed_response is None:
-            raise KeyboardInterrupt()
-
-        if not proceed_response:
-            output.echo("Configuration cancelled. Exiting...")
-            sys.exit(0)
-
-        # Auto-accept prompts for convenience
-        yes_response = questionary.confirm(
-            "Automatically accept generated changelog entries without manual confirmation?", default=True
-        ).ask()
-
-        if yes_response is None:
-            selected_yes = yes or False
-        else:
-            selected_yes = yes_response
-
-        return (
-            selected_grouping,
-            selected_gap_threshold,
-            selected_date_grouping,
-            selected_include_diff,
-            selected_yes,
-            selected_audience,
-        )
-
-    except KeyboardInterrupt:
-        output.warning("")
-        output.warning("🛑 Configuration cancelled by user.")
-        sys.exit(1)
-    except Exception as e:
-        output.warning("")
-        output.warning(f"⚠️  Interactive configuration failed: {e}")
-        output.warning("Falling back to default configuration...")
-
-        return (
-            grouping_mode or "tags",
-            gap_threshold or 4.0,
-            date_grouping or "daily",
-            include_diff or False,
-            yes or False,
-            audience or (config.get("audience") if isinstance(config, dict) else None) or "stakeholders",
-        )
+# Interactive configuration is now imported from kittylog.ui.prompts
 
 
 @click.command(context_settings={"ignore_unknown_options": True})
@@ -453,7 +281,7 @@ def add(
         output = get_output_manager()
         output.warning("Operation cancelled by user.")
         sys.exit(1)
-    except Exception as e:
+    except (ConfigError, GitError, AIError, ChangelogError) as e:
         handle_error(e)
         sys.exit(1)
 
