@@ -9,7 +9,7 @@ import click
 from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages, Logging
-from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
+from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.git_operations import get_all_tags_with_dates
 from kittylog.main import main_business_logic
 from kittylog.tag_operations import generate_boundary_identifier
@@ -100,7 +100,7 @@ def update_version(
             resolved_language = Languages.resolve_code(language) if language else None
             resolved_audience = Audiences.resolve(audience) if audience else None
             # Run main business logic with update behavior (process all tags)
-            success, token_usage = main_business_logic(
+            success, _token_usage = main_business_logic(
                 changelog_file=file,
                 from_tag=from_tag,
                 to_tag=to_tag,
@@ -128,10 +128,9 @@ def update_version(
         existing_content = read_changelog(file)
         existing_tags = find_existing_boundaries(existing_content)
 
-        if normalized_version in existing_tags:
+        if normalized_version in existing_tags and not quiet:
             # When updating a specific version, always overwrite existing entry
-            if not quiet:
-                click.echo(f"Updating existing entry for {version}")
+            click.echo(f"Updating existing entry for {version}")
 
         # Get previous tag for commit range
         all_tags = get_all_tags_with_dates()
@@ -148,7 +147,7 @@ def update_version(
         # Run main business logic for this specific version
         resolved_language = Languages.resolve_code(language) if language else None
         resolved_audience = Audiences.resolve(audience) if audience else None
-        success, token_usage = main_business_logic(
+        success, _token_usage = main_business_logic(
             changelog_file=file,
             from_tag=from_tag or previous_tag,  # Use provided from_tag or fallback to previous_tag
             to_tag=git_version,

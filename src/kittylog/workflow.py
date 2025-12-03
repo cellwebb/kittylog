@@ -5,13 +5,14 @@ workflow including mode selection, boundary processing, and coordination.
 """
 
 import logging
+from pathlib import Path
 
 import click
 
 from kittylog.changelog import read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages
-from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
+from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.git_operations import get_all_boundaries
 from kittylog.mode_handlers import (
     handle_boundary_range_mode,
@@ -221,46 +222,48 @@ def validate_workflow_prereqs(
     grouping_mode: str,
 ) -> None:
     """Perform early validation of workflow requirements.
-    
+
     Args:
         changelog_file: Path to changelog file
         gap_threshold_hours: Gap threshold for date/gaps mode
         grouping_mode: The boundary grouping mode
-        
+
     Raises:
         ChangelogError: If changelog file is not writable
         GitError: If git repository is invalid
         ConfigError: If gap_threshold_hours is invalid
     """
     import os
+
     from kittylog.git_operations import get_repo
-    
+
     # Validate changelog file is writable
     try:
         # Check if we can write to the directory
-        changelog_dir = os.path.dirname(os.path.abspath(changelog_file))
-        if not os.access(changelog_dir, os.W_OK):
+        changelog_dir = Path(changelog_file).resolve().parent
+        if not os.access(str(changelog_dir), os.W_OK):
             raise ChangelogError(f"Cannot write to changelog directory: {changelog_dir}")
-        
+
         # If file exists, check if it's writable
-        if os.path.exists(changelog_file) and not os.access(changelog_file, os.W_OK):
+        changelog_path = Path(changelog_file)
+        if changelog_path.exists() and not os.access(changelog_file, os.W_OK):
             raise ChangelogError(f"Changelog file is not writable: {changelog_file}")
-            
+
     except OSError as e:
-        raise ChangelogError(f"Cannot access changelog file: {e}")
-    
+        raise ChangelogError(f"Cannot access changelog file: {e}") from e
+
     # Validate git repository exists and is valid
     try:
         get_repo()  # This will raise GitError if invalid
     except Exception as e:
-        raise GitError(f"Invalid git repository: {e}")
-    
+        raise GitError(f"Invalid git repository: {e}") from e
+
     # Validate gap threshold bounds
     if grouping_mode in ["gaps", "dates"] and (gap_threshold_hours <= 0 or gap_threshold_hours > 168):  # 1 week max
         raise ConfigError(
             f"gap_threshold_hours must be between 0 and 168, got: {gap_threshold_hours}",
             config_key="gap_threshold_hours",
-            config_value=str(gap_threshold_hours)
+            config_value=str(gap_threshold_hours),
         )
 
 
@@ -276,28 +279,27 @@ def validate_and_setup_workflow(
     """Validate inputs and setup workflow parameters."""
     # Early validation
     validate_workflow_prereqs(changelog_file, gap_threshold_hours, grouping_mode)
-    
+
     # Auto-detect changelog file if using default
     if changelog_file == "CHANGELOG.md":
         changelog_file = find_changelog_file()
         logger.debug(f"Auto-detected changelog file: {changelog_file}")
 
     # Determine language preferences (CLI overrides config)
-    effective_language = language.strip() if isinstance(language, str) else None
+    effective_language = language.strip() if language else None
     if not effective_language:
         config_language_value = config.get("language")
-        effective_language = config_language_value.strip() if isinstance(config_language_value, str) else None
+        effective_language = config_language_value.strip() if config_language_value else None
 
     if effective_language:
         effective_language = Languages.resolve_code(effective_language)
 
     translate_headings_value = config.get("translate_headings")
-    translate_headings = bool(translate_headings_value) if isinstance(translate_headings_value, bool) else False
+    translate_headings = translate_headings_value is True  # Explicit True check, False/None → False
     if not effective_language:
         translate_headings = False
 
-    config_audience_value = config.get("audience")
-    config_audience = config_audience_value if isinstance(config_audience_value, str) else None
+    config_audience = config.get("audience")
     effective_audience = Audiences.resolve(audience) if audience else Audiences.resolve(config_audience)
 
     # Validate we're in a git repository and have boundaries
@@ -415,15 +417,9 @@ def main_business_logic(
 
     # Get model from config if not specified
     if not model:
-        try:
-            model_from_config = config.get("model", "openai:gpt-4")
-            assert isinstance(model_from_config, str)  # for mypy
-            model = model_from_config
-        except (AssertionError, TypeError) as e:
-            if str(e):
-                handle_error(e)
-            else:
-                handle_error(Exception("No model specified in config"))
+        model = config.get("model")
+        if not model:
+            handle_error(Exception("No model specified in config"))
             return False, None
 
     # Store original content for change detection
@@ -433,8 +429,8 @@ def main_business_logic(
     try:
         existing_content, token_usage = process_workflow_modes(
             changelog_file=changelog_file,
-            from_boundary=from_tag,
-            to_boundary=to_tag,
+            from_tag=from_tag,
+            to_tag=to_tag,
             model=model,
             hint=hint,
             show_prompt=show_prompt,

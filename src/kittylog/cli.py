@@ -7,19 +7,18 @@ import logging
 import sys
 
 import click
-import questionary
 
 from kittylog import __version__
 from kittylog.config import load_config
 from kittylog.config_cli import config as config_cli
 from kittylog.constants import Audiences, Languages, Logging
-from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
+from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
-from kittylog.ui.prompts import interactive_configuration
 from kittylog.output import get_output_manager, set_output_mode
+from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
 from kittylog.utils import setup_logging
 
@@ -221,7 +220,7 @@ def add(
 
         resolved_language = Languages.resolve_code(language) if language else None
         # Use interactively selected audience first, then command-line audience, then config/default
-        config_audience = config.get("audience") if isinstance(config, dict) else None
+        config_audience = config.get("audience")
         final_audience = selected_audience or audience or config_audience
         resolved_audience = Audiences.resolve(final_audience) if final_audience else None
 
@@ -233,7 +232,7 @@ def add(
             git_tag = f"v{normalized_tag}" if not tag.startswith("v") else tag
 
             # For specific tags, always overwrite the entry
-            success, token_usage = main_business_logic(
+            success, _token_usage = main_business_logic(
                 changelog_file=file,
                 from_tag=from_tag,  # Will use get_previous_tag in main logic if None
                 to_tag=git_tag,  # Process the specific tag
