@@ -64,8 +64,8 @@ def get_all_commits_chronological() -> list[dict]:
         return commits
 
     except Exception as e:
-        logger.error(f"Failed to get commits: {str(e)}")
-        raise GitError(f"Failed to get commits: {str(e)}") from e
+        logger.error(f"Failed to get commits: {e!s}")
+        raise GitError(f"Failed to get commits: {e!s}") from e
 
 
 @cache
@@ -102,8 +102,8 @@ def get_all_tags_with_dates() -> list[dict]:
         return tags
 
     except Exception as e:
-        logger.error(f"Failed to get tags with dates: {str(e)}")
-        raise GitError(f"Failed to get tags with dates: {str(e)}") from e
+        logger.error(f"Failed to get tags with dates: {e!s}")
+        raise GitError(f"Failed to get tags with dates: {e!s}") from e
 
 
 def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
@@ -274,8 +274,8 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
         return commits
 
     except Exception as e:
-        logger.error(f"Failed to get commits between tags: {str(e)}")
-        raise GitError(f"Failed to get commits between tags: {str(e)}") from e
+        logger.error(f"Failed to get commits between tags: {e!s}")
+        raise GitError(f"Failed to get commits between tags: {e!s}") from e
 
 
 def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict | None, mode: str) -> list[dict]:
@@ -307,8 +307,8 @@ def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict
             raise ValueError(f"Unsupported mode: {mode}")
 
     except Exception as e:
-        logger.error(f"Failed to get commits between boundaries: {str(e)}")
-        raise GitError(f"Failed to get commits between boundaries: {str(e)}") from e
+        logger.error(f"Failed to get commits between boundaries: {e!s}")
+        raise GitError(f"Failed to get commits between boundaries: {e!s}") from e
 
 
 def get_commits_between_hashes(from_hash: str | None, to_hash: str | None) -> list[dict]:
@@ -363,8 +363,8 @@ def get_commits_between_hashes(from_hash: str | None, to_hash: str | None) -> li
         return commits
 
     except Exception as e:
-        logger.error(f"Failed to get commits between hashes: {str(e)}")
-        raise GitError(f"Failed to get commits between hashes: {str(e)}") from e
+        logger.error(f"Failed to get commits between hashes: {e!s}")
+        raise GitError(f"Failed to get commits between hashes: {e!s}") from e
 
 
 def get_git_diff(from_hash: str | None = None, to_hash: str | None = "HEAD", max_lines: int = 500) -> str:
@@ -379,11 +379,7 @@ def get_git_diff(from_hash: str | None = None, to_hash: str | None = "HEAD", max
         The git diff output, possibly truncated if too long
     """
     try:
-        if from_hash:
-            rev_range = f"{from_hash}..{to_hash}"
-        else:
-            # Get diff from parent to HEAD
-            rev_range = f"HEAD^1..{to_hash}"
+        rev_range = f"{from_hash}..{to_hash}" if from_hash else f"HEAD^1..{to_hash}"
 
         # Use git command for better compatibility and speed
         diff_cmd = ["git", "diff", rev_range]

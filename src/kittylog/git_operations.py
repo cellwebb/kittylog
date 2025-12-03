@@ -43,33 +43,30 @@ logger = logging.getLogger(__name__)
 
 # Re-export all functions for backward compatibility
 __all__ = [
-    # From git module
-    "Repo",
     "InvalidGitRepositoryError",
-    # From tag_operations
+    "Repo",
+    "clear_commit_analyzer_cache",
     "clear_git_cache",
+    "determine_new_tags",
     "generate_boundary_display_name",
     "generate_boundary_identifier",
     "get_all_boundaries",
-    "get_all_tags",
-    "get_current_commit_hash",
-    "get_latest_boundary",
-    "get_latest_tag",
-    "get_previous_boundary",
-    "get_repo",
-    "get_tag_date",
-    "is_current_commit_tagged",
-    "determine_new_tags",
-    # From commit_analyzer
     "get_all_commits_chronological",
+    "get_all_tags",
     "get_all_tags_with_dates",
     "get_commits_between_boundaries",
     "get_commits_between_hashes",
     "get_commits_between_tags",
     "get_commits_by_date_boundaries",
     "get_commits_by_gap_boundaries",
+    "get_current_commit_hash",
     "get_git_diff",
-    "clear_commit_analyzer_cache",
+    "get_latest_boundary",
+    "get_latest_tag",
+    "get_previous_boundary",
+    "get_repo",
+    "get_tag_date",
+    "is_current_commit_tagged",
 ]
 
 
@@ -96,7 +93,7 @@ def run_git_command(args):
     Returns:
         Command output as string, or empty string on error
     """
-    return run_subprocess(["git"] + args, raise_on_error=False)
+    return run_subprocess(["git", *args], raise_on_error=False)
 
 
 # For complete backward compatibility, also expose a combined clear function

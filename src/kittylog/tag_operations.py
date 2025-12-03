@@ -8,6 +8,7 @@ import logging
 import re
 from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 
 from git import InvalidGitRepositoryError, Repo
 
@@ -67,8 +68,8 @@ def get_all_tags() -> list[str]:
 
         return tag_names
     except Exception as e:
-        logger.error(f"Failed to get tags: {str(e)}")
-        raise GitError(f"Failed to get tags: {str(e)}") from e
+        logger.error(f"Failed to get tags: {e!s}")
+        raise GitError(f"Failed to get tags: {e!s}") from e
 
 
 @lru_cache(maxsize=1)
@@ -93,8 +94,8 @@ def get_current_commit_hash() -> str:
         repo = get_repo()
         return repo.head.commit.hexsha
     except Exception as e:
-        logger.error(f"Failed to get current commit hash: {str(e)}")
-        raise GitError(f"Failed to get current commit hash: {str(e)}") from e
+        logger.error(f"Failed to get current commit hash: {e!s}")
+        raise GitError(f"Failed to get current commit hash: {e!s}") from e
 
 
 def is_current_commit_tagged() -> bool:
@@ -108,12 +109,9 @@ def is_current_commit_tagged() -> bool:
         current_commit = get_current_commit_hash()
 
         # Check if any tag points to the current commit
-        for tag in repo.tags:
-            if tag.commit.hexsha == current_commit:
-                return True
-        return False
+        return any(tag.commit.hexsha == current_commit for tag in repo.tags)
     except Exception as e:
-        logger.error(f"Failed to check if current commit is tagged: {str(e)}")
+        logger.error(f"Failed to check if current commit is tagged: {e!s}")
         return False
 
 
@@ -137,8 +135,7 @@ def determine_new_tags(changelog_file: str = "CHANGELOG.md") -> tuple[str | None
         # Read the changelog file to find the last version mentioned
         last_changelog_tag = None
         try:
-            with open(changelog_file, encoding="utf-8") as f:
-                content = f.read()
+            content = Path(changelog_file).read_text(encoding="utf-8")
 
             # Look for version patterns in the changelog
             # Matches patterns like [0.1.0], [v0.1.0], ## [0.1.0], ## 0.1.0, etc.
@@ -195,8 +192,8 @@ def determine_new_tags(changelog_file: str = "CHANGELOG.md") -> tuple[str | None
         return last_changelog_tag, new_tags
 
     except Exception as e:
-        logger.error(f"Failed to determine new tags: {str(e)}")
-        raise GitError(f"Failed to determine new tags: {str(e)}") from e
+        logger.error(f"Failed to determine new tags: {e!s}")
+        raise GitError(f"Failed to determine new tags: {e!s}") from e
 
 
 def get_tag_date(tag_name: str) -> datetime | None:
