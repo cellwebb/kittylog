@@ -7,7 +7,15 @@ import httpx
 from kittylog.errors import AIError
 
 
-def call_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+def call_openai_api(
+    model: str,
+    messages: list[dict],
+    temperature: float,
+    max_tokens: int,
+    stream: bool = False,
+    response_format: dict | None = None,
+    stop: list | None = None,
+) -> str:
     """Call OpenAI API directly."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -20,6 +28,13 @@ def call_openai_api(model: str, messages: list[dict], temperature: float, max_to
         temperature = 1.0
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_completion_tokens": max_tokens}
+
+    # Add optional parameters if provided
+    if response_format:
+        data["response_format"] = response_format
+    if stop:
+        data["stop"] = stop
+    # Note: stream parameter ignored for now - not implemented
 
     try:
         response = httpx.post(url, headers=headers, json=data, timeout=120)

@@ -13,7 +13,7 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
     if not api_key:
         raise AIError.generation_error("CEREBRAS_API_KEY not found in environment variables")
 
-    url = "https://api.cerebras.ai/v1/chat/completions"
+    url = "https://api.cerebras.ai/v2/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}

@@ -13,7 +13,7 @@ def call_minimax_api(model: str, messages: list[dict], temperature: float, max_t
     if not api_key:
         raise AIError.authentication_error("MINIMAX_API_KEY not found in environment variables")
 
-    url = "https://api.minimax.io/v1/chat/completions"
+    url = "https://api.minimax.chat/v1/text/chatcompletion_v2"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}

@@ -13,7 +13,7 @@ def call_moonshot_api(model: str, messages: list[dict], temperature: float, max_
     if not api_key:
         raise AIError.authentication_error("MOONSHOT_API_KEY not found in environment variables")
 
-    url = "https://api.moonshot.ai/v1/chat/completions"
+    url = "https://api.moonshot.cn/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
