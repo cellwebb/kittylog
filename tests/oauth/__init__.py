@@ -1,0 +1,1 @@
+"""OAuth tests for kittylog."""
