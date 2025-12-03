@@ -1,48 +1,72 @@
 """Anthropic AI provider implementation."""
 
-import os
+from kittylog.providers.base import BaseAPIProvider
 
-import httpx
 
-from kittylog.errors import AIError
+class AnthropicProvider(BaseAPIProvider):
+    """Anthropic API provider."""
+
+    API_URL = "https://api.anthropic.com/v1/messages"
+    API_KEY_ENV = "ANTHROPIC_API_KEY"
+    PROVIDER_NAME = "Anthropic"
+
+    def _get_headers(self):
+        headers = super()._get_headers()
+        headers["x-api-key"] = self.api_key
+        headers["anthropic-version"] = "2023-06-01"
+        return headers
+
+    def _prepare_request_data(self, model, messages, temperature, max_tokens, **kwargs):
+        """Prepare Anthropic-specific request data."""
+        # Convert messages to Anthropic format
+        anthropic_messages = []
+        system_message = ""
+
+        for msg in messages:
+            if msg["role"] == "system":
+                system_message = msg["content"]
+            else:
+                anthropic_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        data = {
+            "model": model,
+            "messages": anthropic_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+
+        if system_message:
+            data["system"] = system_message
+
+        return data
+
+    def _process_response_data(self, response_data):
+        """Process Anthropic-specific response format."""
+        return response_data["content"][0]["text"]
+
+
+# Create provider instance
+_anthropic_provider = AnthropicProvider()
 
 
 def call_anthropic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Anthropic API directly."""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise AIError.generation_error("ANTHROPIC_API_KEY not found in environment variables")
+    """Call Anthropic API directly.
 
-    url = "https://api.anthropic.com/v1/messages"
-    headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
 
-    # Convert messages to Anthropic format
-    anthropic_messages = []
-    system_message = ""
+    Returns:
+        Generated text content
 
-    for msg in messages:
-        if msg["role"] == "system":
-            system_message = msg["content"]
-        else:
-            anthropic_messages.append({"role": msg["role"], "content": msg["content"]})
-
-    data = {"model": model, "messages": anthropic_messages, "temperature": temperature, "max_tokens": max_tokens}
-
-    if system_message:
-        data["system"] = system_message
-
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        return response_data["content"][0]["text"]
-    except httpx.HTTPStatusError as e:
-        raise AIError.generation_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.generation_error("Anthropic API request timed out") from e
-    except httpx.RequestError as e:
-        raise AIError.generation_error(f"Anthropic API network error: {e}") from e
-    except (KeyError, IndexError, TypeError) as e:
-        raise AIError.generation_error(f"Anthropic API invalid response format: {e}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling Anthropic API: {e!s}") from e
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _anthropic_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

@@ -1,40 +1,44 @@
-"""OpenRouter provider implementation."""
+"""OpenRouter provider for kittylog."""
 
-import os
+from kittylog.providers.base import BaseAPIProvider
 
-import httpx
 
-from kittylog.errors import AIError
+class OpenRouterProvider(BaseAPIProvider):
+    """OpenRouter AI API provider."""
+
+    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    API_KEY_ENV = "OPENROUTER_API_KEY"
+    PROVIDER_NAME = "OpenRouter"
+
+    def _get_headers(self):
+        headers = super()._get_headers()
+        headers["Authorization"] = f"Bearer {self.api_key}"
+        headers["HTTP-Referer"] = "https://github.com/kittylog/kittylog"
+        return headers
+
+
+# Create provider instance
+_openrouter_provider = OpenRouterProvider()
 
 
 def call_openrouter_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call OpenRouter API directly."""
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise AIError.generation_error("OPENROUTER_API_KEY not found in environment variables")
+    """Call OpenRouter API directly.
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://github.com/cellwebb/kittylog",
-        "X-Title": "kittylog",
-        "Content-Type": "application/json",
-    }
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    Returns:
+        Generated text content
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
-        if content is None:
-            raise AIError.generation_error("Invalid response: missing content")
-        return content
-    except httpx.HTTPStatusError as e:
-        raise AIError.generation_error(f"OpenRouter API error: {e.response.status_code} - {e.response.text}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling OpenRouter API: {e!s}") from e
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _openrouter_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

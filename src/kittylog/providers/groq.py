@@ -1,41 +1,43 @@
 """Groq AI provider implementation."""
 
-import os
+from kittylog.providers.base import BaseAPIProvider
 
-import httpx
 
-from kittylog.errors import AIError
+class GroqProvider(BaseAPIProvider):
+    """Groq API provider."""
+
+    API_URL = "https://api.groq.com/openai/v1/chat/completions"
+    API_KEY_ENV = "GROQ_API_KEY"
+    PROVIDER_NAME = "Groq"
+
+    def _get_headers(self):
+        headers = super()._get_headers()
+        headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+
+# Create provider instance
+_groq_provider = GroqProvider()
 
 
 def call_groq_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Groq API directly."""
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise AIError.generation_error("GROQ_API_KEY not found in environment variables")
+    """Call Groq API directly.
 
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    Returns:
+        Generated text content
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
-        if content is None:
-            raise AIError.generation_error("Invalid response: missing content")
-        return content
-    except httpx.HTTPStatusError as e:
-        raise AIError.generation_error(f"Groq API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.generation_error("Groq API request timed out") from e
-    except httpx.RequestError as e:
-        raise AIError.generation_error(f"Groq API network error: {e}") from e
-    except (KeyError, IndexError, TypeError) as e:
-        raise AIError.generation_error(f"Groq API invalid response format: {e}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling Groq API: {e!s}") from e
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _groq_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

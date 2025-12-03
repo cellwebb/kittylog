@@ -1,55 +1,67 @@
-"""Z.AI provider implementation."""
+"""Z.AI provider for kittylog."""
 
-import os
-
-import httpx
-
-from kittylog.errors import AIError
+from kittylog.providers.base import BaseAPIProvider
 
 
-def _call_zai_api_impl(
-    url: str, api_name: str, model: str, messages: list[dict], temperature: float, max_tokens: int
-) -> str:
-    """Internal implementation for Z.AI API calls."""
-    api_key = os.getenv("ZAI_API_KEY")
-    if not api_key:
-        raise AIError.model_error("ZAI_API_KEY not found in environment variables")
+class ZAIProvider(BaseAPIProvider):
+    """Z.AI API provider."""
 
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    API_URL = "https://api.zai.ai/v1/chat/completions"
+    API_KEY_ENV = "ZAI_API_KEY"
+    PROVIDER_NAME = "Z.AI"
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
+    def _get_headers(self):
+        headers = super()._get_headers()
+        headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
-        # Handle different possible response structures
-        if "choices" in response_data and len(response_data["choices"]) > 0:
-            choice = response_data["choices"][0]
-            if "message" in choice and "content" in choice["message"]:
-                content = choice["message"]["content"]
-                if content is None:
-                    raise AIError.model_error(f"{api_name} API returned null content")
-                if content == "":
-                    raise AIError.model_error(f"{api_name} API returned empty content")
-                return content
-            else:
-                raise AIError.model_error(f"{api_name} API response missing content: {response_data}")
-        else:
-            raise AIError.model_error(f"{api_name} API unexpected response structure: {response_data}")
-    except httpx.HTTPStatusError as e:
-        raise AIError.model_error(f"{api_name} API error: {e.response.status_code} - {e.response.text}") from e
-    except Exception as e:
-        raise AIError.model_error(f"Error calling {api_name} API: {e!s}") from e
+
+# Create provider instances
+_zai_provider = ZAIProvider()
+_zai_coding_provider = ZAIProvider()
 
 
 def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI regular API directly."""
-    url = "https://api.z.ai/api/paas/v4/chat/completions"
-    return _call_zai_api_impl(url, "Z.AI", model, messages, temperature, max_tokens)
+    """Call Z.AI API directly.
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _zai_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
 
 
 def call_zai_coding_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI coding API directly."""
-    url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
-    return _call_zai_api_impl(url, "Z.AI coding", model, messages, temperature, max_tokens)
+    """Call Z.AI Coding API directly.
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _zai_coding_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

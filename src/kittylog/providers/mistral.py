@@ -1,41 +1,43 @@
 """Mistral provider implementation for kittylog."""
 
-import os
+from kittylog.providers.base import BaseAPIProvider
 
-import httpx
 
-from kittylog.errors import AIError
+class MistralProvider(BaseAPIProvider):
+    """Mistral API provider."""
+
+    API_URL = "https://api.mistral.ai/v1/chat/completions"
+    API_KEY_ENV = "MISTRAL_API_KEY"
+    PROVIDER_NAME = "Mistral"
+
+    def _get_headers(self):
+        headers = super()._get_headers()
+        headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+
+# Create provider instance
+_mistral_provider = MistralProvider()
 
 
 def call_mistral_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call the Mistral API."""
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        raise AIError.authentication_error("MISTRAL_API_KEY not found in environment variables")
+    """Call Mistral API.
 
-    url = "https://api.mistral.ai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    Returns:
+        Generated text content
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
-        if content is None:
-            raise AIError.model_error("Mistral API returned null content")
-        if content == "":
-            raise AIError.model_error("Mistral API returned empty content")
-        return content
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 429:
-            raise AIError.rate_limit_error(f"Mistral API rate limit exceeded: {e.response.text}") from e
-        raise AIError.model_error(f"Mistral API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Mistral API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Mistral API: {e!s}") from e
+    Raises:
+        AIError: For any API-related errors
+    """
+    return _mistral_provider.call(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

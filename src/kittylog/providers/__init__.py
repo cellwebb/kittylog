@@ -57,7 +57,43 @@ PROVIDER_REGISTRY = {
 # List of supported provider names - derived from registry keys
 SUPPORTED_PROVIDERS = sorted(PROVIDER_REGISTRY.keys())
 
+# API keys and environment variables for all providers - single source of truth
+PROVIDER_ENV_VARS = {
+    "anthropic": ["ANTHROPIC_API_KEY"],
+    "azure-openai": ["AZURE_OPENAI_API_KEY"],
+    "cerebras": ["CEREBRAS_API_KEY"],
+    "chutes": ["CHUTES_API_KEY", "CHUTES_BASE_URL"],
+    "claude-code": ["CLAUDE_CODE_ACCESS_TOKEN"],
+    "custom-anthropic": ["CUSTOM_ANTHROPIC_API_KEY", "CUSTOM_ANTHROPIC_BASE_URL", "CUSTOM_ANTHROPIC_VERSION"],
+    "custom-openai": ["CUSTOM_OPENAI_API_KEY", "CUSTOM_OPENAI_BASE_URL"],
+    "deepseek": ["DEEPSEEK_API_KEY"],
+    "fireworks": ["FIREWORKS_API_KEY"],
+    "gemini": ["GEMINI_API_KEY"],
+    "groq": ["GROQ_API_KEY"],
+    "kimi-coding": ["KIMI_CODING_API_KEY"],
+    "lm-studio": ["LMSTUDIO_API_KEY", "LMSTUDIO_API_URL"],
+    "minimax": ["MINIMAX_API_KEY"],
+    "mistral": ["MISTRAL_API_KEY"],
+    "moonshot": ["MOONSHOT_API_KEY"],
+    "ollama": ["OLLAMA_API_URL", "OLLAMA_HOST"],
+    "openai": ["OPENAI_API_KEY"],
+    "openrouter": ["OPENROUTER_API_KEY"],
+    "replicate": ["REPLICATE_API_KEY", "REPLICATE_API_TOKEN"],
+    "streamlake": ["STREAMLAKE_API_KEY", "VC_API_KEY"],
+    "synthetic": ["SYNTHETIC_API_KEY", "SYN_API_KEY"],
+    "together": ["TOGETHER_API_KEY"],
+    "zai": ["ZAI_API_KEY"],
+    "zai-coding": ["ZAI_API_KEY"],
+}
+
+# All API keys that should be exported to environment
+ALL_API_KEYS = sorted({var for vars_list in PROVIDER_ENV_VARS.values() for var in vars_list})
+
 __all__ = [
+    "ALL_API_KEYS",
+    "PROVIDER_ENV_VARS",
+    "PROVIDER_REGISTRY",
+    "SUPPORTED_PROVIDERS",
     "call_anthropic_api",
     "call_azure_openai_api",
     "call_cerebras_api",
@@ -83,6 +119,4 @@ __all__ = [
     "call_together_api",
     "call_zai_api",
     "call_zai_coding_api",
-    "PROVIDER_REGISTRY",
-    "SUPPORTED_PROVIDERS",
 ]
