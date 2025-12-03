@@ -20,6 +20,7 @@ from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
 from kittylog.model_cli import model as model_cli
 from kittylog.output import get_output_manager, set_output_mode
+from kittylog.release_cli import release as release_cli
 from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
 from kittylog.utils import setup_logging
@@ -309,6 +310,7 @@ cli.add_command(language_cli)
 cli.add_command(init_changelog)
 cli.add_command(add)
 cli.add_command(update_version, "update")
+cli.add_command(release_cli, "release")
 cli.add_command(auth_cli)
 cli.add_command(model_cli)
 
