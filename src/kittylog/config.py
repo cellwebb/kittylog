@@ -460,10 +460,16 @@ def load_config() -> dict:
         "ZAI_API_KEY",
     ]
 
-    # Only set environment variables if they're not already set
+    # Extract API keys for secure return without polluting os.environ
+    api_keys = {}
     for var in api_key_vars:
-        if var in config_vars and config_vars[var] is not None and os.getenv(var) is None:
-            os.environ[var] = config_vars[var]  # type: ignore[assignment]
+        # Check environment variables first (highest precedence)
+        env_value = os.getenv(var)
+        if env_value is not None:
+            api_keys[var] = env_value
+        # Then check config files
+        elif var in config_vars and config_vars[var] is not None:
+            api_keys[var] = config_vars[var]
 
     # Build config dictionary with proper precedence enforcement
     # Environment variables take precedence over file variables
@@ -635,6 +641,9 @@ def load_config() -> dict:
         else:
             config["translate_headings"] = EnvDefaults.TRANSLATE_HEADINGS
 
+    # Add API keys to the config dictionary for secure access
+    config["api_keys"] = api_keys
+    
     return config
 
 
