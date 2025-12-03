@@ -8,6 +8,7 @@ import time
 
 from kittylog.config import inject_provider_keys
 from kittylog.errors import AIError
+from kittylog.providers import SUPPORTED_PROVIDERS
 
 logger = logging.getLogger(__name__)
 
@@ -63,30 +64,8 @@ def generate_with_retries(
     }
 
     # Validate provider
-    supported_providers = [
-        "anthropic",
-        "cerebras",
-        "chutes",
-        "custom-anthropic",
-        "custom-openai",
-        "deepseek",
-        "fireworks",
-        "gemini",
-        "groq",
-        "lm-studio",
-        "minimax",
-        "mistral",
-        "ollama",
-        "openai",
-        "openrouter",
-        "streamlake",
-        "synthetic",
-        "together",
-        "zai",
-        "zai-coding",
-    ]
-    if provider not in supported_providers:
-        raise AIError.generation_error(f"Unsupported provider: {provider}. Supported providers: {supported_providers}")
+    if provider not in SUPPORTED_PROVIDERS:
+        raise AIError.generation_error(f"Unsupported provider: {provider}. Supported providers: {SUPPORTED_PROVIDERS}")
 
     messages = [
         {"role": "system", "content": system_prompt},
