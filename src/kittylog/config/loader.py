@@ -14,31 +14,41 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypeVar
 
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Languages, Logging
 
 T = TypeVar("T")
 
 
-def _get_env_vars() -> dict[str, str | None]:
-    """Get environment variables from .env files and os.environ."""
-    # Start with actual environment variables (highest priority)
-    env_vars: dict[str, str | None] = dict(os.environ)
+def _load_env_files() -> None:
+    """Load environment variables from .env files into os.environ.
 
-    # Load config files (lower priority, will be overridden by env vars)
+    Files are loaded in order of priority (lowest to highest):
+    1. User ~/.kittylog.env
+    2. Project .env
+    3. Project .kittylog.env
+
+    Environment variables already set take highest priority.
+    """
     user_config = Path.home() / ".kittylog.env"
     project_env = Path(".env")
     project_config_env = Path(".kittylog.env")
 
-    # Load in order (later ones override earlier, but env vars still win)
-    for config_file in [user_config, project_env, project_config_env]:
-        if config_file.exists():
-            file_vars = dotenv_values(config_file)
-            # Only set if not already in os.environ
-            env_vars.update({k: v for k, v in file_vars.items() if k not in os.environ})
+    # Load in order - load_dotenv with override=False respects existing env vars
+    # Later files override earlier ones when override=True
+    if user_config.exists():
+        load_dotenv(user_config, override=False)
 
-    return env_vars
+    if project_env.exists():
+        load_dotenv(project_env, override=True)
+
+    if project_config_env.exists():
+        load_dotenv(project_config_env, override=True)
+
+
+# Load env files at module import time so API keys are available
+_load_env_files()
 
 
 def _safe_float(value: str | None, default: float) -> float:
@@ -91,10 +101,8 @@ def load_config() -> dict:
     Returns:
         Dictionary containing configuration values
     """
-    env_vars = _get_env_vars()
-
-    # Extract API keys (any key containing _API_KEY or _KEY suffix)
-    api_keys = {k: v for k, v in env_vars.items() if v and ("_API_KEY" in k or k.endswith("_KEY"))}
+    # Ensure env files are loaded (idempotent call)
+    _load_env_files()
 
     # Valid enum values
     valid_grouping_modes = [mode.value for mode in GroupingMode]
@@ -103,31 +111,30 @@ def load_config() -> dict:
     valid_audiences = Audiences.slugs()
 
     return {
-        "model": env_vars.get("KITTYLOG_MODEL") or None,  # None when not set
-        "temperature": _safe_float(env_vars.get("KITTYLOG_TEMPERATURE"), EnvDefaults.TEMPERATURE),
-        "max_output_tokens": _safe_int(env_vars.get("KITTYLOG_MAX_OUTPUT_TOKENS"), EnvDefaults.MAX_OUTPUT_TOKENS),
-        "max_retries": _safe_int(env_vars.get("KITTYLOG_RETRIES"), EnvDefaults.MAX_RETRIES, min_value=0),
-        "log_level": _safe_enum(env_vars.get("KITTYLOG_LOG_LEVEL"), EnvDefaults.LOG_LEVEL, valid_log_levels),
+        "model": os.getenv("KITTYLOG_MODEL") or None,  # None when not set
+        "temperature": _safe_float(os.getenv("KITTYLOG_TEMPERATURE"), EnvDefaults.TEMPERATURE),
+        "max_output_tokens": _safe_int(os.getenv("KITTYLOG_MAX_OUTPUT_TOKENS"), EnvDefaults.MAX_OUTPUT_TOKENS),
+        "max_retries": _safe_int(os.getenv("KITTYLOG_RETRIES"), EnvDefaults.MAX_RETRIES, min_value=0),
+        "log_level": _safe_enum(os.getenv("KITTYLOG_LOG_LEVEL"), EnvDefaults.LOG_LEVEL, valid_log_levels),
         "warning_limit_tokens": _safe_int(
-            env_vars.get("KITTYLOG_WARNING_LIMIT_TOKENS"), EnvDefaults.WARNING_LIMIT_TOKENS
+            os.getenv("KITTYLOG_WARNING_LIMIT_TOKENS"), EnvDefaults.WARNING_LIMIT_TOKENS
         ),
         "grouping_mode": _safe_enum(
-            env_vars.get("KITTYLOG_GROUPING_MODE"), EnvDefaults.GROUPING_MODE, valid_grouping_modes
+            os.getenv("KITTYLOG_GROUPING_MODE"), EnvDefaults.GROUPING_MODE, valid_grouping_modes
         ),
         "gap_threshold_hours": _safe_float(
-            env_vars.get("KITTYLOG_GAP_THRESHOLD_HOURS"), EnvDefaults.GAP_THRESHOLD_HOURS
+            os.getenv("KITTYLOG_GAP_THRESHOLD_HOURS"), EnvDefaults.GAP_THRESHOLD_HOURS
         ),
         "date_grouping": _safe_enum(
-            env_vars.get("KITTYLOG_DATE_GROUPING"), EnvDefaults.DATE_GROUPING, valid_date_groupings
+            os.getenv("KITTYLOG_DATE_GROUPING"), EnvDefaults.DATE_GROUPING, valid_date_groupings
         ),
-        "language": env_vars.get("KITTYLOG_LANGUAGE") or None,  # None when not set
-        "audience": _safe_enum(env_vars.get("KITTYLOG_AUDIENCE"), EnvDefaults.AUDIENCE, valid_audiences),
+        "language": os.getenv("KITTYLOG_LANGUAGE") or None,  # None when not set
+        "audience": _safe_enum(os.getenv("KITTYLOG_AUDIENCE"), EnvDefaults.AUDIENCE, valid_audiences),
         "translate_headings": (
-            (env_vars.get("KITTYLOG_TRANSLATE_HEADINGS") or "").lower() == "true"
-            if env_vars.get("KITTYLOG_TRANSLATE_HEADINGS") is not None
+            (os.getenv("KITTYLOG_TRANSLATE_HEADINGS") or "").lower() == "true"
+            if os.getenv("KITTYLOG_TRANSLATE_HEADINGS") is not None
             else EnvDefaults.TRANSLATE_HEADINGS
         ),
-        "api_keys": api_keys,
     }
 
 

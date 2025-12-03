@@ -6,7 +6,6 @@ This module contains retry logic and other AI utilities.
 import logging
 import time
 
-from kittylog.config import inject_provider_keys
 from kittylog.errors import AIError
 from kittylog.providers import SUPPORTED_PROVIDERS
 
@@ -30,15 +29,6 @@ def generate_with_retries(
 
     provider, model_name = model.split(":", 1)
 
-    # Provider mapping for SecureConfig inject_for_provider context manager
-    # Use centralized mapping from providers registry
-    from kittylog.providers import PROVIDER_ENV_VARS
-
-    provider_mappings = {provider: {var: var for var in vars_list} for provider, vars_list in PROVIDER_ENV_VARS.items()}
-
-    # Add legacy azure-openai mapping for backward compatibility
-    provider_mappings["azure-openai"] = {"AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY"}
-
     # Validate provider
     if provider not in SUPPORTED_PROVIDERS:
         raise AIError.generation_error(f"Unsupported provider: {provider}. Supported providers: {SUPPORTED_PROVIDERS}")
@@ -60,12 +50,10 @@ def generate_with_retries(
             if not provider_func:
                 raise AIError.generation_error(f"Provider function not found for: {provider}")
 
-            # Use SecureConfig to temporarily inject API keys for this provider
-            provider_mapping = provider_mappings.get(provider, {})
-            with inject_provider_keys(provider, provider_mapping):
-                content = provider_func(
-                    model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens
-                )
+            # API keys are loaded into os.environ via load_dotenv in config/loader.py
+            content = provider_func(
+                model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens
+            )
 
             if content:
                 return content.strip()
