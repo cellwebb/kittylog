@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def build_changelog_prompt(
     commits: list[dict],
     tag: str | None,
-    from_tag: str | None = None,
+    from_boundary: str | None = None,
     hint: str = "",
     boundary_mode: str = "tags",
     language: str | None = None,
@@ -26,7 +26,7 @@ def build_changelog_prompt(
     Args:
         commits: List of commit dictionaries
         tag: The target boundary identifier
-        from_tag: The previous boundary identifier (for context)
+        from_boundary: The previous boundary identifier (for context)
         hint: Additional context hint
         boundary_mode: The boundary mode ('tags', 'dates', 'gaps')
         language: Optional language for the generated changelog
@@ -40,7 +40,7 @@ def build_changelog_prompt(
     user_prompt = _build_user_prompt(
         commits,
         tag,
-        from_tag,
+        from_boundary,
         hint,
         boundary_mode,
         language=language,
@@ -154,7 +154,7 @@ RESPOND ONLY WITH VALID CHANGELOG SECTIONS. NO OTHER TEXT."""
 def _build_user_prompt(
     commits: list[dict],
     tag: str | None,
-    from_tag: str | None = None,
+    from_boundary: str | None = None,
     hint: str = "",
     boundary_mode: str = "tags",
     language: str | None = None,
@@ -184,12 +184,12 @@ def _build_user_prompt(
         else:
             version_context = f"Generate a changelog entry for boundary {tag}"
 
-    if from_tag:
-        # Handle case where from_tag might be None
+    if from_boundary:
+        # Handle case where from_boundary might be None
         if boundary_mode == "tags":
-            from_tag_display = from_tag.lstrip("v") if from_tag is not None else "beginning"
+            from_tag_display = from_boundary.lstrip("v") if from_boundary is not None else "beginning"
         else:
-            from_tag_display = from_tag if from_tag is not None else "beginning"
+            from_tag_display = from_boundary if from_boundary is not None else "beginning"
         version_context += f" (changes since {from_tag_display})"
     version_context += ".\n\n"
 

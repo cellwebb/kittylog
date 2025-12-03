@@ -68,7 +68,7 @@ def classify_error(error: Exception) -> str:
 def generate_changelog_entry(
     commits: list[dict],
     tag: str,
-    from_tag: str | None = None,
+    from_boundary: str | None = None,
     model: str | None = None,
     hint: str = "",
     show_prompt: bool = False,
@@ -87,7 +87,7 @@ def generate_changelog_entry(
     Args:
         commits: List of commit dictionaries
         tag: The target tag/version
-        from_tag: The previous tag (for context)
+        from_boundary: The previous boundary (for context)
         model: AI model to use
         hint: Additional context hint
         show_prompt: Whether to display the prompt
@@ -122,7 +122,7 @@ def generate_changelog_entry(
     system_prompt, user_prompt = build_changelog_prompt(
         commits=commits,
         tag=tag,
-        from_tag=from_tag,
+        from_boundary=from_tag,
         hint=hint,
         boundary_mode=boundary_mode,
         language=language,

@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 def update_changelog(
     existing_content: str,
-    from_tag: str | None,
-    to_tag: str | None,
+    from_boundary: str | None,
+    to_boundary: str | None,
     model: str,
     hint: str = "",
     show_prompt: bool = False,
@@ -44,8 +44,8 @@ def update_changelog(
 
     Args:
         existing_content: Current changelog content
-        from_tag: Starting tag (exclusive). If None, starts from beginning.
-        to_tag: Ending tag (inclusive). If None, goes to HEAD or creates unreleased.
+        from_boundary: Starting boundary (exclusive). If None, starts from beginning.
+        to_boundary: Ending boundary (inclusive). If None, goes to HEAD or creates unreleased.
         model: AI model to use for generation
         hint: Additional context for AI generation
         show_prompt: Display the AI prompt
@@ -59,10 +59,10 @@ def update_changelog(
     Returns:
         Tuple of (updated_content, token_usage_dict)
     """
-    logger.debug(f"Updating changelog from {from_tag or 'beginning'} to {to_tag or 'unreleased'}")
+    logger.debug(f"Updating changelog from {from_boundary or 'beginning'} to {to_boundary or 'unreleased'}")
 
     # Get commits for the range
-    if to_tag is None:
+    if to_boundary is None:
         # Handle unreleased section
         if not no_unreleased:
             changelog_content = handle_unreleased_section_update(
@@ -74,8 +74,8 @@ def update_changelog(
         # Handle specific version
         changelog_content = handle_version_update(
             existing_content,
-            from_tag,
-            to_tag,
+            from_boundary,
+            to_boundary,
             model,
             hint,
             show_prompt,
@@ -126,7 +126,7 @@ def handle_unreleased_section_update(
         new_entry, _token_usage = generate_changelog_entry(
             commits=unreleased_commits,
             tag="Unreleased",
-            from_tag=latest_tag,
+            from_boundary=latest_tag,
             model=model,
             hint=hint,
             show_prompt=show_prompt,
@@ -153,8 +153,8 @@ def handle_unreleased_section_update(
 
 def handle_version_update(
     existing_content: str,
-    from_tag: str | None,
-    to_tag: str,
+    from_boundary: str | None,
+    to_boundary: str,
     model: str,
     hint: str,
     show_prompt: bool,
@@ -165,23 +165,23 @@ def handle_version_update(
     audience: str | None,
 ) -> str:
     """Handle updating a specific version section of the changelog."""
-    logger.debug(f"Processing version section for {to_tag}")
+    logger.debug(f"Processing version section for {to_boundary}")
 
     try:
         # Get commits for the version range
-        commits = get_commits_between_tags(from_tag, to_tag)
+        commits = get_commits_between_tags(from_boundary, to_boundary)
 
         if not commits:
-            logger.warning(f"No commits found between {from_tag or 'beginning'} and {to_tag}")
+            logger.warning(f"No commits found between {from_boundary or 'beginning'} and {to_boundary}")
             return existing_content
 
         # Get additional context
-        tag_date = get_tag_date(to_tag)
-        previous_tag = from_tag
+        tag_date = get_tag_date(to_boundary)
+        previous_tag = from_boundary
 
         # Generate AI content
         if include_diff:
-            diff_content = get_git_diff(from_tag, to_tag, max_lines=500)
+            diff_content = get_git_diff(from_boundary, to_boundary, max_lines=500)
         else:
             diff_content = ""
 
@@ -191,8 +191,8 @@ def handle_version_update(
 
         new_entry, _token_usage = generate_changelog_entry(
             commits=commits,
-            tag=to_tag,
-            from_tag=previous_tag,
+            tag=to_boundary,
+            from_boundary=previous_tag,
             model=model,
             hint=hint,
             show_prompt=show_prompt,
@@ -203,20 +203,20 @@ def handle_version_update(
         )
 
         if not new_entry.strip():
-            logger.warning(f"AI generated empty content for version {to_tag}")
+            logger.warning(f"AI generated empty content for version {to_boundary}")
             return existing_content
 
         # Create the version section
-        version_section = f"## [{to_tag}] - {version_date}\n\n{new_entry}"
+        version_section = f"## [{to_boundary}] - {version_date}\n\n{new_entry}"
 
         # Update the changelog with the new version section
-        updated_content = _update_version_section(existing_content, version_section, to_tag)
+        updated_content = _update_version_section(existing_content, version_section, to_boundary)
 
-        logger.debug(f"Successfully updated version section for {to_tag}")
+        logger.debug(f"Successfully updated version section for {to_boundary}")
         return updated_content
 
     except Exception as e:
-        logger.error(f"Failed to update version section for {to_tag}: {e}")
+        logger.error(f"Failed to update version section for {to_boundary}: {e}")
         raise
 
 
