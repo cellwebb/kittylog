@@ -298,11 +298,12 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.main.config", {"model": "groq:llama-3.3-70b-versatile"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_auto_mode_shows_entry_count(self, mock_getenv, mock_post, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "groq:llama-3.3-70b-versatile"})
+    @patch("kittylog.providers.groq.os.getenv", return_value="gsk_test123")
+    def test_auto_mode_shows_entry_count(self, mock_getenv, temp_dir):
         """Test that auto mode shows correct entry count in confirmation."""
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
+
         # Create git repo with multiple tags to process
         repo = Repo.init(temp_dir)
         repo.config_writer().set_value("user", "name", "Test User").release()
@@ -324,16 +325,9 @@ All notable changes will be documented in this file.
 - Initial release
 """)
 
-        # Mock API key and response
-        mock_getenv.return_value = "gsk_test123"
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Multiple features"}}]}
-        mock_post.return_value = mock_response
-
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=groq:llama-3.3-70b-versatile\n")
+        config_file.write_text("KITTYLOG_MODEL=groq:llama-3.3-70b-versatile\nGROQ_API_KEY=gsk_test123\n")
 
         original_cwd = str(Path.cwd())
         try:
@@ -344,10 +338,11 @@ All notable changes will be documented in this file.
             clear_git_cache()
             runner = CliRunner()
 
-            # Test default kittylog command (auto mode) with confirmation "y"
+            # Test add command (auto mode) with confirmation "y"
+            # Use --no-interactive to skip the interactive wizard
             result = runner.invoke(
                 cli,
-                [],  # Default auto mode
+                ["add", "--no-interactive"],  # Skip interactive wizard
                 input="y\n",  # Confirm the prompt
             )
 

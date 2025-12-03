@@ -14,38 +14,15 @@ from kittylog.cli import cli
 class TestEndToEndWorkflow:
     """End-to-end integration tests."""
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_complete_workflow_new_changelog(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_complete_workflow_new_changelog(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test complete workflow creating a new changelog."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        # Setup AI mock for Cerebras (which uses OpenAI format)
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": """### Added
-
-- User authentication system
-- Dashboard widgets
-
-### Fixed
-
-- Login validation errors"""
-                    }
-                }
-            ]
-        }
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         runner = CliRunner()
 
@@ -89,40 +66,19 @@ All notable changes to this project will be documented in this file.
 
         content = changelog_file.read_text()
         assert "# Changelog" in content
-        # With mocked AI, at least one version should have content
+        # With mocked AI (from autouse fixture), we should see generated content
         assert "### Added" in content or "### Fixed" in content
+        assert "Test feature" in content or "Test bug fix" in content
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_complete_workflow_update_existing(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_complete_workflow_update_existing(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test complete workflow updating existing changelog."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        # Setup AI mock for Cerebras (which uses OpenAI format)
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": """### Added
-
-- New dashboard feature
-
-### Fixed
-
-- Critical security issue"""
-                    }
-                }
-            ]
-        }
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create existing changelog with matching v-prefixed versions
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -161,30 +117,21 @@ All notable changes to this project will be documented in this file.
 
         assert result.exit_code == 0
 
-        # Check updated content
+        # Check updated content (autouse fixture returns "Test feature" and "Test bug fix")
         updated_content = changelog_file.read_text()
         assert "## [v0.2.0]" in updated_content
-        assert "New dashboard feature" in updated_content
-        assert "Critical security issue" in updated_content
+        assert "Test feature" in updated_content or "Test bug fix" in updated_content
         assert "## [v0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_dry_run_workflow(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_dry_run_workflow(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        # Setup AI mock for Cerebras (which uses OpenAI format)
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Test feature"}}]}
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         runner = CliRunner()
         os.chdir(temp_dir)
@@ -317,7 +264,7 @@ class TestErrorHandlingIntegration:
         assert result.exit_code == 1
         assert "git" in result.output.lower()
 
-    @patch("os.getenv")
+    @patch("kittylog.providers.cerebras.os.getenv")
     def test_missing_api_key_error(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test error when API key is missing."""
         # Mock missing API key
@@ -325,7 +272,7 @@ class TestErrorHandlingIntegration:
 
         # Create config without API key in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -357,7 +304,7 @@ class TestErrorHandlingIntegration:
         """Test error with invalid git tags."""
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -392,30 +339,21 @@ class TestErrorHandlingIntegration:
 class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_multiple_tags_auto_detection(self, mock_getenv, mock_post, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_multiple_tags_auto_detection(self, mock_getenv, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
-        # Mock API key for cerebras provider
-        mock_getenv.side_effect = lambda key, default=None: {
-            "CEREBRAS_API_KEY": "test-api-key",
-            "ANTHROPIC_API_KEY": "sk-ant-test123",
-        }.get(key, default)
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
         from pathlib import Path
 
         try:
             original_cwd = str(Path.cwd())
         except Exception:
-            # If current directory is invalid, use home directory as fallback
             original_cwd = str(Path.home())
 
         result = None
 
         try:
-            # Create a git repo with multiple tags
-            from pathlib import Path
-
             from git import Repo
 
             repo = Repo.init(temp_dir)
@@ -426,11 +364,9 @@ class TestMultiTagIntegration:
             for i in range(5):
                 test_file = temp_dir / f"file{i}.py"
                 test_file.write_text(f"# File {i}\\nprint('hello {i}')")
-                # Add file using relative path to avoid git path issues
                 try:
                     repo.index.add([f"file{i}.py"])
                 except FileNotFoundError:
-                    # If we can't add with relative path, try absolute path
                     repo.index.add([str(test_file)])
                 commit = repo.index.commit(f"Add file {i}")
 
@@ -449,32 +385,9 @@ class TestMultiTagIntegration:
 
             # Create config
             config_file = temp_dir / ".kittylog.env"
-            config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\\n")
-
-            # Create docs directory
-            docs_dir = temp_dir / "docs"
-            docs_dir.mkdir()
-
-            # Setup AI mock to return different content for each tag
-            # First call for tag v0.3.0, second call for tag v0.4.0, third call for unreleased changes
-            mock_response1 = Mock()
-            mock_response1.raise_for_status.return_value = None
-            mock_response1.json.return_value = {
-                "choices": [{"message": {"content": "### Added\\n- File 2\\n- File 3"}}]
-            }
-
-            mock_response2 = Mock()
-            mock_response2.raise_for_status.return_value = None
-            mock_response2.json.return_value = {"choices": [{"message": {"content": "### Added\\n- File 4"}}]}
-
-            mock_response3 = Mock()
-            mock_response3.raise_for_status.return_value = None
-            mock_response3.json.return_value = {"choices": [{"message": {"content": "### Added\\n- Latest changes"}}]}
-
-            mock_post.side_effect = [mock_response1, mock_response2, mock_response3]
+            config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
             runner = CliRunner()
-            # Change to temp_dir for this test
             os.chdir(temp_dir)
 
             result = runner.invoke(
@@ -482,19 +395,21 @@ class TestMultiTagIntegration:
                 [
                     "add",  # Use add command for missing entries
                     "--yes",  # Skip confirmation
+                    "--no-interactive",  # Skip interactive wizard
                 ],
             )
         finally:
-            # Restore original directory if possible, otherwise go to home
             try:
                 os.chdir(original_cwd)
             except Exception:
                 os.chdir(str(Path.home()))
 
         assert result is not None
-        assert result.exit_code == 0
+        if result.exit_code != 0:
+            print(f"Output: {result.output}")
+        assert result.exit_code == 0, f"Command failed with: {result.output}"
 
-        # Check that both new tags were processed
+        # Check that both new tags were processed (autouse fixture returns generic content)
         content = changelog_file.read_text()
         assert "## [v0.3.0]" in content
         assert "## [v0.4.0]" in content
@@ -504,22 +419,15 @@ class TestMultiTagIntegration:
 class TestCLIOptionsIntegration:
     """Integration tests for various CLI options."""
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_hint_option_integration(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_hint_option_integration(self, mock_getenv, git_repo_with_tags, temp_dir, mock_api_calls):
         """Test that hint option is properly passed through."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Feature with hint"}}]}
-        mock_post.return_value = mock_response
+        # Note: mock_api_calls is the autouse fixture from conftest.py
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create changelog with matching v-prefixed versions
         changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
@@ -564,32 +472,25 @@ All notable changes to this project will be documented in this file.
         assert result.exit_code == 0
 
         # The hint should be passed to the AI prompt building
-        # --all processes all existing entries, so post() may be called multiple times
-        assert mock_post.call_count > 0, "post should have been called at least once"
+        # Check that the mock was called (via autouse fixture)
+        assert mock_api_calls.call_count > 0, "post should have been called at least once"
         # Check that the hint was included in one of the calls
         hint_found = False
-        for call in mock_post.call_args_list:
+        for call in mock_api_calls.call_args_list:
             if "Focus on breaking changes" in str(call):
                 hint_found = True
                 break
         assert hint_found, "hint should be passed to the AI prompt"
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_model_override_integration(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_model_override_integration(self, mock_getenv, git_repo_with_tags, temp_dir, mock_api_calls):
         """Test that model override works properly."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Model override test"}}]}
-        mock_post.return_value = mock_response
+        # Note: mock_api_calls is the autouse fixture from conftest.py
 
         # Create config in git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create changelog with matching v-prefixed versions
         changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
@@ -635,28 +536,21 @@ All notable changes to this project will be documented in this file.
         assert result.exit_code == 0
 
         # Verify the model was used (--all processes all existing entries, so multiple calls)
-        assert mock_post.call_count > 0, "post should have been called at least once"
+        assert mock_api_calls.call_count > 0, "post should have been called at least once"
 
 
 class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_custom_changelog_path(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_custom_changelog_path(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Custom path test"}}]}
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Create docs directory and custom changelog with matching v-prefixed versions
         docs_dir = Path(git_repo_with_tags.working_dir) / "docs"
@@ -708,23 +602,17 @@ All notable changes to this project will be documented in this file.
         assert custom_file.exists()
 
         content = custom_file.read_text()
-        assert "Custom path test" in content
+        # Autouse fixture returns "Test feature" or "Test bug fix"
+        assert "Test feature" in content or "Test bug fix" in content
 
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_relative_path_handling(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv", return_value="test-api-key")
+    def test_relative_path_handling(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
-        # Mock API key
-        mock_getenv.return_value = "sk-ant-test123"
-
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- Relative path test"}}]}
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create subdirectory
         subdir = Path(git_repo_with_tags.working_dir) / "project"
@@ -774,26 +662,14 @@ class TestUnreleasedBulletLimitingIntegration:
     """
 
     @pytest.mark.skip(reason="Functionality broken during refactoring - add command doesn't handle unreleased content")
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_unreleased_section_bullet_limiting_append_mode(self, mock_getenv, mock_post, git_repo_with_tags, temp_dir):
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv")
+    def test_unreleased_section_bullet_limiting_append_mode(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when appending to existing unreleased section."""
         # Mock API key
         mock_getenv.return_value = "sk-ant-test123"
 
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "choices": [
-                {
-                    "message": {
-                        "content": "### Added\n- Feature 1\n- Feature 2\n- Feature 3\n- Feature 4\n- Feature 5\n- Feature 6\n- Feature 7\n- Feature 8"
-                    }
-                }
-            ]
-        }
-        mock_post.return_value = mock_response
+        # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create existing changelog with Unreleased section and v-prefixed versions
         changelog_content = """# Changelog
@@ -821,7 +697,7 @@ All notable changes to this project will be documented in this file.
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup
@@ -878,9 +754,8 @@ All notable changes to this project will be documented in this file.
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
     @pytest.mark.skip(reason="Functionality broken during refactoring - add command doesn't handle unreleased content")
-    @patch("kittylog.main.config", {"model": "cerebras:qwen-3-coder-480b"})
-    @patch("httpx.post")
-    @patch("os.getenv")
+    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    @patch("kittylog.providers.cerebras.os.getenv")
     def test_unreleased_section_bullet_limiting_replace_mode(
         self, mock_getenv, mock_post, git_repo_with_tags, temp_dir
     ):
@@ -938,7 +813,7 @@ All notable changes to this project will be documented in this file.
 
         # Create config in the git repo directory
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\n")
+        config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
         # Store original cwd for cleanup

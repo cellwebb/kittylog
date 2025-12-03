@@ -33,7 +33,7 @@ class TestLoadConfig:
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
         # Set environment variables
-        monkeypatch.setenv("KITTYLOG_MODEL", "cerebras:qwen-3-coder-480b")
+        monkeypatch.setenv("KITTYLOG_MODEL", "cerebras:zai-glm-4.6")
         monkeypatch.setenv("KITTYLOG_TEMPERATURE", "0.5")
         monkeypatch.setenv("KITTYLOG_MAX_OUTPUT_TOKENS", "2048")
         monkeypatch.setenv("KITTYLOG_RETRIES", "5")
@@ -49,7 +49,7 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config["model"] == "cerebras:qwen-3-coder-480b"
+        assert config["model"] == "cerebras:zai-glm-4.6"
         assert config["temperature"] == 0.5
         assert config["max_output_tokens"] == 2048
         assert config["max_retries"] == 5
@@ -125,7 +125,7 @@ KITTYLOG_AUDIENCE=developers
         # Create user-level config
         user_env_file = home_dir / ".kittylog.env"
         user_env_file.write_text(
-            """KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
+            """KITTYLOG_MODEL=cerebras:zai-glm-4.6
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_MAX_OUTPUT_TOKENS=1024
 KITTYLOG_GROUPING_MODE=tags
@@ -236,7 +236,7 @@ class TestValidateConfig:
     def test_validate_config_valid(self):
         """Test validation of valid configuration."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -254,7 +254,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_temperature(self):
         """Test validation of invalid temperature."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 5.0,  # Invalid: > 2.0
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -272,7 +272,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_max_tokens(self):
         """Test validation of invalid max_output_tokens."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": -100,  # Invalid: negative
             "max_retries": 3,
@@ -290,7 +290,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_retries(self):
         """Test validation of invalid max_retries."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 0,  # Invalid: must be >= 1
@@ -308,7 +308,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_log_level(self):
         """Test validation of invalid log_level."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -326,7 +326,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_translate_headings(self):
         """Test validation of invalid translate_headings flag."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -345,7 +345,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_audience(self):
         """Test validation of invalid audience flag."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -365,7 +365,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_grouping_mode(self):
         """Test validation of invalid grouping_mode."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -383,7 +383,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_gap_threshold(self):
         """Test validation of invalid gap_threshold_hours."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -401,7 +401,7 @@ class TestValidateConfig:
     def test_validate_config_invalid_date_grouping(self):
         """Test validation of invalid date_grouping."""
         config = {
-            "model": "cerebras:qwen-3-coder-480b",
+            "model": "cerebras:zai-glm-4.6",
             "temperature": 0.7,
             "max_output_tokens": 1024,
             "max_retries": 3,
@@ -461,7 +461,7 @@ class TestConfigurationIntegration:
         user_env_file = home_dir / ".kittylog.env"
         user_env_file.write_text(
             """# User configuration
-KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
+KITTYLOG_MODEL=cerebras:zai-glm-4.6
 KITTYLOG_TEMPERATURE=0.3
 KITTYLOG_LANGUAGE=Italian
 KITTYLOG_TRANSLATE_HEADINGS=false
@@ -487,7 +487,7 @@ KITTYLOG_AUDIENCE=stakeholders
         validate_config(config)
 
         # Check final values
-        assert config["model"] == "cerebras:qwen-3-coder-480b"  # from user
+        assert config["model"] == "cerebras:zai-glm-4.6"  # from user
         assert config["temperature"] == 0.7  # from project (overrides user)
         assert config["max_output_tokens"] == 2048  # from project
         assert config["max_retries"] == 3  # default
@@ -529,7 +529,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=-2.0
         user_env_file.write_text("""# Changelog Updater Configuration
 # AI Provider Settings
 
-KITTYLOG_MODEL=cerebras:qwen-3-coder-480b
+KITTYLOG_MODEL=cerebras:zai-glm-4.6
 
 # Generation Settings
 KITTYLOG_TEMPERATURE=0.5
@@ -548,7 +548,7 @@ KITTYLOG_DATE_GROUPING=monthly
 
         config = load_config()
 
-        assert config["model"] == "cerebras:qwen-3-coder-480b"
+        assert config["model"] == "cerebras:zai-glm-4.6"
         assert config["temperature"] == 0.5
         assert config["max_output_tokens"] == 1024
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-test123"
@@ -565,7 +565,7 @@ class TestConfigUtils:
     def test_model_parsing(self):
         """Test that model configuration is properly parsed."""
         test_models = [
-            "cerebras:qwen-3-coder-480b",
+            "cerebras:zai-glm-4.6",
             "openai:gpt-4",
             "groq:llama-4-scout-17b",
             "ollama:gemma3",

@@ -115,7 +115,7 @@ class TestUpdateCommand:
                 "-f",
                 "CHANGES.md",
                 "-m",
-                "cerebras:qwen-3-coder-480b",
+                "cerebras:zai-glm-4.6",
                 "-l",
                 "fr",
                 "-u",
@@ -131,7 +131,7 @@ class TestUpdateCommand:
 
         call_args = mock_main_logic.call_args[1]
         assert call_args["changelog_file"] == "CHANGES.md"
-        assert call_args["model"] == "cerebras:qwen-3-coder-480b"
+        assert call_args["model"] == "cerebras:zai-glm-4.6"
         assert call_args["hint"] == "Test hint"
         assert call_args["require_confirmation"] is False  # --yes flag sets this to False
         assert call_args["quiet"] is True
@@ -155,10 +155,10 @@ class TestUpdateCommand:
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_exception_handling(self, mock_main_logic):
         """Test update command exception handling."""
-        from kittylog.errors import KittylogError
+        from kittylog.errors import ConfigError
 
         mock_main_logic.return_value = (False, None)
-        mock_main_logic.side_effect = KittylogError("Test error")
+        mock_main_logic.side_effect = ConfigError("Test error")
 
         runner = CliRunner()
         result = runner.invoke(update)
@@ -206,21 +206,21 @@ class TestConfigCommand:
 
     @patch("kittylog.config_cli.load_dotenv")
     @patch("kittylog.config_cli.KITTYLOG_ENV_PATH")
-    @patch("builtins.open")
-    def test_config_show_with_file(self, mock_open, mock_load_dotenv, mock_path):
+    def test_config_show_with_file(self, mock_path, mock_load_dotenv):
         """Test config show with existing config file."""
         mock_path.exists.return_value = True
-        mock_file_content = "KITTYLOG_MODEL=cerebras:qwen-3-coder-480b\nANTHROPIC_API_KEY=sk-ant-test123\n"
-        mock_open.return_value.__enter__.return_value.read.return_value = mock_file_content
-        mock_open.return_value.__enter__.return_value.__iter__ = Mock(
-            return_value=iter(mock_file_content.splitlines(True))
-        )
+        mock_file_content = "KITTYLOG_MODEL=cerebras:zai-glm-4.6\nANTHROPIC_API_KEY=sk-ant-test123\n"
+
+        # Mock the Path.open() context manager
+        mock_file = Mock()
+        mock_file.__iter__ = Mock(return_value=iter(mock_file_content.splitlines(True)))
+        mock_path.open.return_value.__enter__.return_value = mock_file
 
         runner = CliRunner()
         result = runner.invoke(cli, ["config", "show"])
 
         assert result.exit_code == 0
-        assert "KITTYLOG_MODEL=cerebras:qwen-3-coder-480b" in result.output
+        assert "KITTYLOG_MODEL=cerebras:zai-glm-4.6" in result.output
         assert "ANTHROPIC_API_KEY=sk-ant-test123" in result.output
 
     @patch("kittylog.config_cli.set_key")

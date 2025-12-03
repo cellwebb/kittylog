@@ -228,7 +228,7 @@ def mock_ai_client():
 def mock_config():
     """Mock configuration for testing."""
     return {
-        "model": "cerebras:qwen-3-coder-480b",
+        "model": "cerebras:zai-glm-4.6",
         "temperature": 0.7,
         "max_output_tokens": 1024,
         "max_retries": 3,
