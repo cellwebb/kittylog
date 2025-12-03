@@ -1,7 +1,6 @@
 """Utility functions for kittylog."""
 
 import logging
-import os
 import re
 import subprocess
 from pathlib import Path
@@ -347,20 +346,20 @@ def find_changelog_file(directory: str = ".") -> str:
         # Check for exact matches in priority order
         for filename in changelog_filenames:
             if filename in root_files:
-                logger.debug(f"Found changelog file: {os.path.join(directory, filename)}")
+                logger.debug(f"Found changelog file: {Path(directory) / filename}")
                 return filename
 
     # Then check docs/ directory
-    docs_directory = os.path.join(directory, "docs")
+    docs_directory = str(Path(directory) / "docs")
     docs_dir_path = Path(docs_directory)
     if docs_dir_path.exists() and docs_dir_path.is_dir():
         docs_files = [f.name for f in docs_dir_path.iterdir() if f.is_file()]
         # Check for exact matches in priority order
         for filename in changelog_filenames:
             if filename in docs_files:
-                relative_path = os.path.join("docs", filename)
-                logger.debug(f"Found changelog file: {os.path.join(docs_directory, filename)}")
-                return relative_path
+                relative_path = Path("docs") / filename
+                logger.debug(f"Found changelog file: {Path(docs_directory) / filename}")
+                return str(relative_path)
 
     # Fallback to CHANGELOG.md if no existing file found
     logger.debug("No existing changelog file found, using default: CHANGELOG.md")
@@ -396,7 +395,7 @@ def determine_next_version(latest_version: str | None, commits: list[dict]) -> s
         version = Version(normalized_version)
     except InvalidVersion:
         # If we can't parse the version, default to a patch bump
-        return f"{normalized_version}.1" if "." not in normalized_version else f"{normalized_version}.1"
+        return f"{normalized_version}.1"
 
     # Analyze commits for breaking changes
     has_breaking_changes = False

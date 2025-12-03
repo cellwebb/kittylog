@@ -38,8 +38,7 @@ def create_changelog_header(include_unreleased: bool = True) -> str:
 def read_changelog(file_path: str) -> str:
     """Read the contents of a changelog file."""
     try:
-        with open(file_path, encoding="utf-8") as f:
-            return f.read()
+        return Path(file_path).read_text(encoding="utf-8")
     except FileNotFoundError:
         logger.info(f"Changelog file {file_path} not found, will create new one")
         return ""
@@ -59,8 +58,7 @@ def write_changelog(file_path: str, content: str) -> None:
         # Create directory if it doesn't exist
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        Path(file_path).write_text(content, encoding="utf-8")
 
         logger.info(f"Successfully wrote changelog to {file_path}")
     except Exception as e:
