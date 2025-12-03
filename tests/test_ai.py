@@ -6,6 +6,7 @@ import pytest
 
 from kittylog.ai import generate_changelog_entry
 from kittylog.errors import AIError
+from kittylog.providers import PROVIDER_REGISTRY, SUPPORTED_PROVIDERS
 
 
 class TestGenerateChangelogEntry:
@@ -371,3 +372,67 @@ class TestAIIntegration:
 
             assert exc_info.value.error_type == "model"
             assert "No model specified" in str(exc_info.value)
+
+
+class TestProviderRegistry:
+    """Tests for the centralized provider registry."""
+
+    def test_provider_registry_and_supported_providers_consistency(self):
+        """Test that SUPPORTED_PROVIDERS contains exactly the keys from PROVIDER_REGISTRY."""
+        registry_keys = set(PROVIDER_REGISTRY.keys())
+        supported_providers_set = set(SUPPORTED_PROVIDERS)
+
+        assert registry_keys == supported_providers_set, (
+            f"PROVIDER_REGISTRY keys and SUPPORTED_PROVIDERS are not identical:\n"
+            f"Registry keys not in supported: {registry_keys - supported_providers_set}\n"
+            f"Supported providers not in registry: {supported_providers_set - registry_keys}"
+        )
+
+    def test_provider_registry_functions_exist(self):
+        """Test that all functions in PROVIDER_REGISTRY are callable."""
+        for provider_name, provider_func in PROVIDER_REGISTRY.items():
+            assert callable(provider_func), f"Provider function for '{provider_name}' is not callable"
+
+    def test_supported_providers_is_sorted(self):
+        """Test that SUPPORTED_PROVIDERS is sorted alphabetically."""
+        assert SUPPORTED_PROVIDERS == sorted(PROVIDER_REGISTRY.keys()), (
+            "SUPPORTED_PROVIDERS should be sorted alphabetically"
+        )
+
+    def test_provider_registry_complete(self):
+        """Test that PROVIDER_REGISTRY contains all expected providers."""
+        expected_providers = {
+            "anthropic",
+            "azure-openai",
+            "cerebras",
+            "chutes",
+            "claude-code",
+            "custom-anthropic",
+            "custom-openai",
+            "deepseek",
+            "fireworks",
+            "gemini",
+            "groq",
+            "kimi-coding",
+            "lm-studio",
+            "minimax",
+            "mistral",
+            "moonshot",
+            "ollama",
+            "openai",
+            "openrouter",
+            "replicate",
+            "streamlake",
+            "synthetic",
+            "together",
+            "zai",
+            "zai-coding",
+        }
+
+        actual_providers = set(PROVIDER_REGISTRY.keys())
+
+        assert actual_providers == expected_providers, (
+            f"Provider registry is missing expected providers or has extra ones:\n"
+            f"Missing: {expected_providers - actual_providers}\n"
+            f"Extra: {actual_providers - expected_providers}"
+        )
