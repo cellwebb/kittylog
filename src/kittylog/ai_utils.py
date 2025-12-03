@@ -51,9 +51,7 @@ def generate_with_retries(
                 raise AIError.generation_error(f"Provider function not found for: {provider}")
 
             # API keys are loaded into os.environ via load_dotenv in config/loader.py
-            content = provider_func(
-                model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens
-            )
+            content = provider_func(model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens)
 
             if content:
                 return content.strip()
