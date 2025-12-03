@@ -419,4 +419,6 @@ def clear_commit_analyzer_cache() -> None:
     """Clear all commit analyzer caches."""
     get_repo.cache_clear()
     get_all_commits_chronological.cache_clear()
-    # get_all_tags_with_dates doesn't have cache_clear in all Python versions
+    # Clear get_all_tags_with_dates cache if it exists
+    if hasattr(get_all_tags_with_dates, "cache_clear"):
+        get_all_tags_with_dates.cache_clear()

@@ -354,6 +354,7 @@ def clear_git_cache() -> None:
     """
     get_repo.cache_clear()
     get_all_tags.cache_clear()
+    get_latest_tag.cache_clear()
     get_current_commit_hash.cache_clear()
     # Also clear caches from the commit_analyzer module
     try:

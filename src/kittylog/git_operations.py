@@ -10,6 +10,7 @@ functionality into focused, maintainable modules.
 import logging
 
 from git import InvalidGitRepositoryError, Repo
+
 from kittylog.commit_analyzer import (
     clear_commit_analyzer_cache,
     get_all_commits_chronological,
@@ -71,21 +72,39 @@ __all__ = [
     "clear_commit_analyzer_cache",
 ]
 
+
 # Alias for backward compatibility
 def get_tags_since_last_changelog(changelog_file: str = "CHANGELOG.md"):
-    """Alias for determine_new_tags for backward compatibility."""
-    return determine_new_tags(changelog_file)[1]
+    """Alias for determine_new_tags for backward compatibility.
+
+    Returns:
+        tuple: (last_tag, new_tags) - last tag in changelog and list of new tags
+    """
+    return determine_new_tags(changelog_file)
+
 
 # Alias for backward compatibility
 def run_git_command(args):
-    """Alias for run_subprocess for backward compatibility."""
-    return run_subprocess(args)
+    """Alias for run_subprocess for backward compatibility.
+
+    This function prepends 'git' to the command for backward compatibility.
+    Returns empty string on error instead of raising exceptions.
+
+    Args:
+        args: Git command arguments (without 'git' prefix)
+
+    Returns:
+        Command output as string, or empty string on error
+    """
+    return run_subprocess(["git"] + args, raise_on_error=False)
+
 
 # For complete backward compatibility, also expose a combined clear function
 def clear_all_caches():
     """Clear all git operation caches."""
     clear_git_cache()
     clear_commit_analyzer_cache()
+
 
 __all__.append("clear_all_caches")
 __all__.append("get_tags_since_last_changelog")

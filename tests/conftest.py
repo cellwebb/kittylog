@@ -21,6 +21,43 @@ except Exception:
     os.chdir(str(Path.home()))
 
 
+@pytest.fixture(autouse=True)
+def clear_caches_between_tests():
+    """Automatically clear all git caches between tests."""
+    # Save original cwd
+    try:
+        original_cwd = os.getcwd()
+    except Exception:
+        original_cwd = str(Path.home())
+
+    # Clear before test
+    try:
+        from kittylog.git_operations import clear_all_caches
+
+        clear_all_caches()
+    except ImportError:
+        pass
+
+    yield
+
+    # Clear after test
+    try:
+        from kittylog.git_operations import clear_all_caches
+
+        clear_all_caches()
+    except ImportError:
+        pass
+
+    # Restore original cwd or go to safe location
+    try:
+        os.chdir(original_cwd)
+    except Exception:
+        try:
+            os.chdir(str(Path.home()))
+        except Exception:
+            pass
+
+
 @pytest.fixture
 def temp_dir():
     """Create a temporary directory for tests."""
@@ -32,9 +69,9 @@ def temp_dir():
 def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
     # Clear git cache before setting up new repo
-    from kittylog.git_operations import clear_git_cache
+    from kittylog.git_operations import clear_all_caches
 
-    clear_git_cache()
+    clear_all_caches()
 
     repo = Repo.init(temp_dir)
 
@@ -61,7 +98,7 @@ def git_repo(temp_dir):
     yield repo
 
     # Clear git cache after test to prevent cross-test contamination
-    clear_git_cache()
+    clear_all_caches()
 
     # Restore original directory or change to a safe one
     try:
