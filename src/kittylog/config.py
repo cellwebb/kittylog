@@ -115,6 +115,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
         "CEREBRAS_API_KEY",
         "CHUTES_API_KEY",
         "CHUTES_BASE_URL",
+        "CLAUDE_CODE_ACCESS_TOKEN",
         "CUSTOM_ANTHROPIC_API_KEY",
         "CUSTOM_ANTHROPIC_BASE_URL",
         "CUSTOM_ANTHROPIC_VERSION",
