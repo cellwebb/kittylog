@@ -27,7 +27,13 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["choices"][0]["message"]["content"]
+        choices = response_data.get("choices")
+        if not choices or not isinstance(choices, list):
+            raise AIError.generation_error("Invalid response: missing choices")
+        content = choices[0].get("message", {}).get("content")
+        if content is None:
+            raise AIError.generation_error("Invalid response: missing content")
+        return content
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"OpenRouter API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:

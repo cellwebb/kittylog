@@ -38,5 +38,11 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
         return response_data["content"][0]["text"]
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.generation_error("Anthropic API request timed out") from e
+    except httpx.RequestError as e:
+        raise AIError.generation_error(f"Anthropic API network error: {e}") from e
+    except (KeyError, IndexError, TypeError) as e:
+        raise AIError.generation_error(f"Anthropic API invalid response format: {e}") from e
     except Exception as e:
         raise AIError.generation_error(f"Error calling Anthropic API: {e!s}") from e

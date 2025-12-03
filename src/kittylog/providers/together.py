@@ -37,7 +37,10 @@ def call_together_api(
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        content = response_data["choices"][0]["message"]["content"]
+        choices = response_data.get("choices")
+        if not choices or not isinstance(choices, list):
+            raise AIError.generation_error("Invalid response: missing choices")
+        content = choices[0].get("message", {}).get("content")
         if content is None:
             raise AIError.model_error("Together AI API returned null content")
         return content  # Empty string is valid

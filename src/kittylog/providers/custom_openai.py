@@ -36,19 +36,20 @@ def call_custom_openai_api(model: str, messages: list[dict], temperature: float,
         response.raise_for_status()
         response_data = response.json()
 
-        try:
-            content = response_data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as e:
+        choices = response_data.get("choices")
+        if not choices or not isinstance(choices, list):
+            raise AIError.generation_error("Invalid response: missing choices")
+        content = choices[0].get("message", {}).get("content")
+        if content is None:
+            raise AIError.generation_error("Invalid response: missing content")
+        if content == "":
+            raise AIError.model_error("Custom OpenAI API returned empty content")
+        return content
+    except (KeyError, IndexError, TypeError) as e:
             logger.error("Unexpected response format from Custom OpenAI API. Response: %s", json.dumps(response_data))
             raise AIError.model_error(
                 "Custom OpenAI API returned unexpected format. Expected OpenAI-compatible response."
             ) from e
-
-        if content is None:
-            raise AIError.model_error("Custom OpenAI API returned null content")
-        if content == "":
-            raise AIError.model_error("Custom OpenAI API returned empty content")
-        return content
     except httpx.ConnectError as e:
         raise AIError.connection_error(f"Custom OpenAI API connection failed: {e!s}") from e
     except httpx.HTTPStatusError as e:
