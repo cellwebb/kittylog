@@ -41,18 +41,20 @@ uv run pip install package      # NEVER: pip install package
 ### Key Features
 
 - **LLM-powered analysis** of commits, file changes, and code patterns to categorize changes
-- **Multi-provider support** for Anthropic, OpenAI, Groq, Cerebras, Ollama models
-- **Smart tag detection** - automatically detects which tags need changelog entries
+- **Multi-provider support** for 18+ AI providers (Anthropic, OpenAI, Groq, Cerebras, Ollama, and more)
+- **Flexible boundary detection** - tags, dates, or time gaps for changelog grouping
 - **Keep a Changelog format** with proper Added/Changed/Fixed categorization
 - **Unreleased section** tracking for commits since last tag
 - **Interactive workflow** - review and approve content before saving
 - **Intelligent version detection** - avoids duplicates by comparing with existing changelog
+- **Multilingual support** - 25+ languages with optional translated section headings
+- **Audience presets** - tailor tone for developers, users, or stakeholders
 
 ### Technologies Used
 
 - Python 3.10+
 - GitPython for git operations
-- Direct provider SDK integrations for AI (Anthropic, OpenAI, Groq, Cerebras, Ollama, Z.AI)
+- Direct provider SDK integrations and httpx for AI (Anthropic, OpenAI, Groq, Cerebras, Ollama, etc.)
 - Click for CLI interface
 - Pydantic for data validation
 - Rich for terminal output formatting
@@ -63,33 +65,53 @@ uv run pip install package      # NEVER: pip install package
 
 ```
 .
-├── src/kittylog/           # Main source code
+├── src/kittylog/               # Main source code
 │   ├── __init__.py
-│   ├── __version__.py      # Version information
-│   ├── ai.py               # AI integration for changelog generation
-│   ├── changelog.py        # Changelog operations and parsing
-│   ├── cli.py              # CLI entry point and command definitions
-│   ├── config.py           # Configuration loading and validation
-│   ├── constants.py        # Application constants
-│   ├── errors.py           # Error handling
-│   ├── git_operations.py   # Git operations for tag-based changelog generation
-│   ├── main.py             # Business logic for changelog workflow
-│   ├── output.py           # Unified output management
-│   ├── postprocess.py      # Changelog content post-processing
-│   ├── prompt.py           # AI prompt construction
-│   ├── utils.py            # Utility functions
-│   └── init_changelog.py   # Changelog initialization functionality
-├── tests/                  # Test suite
-├── assets/                 # Documentation assets
-├── .github/workflows/      # CI/CD workflows
-├── README.md               # Project overview
-├── USAGE.md                # Detailed usage documentation
-├── CONTRIBUTING.md         # Development guidelines
-├── AGENTS.md               # AI agent documentation
-├── pyproject.toml          # Project configuration and dependencies
-├── Makefile                # Development commands
-├── CHANGELOG.md            # Project changelog (maintained by kittylog itself)
-└── QWEN.md                 # This file
+│   ├── __version__.py          # Version information
+│   ├── ai.py                   # AI generation coordination
+│   ├── cli.py                  # CLI entry point and command definitions
+│   ├── errors.py               # Custom exception classes with context
+│   ├── git_operations.py       # Git operations for tag-based changelog generation
+│   ├── main.py                 # Business logic orchestration
+│   ├── output.py               # Unified output management
+│   ├── utils.py                # Utility functions
+│   ├── workflow.py             # Main workflow logic
+│   ├── workflow_validation.py  # Workflow prerequisite validation
+│   ├── workflow_ui.py          # Dry-run and confirmation UI handling
+│   ├── prompt.py               # Prompt building public interface
+│   ├── prompt_templates.py     # System and user prompt templates
+│   ├── prompt_cleaning.py      # Content cleaning and commit categorization
+│   ├── init_changelog.py       # Changelog initialization functionality
+│   ├── changelog/              # Changelog operations package
+│   │   ├── __init__.py         # Public API exports
+│   │   ├── io.py               # Read, write, create header
+│   │   ├── parser.py           # Find boundaries, insertion points, extract entries
+│   │   └── updater.py          # Update logic
+│   ├── constants/              # Configuration constants package
+│   │   ├── __init__.py         # Re-exports for backwards compat
+│   │   ├── languages.py        # Languages class
+│   │   ├── audiences.py        # Audiences class
+│   │   ├── env_defaults.py     # EnvDefaults and Limits classes
+│   │   └── enums.py            # GroupingMode, DateGrouping, FileStatus, etc.
+│   ├── config/                 # Configuration management
+│   │   └── __init__.py         # Config loading with KittylogConfigData dataclass
+│   └── providers/              # AI provider implementations
+│       ├── __init__.py         # Provider registry and auto-discovery
+│       ├── base.py             # BaseConfiguredProvider ABC
+│       ├── openai_compat.py    # OpenAI-compatible providers (OpenAI, Groq, etc.)
+│       ├── anthropic_compat.py # Anthropic-compatible providers
+│       ├── ollama.py           # Ollama local models
+│       └── error_handler.py    # Provider error handling decorator
+├── tests/                      # Test suite
+├── assets/                     # Documentation assets
+├── .github/workflows/          # CI/CD workflows
+├── README.md                   # Project overview
+├── USAGE.md                    # Detailed usage documentation
+├── CONTRIBUTING.md             # Development guidelines
+├── AGENTS.md                   # AI agent documentation (this file)
+├── pyproject.toml              # Project configuration and dependencies
+├── Makefile                    # Development commands
+└── CHANGELOG.md                # Project changelog (maintained by kittylog itself)
 ```
 
 ## Building and Running
@@ -106,7 +128,7 @@ uvx kittylog       # Generate changelog
 **Install permanently:**
 
 ```sh
-pipx install kittylog
+uv tool install kittylog
 kittylog init  # Interactive setup
 ```
 
@@ -145,6 +167,17 @@ kittylog -f CHANGES.md
 
 # Use different AI model
 kittylog -m "openai:gpt-4"
+
+# Grouping modes (alternative to tags)
+kittylog --grouping-mode dates --date-grouping weekly
+kittylog --grouping-mode gaps --gap-threshold 6
+
+# Multilingual and audience options
+kittylog --language es --audience stakeholders
+kittylog --language ja --translate-headings
+
+# Include git diff for deeper analysis
+kittylog --include-diff -y
 ```
 
 ## Development Setup
@@ -212,7 +245,33 @@ make quickstart         # Quick setup for new contributors
 
 ## AI Integration
 
-The project uses direct provider SDK integrations to support multiple AI providers:
+The project uses a base class architecture with automatic provider registration:
+
+### Provider Base Classes
+
+- **`OpenAICompatibleProvider`** - For OpenAI-compatible APIs (OpenAI, Groq, Cerebras, Together, Fireworks, etc.)
+- **`AnthropicCompatibleProvider`** - For Anthropic and custom Anthropic endpoints
+- **`OllamaProvider`** - For local Ollama models
+
+### Adding New Providers
+
+New providers are added via the `@register_provider` decorator:
+
+```python
+from kittylog.providers.base import ProviderConfig
+from kittylog.providers.openai_compat import OpenAICompatibleProvider
+from kittylog.providers.registry import register_provider
+
+@register_provider("myprovider", ["MYPROVIDER_API_KEY"])
+class MyProvider(OpenAICompatibleProvider):
+    config = ProviderConfig(
+        name="myprovider",
+        api_key_env="MYPROVIDER_API_KEY",
+        base_url="https://api.myprovider.com/v1/chat/completions",
+    )
+```
+
+### Supported Providers
 
 - Anthropic Claude
 - Cerebras
@@ -234,33 +293,69 @@ The project uses direct provider SDK integrations to support multiple AI provide
 - Together AI
 - Z.AI (standard and coding APIs)
 
-Configuration is handled through environment variables or the `~/.kittylog.env` file.
+### Configuration Precedence
+
+Configuration values are resolved in this order (highest to lowest priority):
+
+1. **CLI arguments** - `--model`, `--language`, `--audience`, etc.
+2. **Environment variables** - `KITTYLOG_MODEL`, `OPENAI_API_KEY`, etc.
+3. **Config files** - Project `.kittylog.env` → User `~/.kittylog.env`
+4. **Default values** - Built-in defaults from `EnvDefaults`
 
 ## Core Modules
 
 ### CLI (`src/kittylog/cli.py`)
 
-The command-line interface that defines all available commands and options. Uses Click for argument parsing.
+The command-line interface that defines all available commands and options. Uses Click for argument parsing with shared option decorators (`workflow_options`, `changelog_options`, `model_options`).
 
 ### Main Business Logic (`src/kittylog/main.py`)
 
 Orchestrates the changelog update workflow including git operations, AI generation, and file updates.
 
+### Workflow Modules
+
+- **`workflow.py`** - Main workflow logic and processing
+- **`workflow_validation.py`** - Workflow prerequisite validation
+- **`workflow_ui.py`** - Dry-run and confirmation UI handling
+
 ### AI Integration (`src/kittylog/ai.py`)
 
-Handles AI model integration for generating changelog entries from commit data using direct provider SDKs.
+Coordinates AI generation for changelog entries, delegating to the providers package.
+
+### Prompt Modules
+
+- **`prompt.py`** - Public interface for building prompts
+- **`prompt_templates.py`** - System and user prompt templates
+- **`prompt_cleaning.py`** - Content cleaning and commit categorization
 
 ### Git Operations (`src/kittylog/git_operations.py`)
 
 Provides Git operations specifically focused on tag-based changelog generation.
 
-### Changelog Operations (`src/kittylog/changelog.py`)
+### Changelog Package (`src/kittylog/changelog/`)
 
-Handles reading, parsing, and updating changelog files using AI-generated content.
+- **`io.py`** - Read, write, create header operations
+- **`parser.py`** - Find boundaries, insertion points, extract entries
+- **`updater.py`** - Update logic
 
-### Configuration (`src/kittylog/config.py`)
+### Constants Package (`src/kittylog/constants/`)
 
-Loads configuration from environment variables and .env files with proper precedence.
+- **`languages.py`** - Languages class (25+ supported languages)
+- **`audiences.py`** - Audiences class (developers, users, stakeholders)
+- **`env_defaults.py`** - EnvDefaults and Limits classes
+- **`enums.py`** - GroupingMode, DateGrouping, FileStatus, etc.
+
+### Configuration (`src/kittylog/config/`)
+
+Loads configuration using `KittylogConfigData` dataclass with type-safe access. Handles environment variables and .env files with proper precedence.
+
+### Providers Package (`src/kittylog/providers/`)
+
+- **`base.py`** - `BaseConfiguredProvider` ABC with `ProviderConfig` dataclass
+- **`openai_compat.py`** - OpenAI-compatible providers
+- **`anthropic_compat.py`** - Anthropic-compatible providers
+- **`ollama.py`** - Ollama local models
+- **`error_handler.py`** - `@handle_provider_errors` decorator for consistent error handling
 
 ## Contributing
 
