@@ -6,7 +6,6 @@ based on commit patterns and time gaps.
 
 import logging
 from datetime import timedelta
-from functools import cache, lru_cache
 
 import git
 from git import InvalidGitRepositoryError, Repo

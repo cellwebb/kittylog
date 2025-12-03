@@ -7,13 +7,11 @@ boundary detection across different modes, and changelog synchronization.
 import logging
 import re
 from datetime import datetime
-from functools import lru_cache
-
-from kittylog.cache import cached
 from pathlib import Path
 
 from git import InvalidGitRepositoryError, Repo
 
+from kittylog.cache import cached
 from kittylog.errors import GitError
 
 logger = logging.getLogger(__name__)
