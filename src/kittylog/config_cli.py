@@ -22,7 +22,7 @@ def show() -> None:
         click.echo("No $HOME/.kittylog.env found.")
         return
     load_dotenv(KITTYLOG_ENV_PATH, override=True)
-    with open(KITTYLOG_ENV_PATH) as f:
+    with KITTYLOG_ENV_PATH.open() as f:
         for line in f:
             click.echo(line.rstrip())
 

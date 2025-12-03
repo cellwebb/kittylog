@@ -2,8 +2,8 @@
 
 import questionary
 
-from kittylog.config import config
-from kittylog.errors import ConfigError, GitError, AIError, ChangelogError
+from kittylog.config import load_config
+from kittylog.errors import AIError, ChangelogError, ConfigError, GitError
 from kittylog.output import get_output_manager
 
 
@@ -21,7 +21,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             date_grouping or "daily",
             include_diff or False,
             yes or True,  # Auto-accept in quiet mode for scripting
-            audience or (config.get("audience") if isinstance(config, dict) else None) or "stakeholders",
+            audience or load_config().get("audience") or "stakeholders",
         )
 
     output = get_output_manager()
@@ -56,7 +56,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             gap_threshold_response = questionary.text(
                 "How many hours of silence should indicate a new changelog section?",
                 default=str(selected_gap_threshold),
-                validate=lambda text: text.replace('.', '', 1).isdigit() and float(text) > 0,
+                validate=lambda text: text.replace(".", "", 1).isdigit() and float(text) > 0,
             ).ask()
 
             if gap_threshold_response:
@@ -93,7 +93,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
         ).ask()
 
         if not selected_audience:
-            selected_audience = audience or config.get("audience") if isinstance(config, dict) else None
+            selected_audience = audience or load_config().get("audience")
             selected_audience = selected_audience or "stakeholders"
 
         # Git diff inclusion with clear warning about costs
@@ -105,10 +105,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             "Include git diff? (Not recommended for regular use)", default=include_diff or False
         ).ask()
 
-        if diff_response is None:
-            selected_include_diff = include_diff or False
-        else:
-            selected_include_diff = diff_response
+        selected_include_diff = include_diff or False if diff_response is None else diff_response
 
         # Confirmation prompt before proceeding
         output.echo("")
