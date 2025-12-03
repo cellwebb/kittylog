@@ -11,18 +11,18 @@ class TestMainBusinessLogic:
     """Test main business logic with proper mocks."""
 
     @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
     @patch("kittylog.workflow.get_all_boundaries")
     @patch("kittylog.changelog_parser.find_existing_boundaries")
-    @patch("kittylog.git_operations.get_latest_boundary")
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.generate_boundary_identifier")
-    @patch("kittylog.git_operations.generate_boundary_display_name")
-    @patch("kittylog.git_operations.get_commits_between_tags")
-    @patch("kittylog.git_operations.get_previous_boundary")
+    @patch("kittylog.tag_operations.get_latest_boundary")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.generate_boundary_identifier")
+    @patch("kittylog.tag_operations.generate_boundary_display_name")
+    @patch("kittylog.commit_analyzer.get_commits_between_tags")
+    @patch("kittylog.tag_operations.get_previous_boundary")
     def test_main_logic_tags_success(
         self,
         mock_get_previous_boundary,
@@ -116,7 +116,7 @@ class TestMainBusinessLogic:
 
     @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.workflow.get_all_boundaries")
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     def test_main_logic_no_boundaries_warning(
         self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir
     ):
@@ -160,16 +160,16 @@ class TestMainBusinessLogic:
         mock_output.warning.assert_called()
 
     @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
     @patch("kittylog.workflow.get_all_boundaries")
     @patch("kittylog.changelog_parser.find_existing_boundaries")
-    @patch("kittylog.git_operations.get_latest_boundary")
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.generate_boundary_identifier")
-    @patch("kittylog.git_operations.generate_boundary_display_name")
+    @patch("kittylog.tag_operations.get_latest_boundary")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.generate_boundary_identifier")
+    @patch("kittylog.tag_operations.generate_boundary_display_name")
     def test_main_logic_dates_mode(
         self,
         mock_generate_display,
@@ -280,16 +280,16 @@ class TestMainBusinessLogic:
         assert _token_usage is None
 
     @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
     @patch("kittylog.workflow.get_all_boundaries")
     @patch("kittylog.changelog_parser.find_existing_boundaries")
-    @patch("kittylog.git_operations.get_latest_boundary")
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.generate_boundary_identifier")
-    @patch("kittylog.git_operations.generate_boundary_display_name")
+    @patch("kittylog.tag_operations.get_latest_boundary")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.generate_boundary_identifier")
+    @patch("kittylog.tag_operations.generate_boundary_display_name")
     def test_main_logic_dry_run_mode(
         self,
         mock_generate_display,
@@ -412,14 +412,14 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     monkeypatch.setattr("kittylog.changelog_io.read_changelog", lambda _: "# Changelog\n")
     monkeypatch.setattr(changelog_parser, "find_existing_boundaries", lambda _: set())
     monkeypatch.setattr(
-        "kittylog.git_operations.get_all_boundaries",
+        "kittylog.tag_operations.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
     )
-    monkeypatch.setattr("kittylog.git_operations.get_previous_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr("kittylog.git_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
+    monkeypatch.setattr("kittylog.tag_operations.get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.tag_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
     # Mock git operations to prevent actual git repo access
-    monkeypatch.setattr("kittylog.git_operations.get_latest_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr("kittylog.git_operations.is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr("kittylog.tag_operations.get_latest_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.tag_operations.is_current_commit_tagged", lambda: False)
     monkeypatch.setattr("kittylog.output.get_output_manager", lambda: Mock())
 
     # Call handle_single_boundary_mode directly since handle_auto_mode was refactored
@@ -498,10 +498,10 @@ def test_main_logic_passes_language_preferences(monkeypatch):
         "kittylog.mode_handlers.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
     )
-    monkeypatch.setattr("kittylog.git_operations.get_previous_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr("kittylog.git_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
-    monkeypatch.setattr("kittylog.git_operations.get_latest_boundary", lambda *args, **kwargs: boundary)
-    monkeypatch.setattr("kittylog.git_operations.is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr("kittylog.tag_operations.get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.tag_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
+    monkeypatch.setattr("kittylog.tag_operations.get_latest_boundary", lambda *args, **kwargs: boundary)
+    monkeypatch.setattr("kittylog.tag_operations.is_current_commit_tagged", lambda: False)
     monkeypatch.setattr("kittylog.workflow.get_output_manager", lambda: mock_output)
 
     success, _usage = main_module.main_business_logic(

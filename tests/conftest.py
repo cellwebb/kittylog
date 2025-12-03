@@ -21,6 +21,14 @@ try:
 except Exception:
     os.chdir(str(Path.home()))
 
+# Import cache clearing functions
+try:
+    from kittylog.tag_operations import clear_git_cache
+    from kittylog.commit_analyzer import clear_commit_analyzer_cache
+except ImportError:
+    clear_git_cache = lambda: None
+    clear_commit_analyzer_cache = lambda: None
+
 
 @pytest.fixture(autouse=True)
 def clear_caches_between_tests():
@@ -33,9 +41,8 @@ def clear_caches_between_tests():
 
     # Clear before test
     try:
-        from kittylog.git_operations import clear_all_caches
-
-        clear_all_caches()
+        clear_git_cache()
+        clear_commit_analyzer_cache()
     except ImportError:
         pass
 
@@ -43,9 +50,8 @@ def clear_caches_between_tests():
 
     # Clear after test
     try:
-        from kittylog.git_operations import clear_all_caches
-
-        clear_all_caches()
+        clear_git_cache()
+        clear_commit_analyzer_cache()
     except ImportError:
         pass
 
@@ -68,9 +74,11 @@ def temp_dir():
 def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
     # Clear git cache before setting up new repo
-    from kittylog.git_operations import clear_all_caches
+    from kittylog.tag_operations import clear_git_cache
+    from kittylog.commit_analyzer import clear_commit_analyzer_cache
 
-    clear_all_caches()
+    clear_git_cache()
+    clear_commit_analyzer_cache()
 
     # Store original directory FIRST before any operations
     try:

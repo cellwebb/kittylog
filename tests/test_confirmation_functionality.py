@@ -14,7 +14,7 @@ from kittylog.cli import cli
 class TestConfirmationFunctionality:
     """Test confirmation prompts in CLI workflow."""
 
-    @patch("kittylog.main.config", {"model": "openai:gpt-4o-mini"})
+    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     @patch("httpx.post")
     @patch("os.getenv")
     def test_yes_flag_bypasses_confirmation(self, mock_getenv, mock_post, temp_dir):
@@ -57,7 +57,7 @@ class TestConfirmationFunctionality:
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
-            from kittylog.git_operations import clear_git_cache
+            from kittylog.tag_operations import clear_git_cache
 
             clear_git_cache()
             runner = CliRunner()
@@ -83,7 +83,7 @@ class TestConfirmationFunctionality:
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.main.config", {"model": "openai:gpt-4o-mini"})
+    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     def test_confirmation_shows_when_yes_not_used(self, temp_dir):
         """Test that confirmation prompt appears when --yes flag is not used."""
         # Create git repo with tags
@@ -125,7 +125,7 @@ All notable changes will be documented in this file.
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
-            from kittylog.git_operations import clear_git_cache
+            from kittylog.tag_operations import clear_git_cache
 
             clear_git_cache()
             runner = CliRunner()
@@ -150,7 +150,7 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.main.config", {"model": "openai:gpt-4o-mini"})
+    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     def test_cancellation_no_save_prompt(self, temp_dir):
         """Test that canceling confirmation doesn't trigger save confirmation."""
         # Create git repo with tags
@@ -191,7 +191,7 @@ All notable changes will be documented in this file.
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
-            from kittylog.git_operations import clear_git_cache
+            from kittylog.tag_operations import clear_git_cache
 
             clear_git_cache()
             runner = CliRunner()
@@ -219,7 +219,7 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.main.config", {"model": "anthropic:claude-3-haiku"})
+    @patch("kittylog.workflow.config", {"model": "anthropic:claude-3-haiku"})
     @patch(
         "kittylog.ai.config",
         {"model": "anthropic:claude-3-haiku", "temperature": 0.7, "max_output_tokens": 1024, "retries": 3},
@@ -272,7 +272,7 @@ All notable changes will be documented in this file.
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
-            from kittylog.git_operations import clear_git_cache
+            from kittylog.tag_operations import clear_git_cache
 
             clear_git_cache()
             runner = CliRunner()
@@ -333,7 +333,7 @@ All notable changes will be documented in this file.
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
-            from kittylog.git_operations import clear_git_cache
+            from kittylog.tag_operations import clear_git_cache
 
             clear_git_cache()
             runner = CliRunner()

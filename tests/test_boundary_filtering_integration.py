@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from kittylog.changelog import find_existing_boundaries
-from kittylog.git_operations import generate_boundary_identifier
+from kittylog.tag_operations import generate_boundary_identifier
 
 
 def test_boundary_filtering_prefix_mismatch():

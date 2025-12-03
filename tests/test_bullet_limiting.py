@@ -9,9 +9,9 @@ from kittylog.changelog import update_changelog
 class TestBulletLimiting:
     """Test bullet point limiting in changelog entries."""
 
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.get_latest_tag")
-    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.get_latest_tag")
+    @patch("kittylog.commit_analyzer.get_commits_between_tags")
     @patch("kittylog.changelog.get_commits_between_tags")
     @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")
@@ -132,9 +132,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert len(added_bullets) <= 6  # 6 new limit
         assert len(fixed_bullets) <= 6  # 6 new limit
 
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.get_latest_tag")
-    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.get_latest_tag")
+    @patch("kittylog.commit_analyzer.get_commits_between_tags")
     @patch("kittylog.changelog.get_commits_between_tags")
     @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")
@@ -232,9 +232,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "New feature 1" in updated_content
         assert "New fix 1" in updated_content
 
-    @patch("kittylog.git_operations.is_current_commit_tagged")
-    @patch("kittylog.git_operations.get_latest_tag")
-    @patch("kittylog.git_operations.get_commits_between_tags")
+    @patch("kittylog.tag_operations.is_current_commit_tagged")
+    @patch("kittylog.tag_operations.get_latest_tag")
+    @patch("kittylog.commit_analyzer.get_commits_between_tags")
     @patch("kittylog.changelog.get_commits_between_tags")
     @patch("kittylog.changelog.get_git_diff")
     @patch("kittylog.changelog.generate_changelog_entry")

@@ -4,7 +4,7 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from kittylog.git_operations import get_commits_by_date_boundaries, get_commits_by_gap_boundaries
+from kittylog.commit_analyzer import get_commits_by_date_boundaries, get_commits_by_gap_boundaries
 from kittylog.workflow import main_business_logic
 
 
@@ -13,7 +13,7 @@ class TestEdgeCases:
 
     @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_tags_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no tags."""
         # Mock repository with iterable tags and commits
@@ -56,7 +56,7 @@ class TestEdgeCases:
 
     @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_dates_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no date boundaries."""
         # Mock repository with iterable tags and commits
@@ -99,7 +99,7 @@ class TestEdgeCases:
 
     @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
-    @patch("kittylog.git_operations.get_repo")
+    @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_gaps_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no gap boundaries."""
         # Mock repository with iterable tags and commits
