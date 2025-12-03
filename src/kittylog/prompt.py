@@ -20,6 +20,7 @@ def build_changelog_prompt(
     language: str | None = None,
     translate_headings: bool = False,
     audience: str | None = None,
+    context_entries: str = "",
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
 
@@ -32,6 +33,7 @@ def build_changelog_prompt(
         language: Optional language for the generated changelog
         translate_headings: Whether to translate section headings into the selected language
         audience: Target audience slug controlling tone and emphasis
+        context_entries: Pre-formatted string of preceding changelog entries for style reference
 
     Returns:
         Tuple of (system_prompt, user_prompt)
@@ -46,6 +48,7 @@ def build_changelog_prompt(
         language=language,
         translate_headings=translate_headings,
         audience=audience,
+        context_entries=context_entries,
     )
 
     return system_prompt, user_prompt
@@ -160,6 +163,7 @@ def _build_user_prompt(
     language: str | None = None,
     translate_headings: bool = False,
     audience: str | None = None,
+    context_entries: str = "",
 ) -> str:
     """Build the user prompt with commit data."""
 
@@ -239,6 +243,17 @@ def _build_user_prompt(
     resolved_audience = Audiences.resolve(audience)
     audience_section = audience_instructions.get(resolved_audience, audience_instructions["developers"])
 
+    # Add context from preceding entries if provided
+    context_section = ""
+    if context_entries.strip():
+        context_section = (
+            "STYLE REFERENCE - Match the format, tone, and level of detail of these previous entries:\n\n"
+            f"{context_entries}\n\n"
+            "---\n\n"
+            "Use the above entries as a reference for formatting, bullet style, and level of detail. "
+            "Maintain consistency with the existing changelog style.\n\n"
+        )
+
     # Format commits
     commits_section = "## Commits to analyze:\n\n"
 
@@ -308,7 +323,15 @@ REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, 
 REMEMBER: Always follow the exact section order: Added, Changed, Deprecated, Removed, Fixed, Security.
 REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
 
-    return version_context + hint_section + language_section + audience_section + commits_section + instructions
+    return (
+        version_context
+        + hint_section
+        + language_section
+        + audience_section
+        + context_section
+        + commits_section
+        + instructions
+    )
 
 
 def clean_changelog_content(content: str, preserve_version_header: bool = False) -> str:

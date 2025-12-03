@@ -63,6 +63,7 @@ class WorkflowOptions:
     show_prompt: bool = False
     hint: str = ""
     verbose: bool = False
+    context_entries_count: int = field(default_factory=lambda: EnvDefaults.CONTEXT_ENTRIES)
 
 
 @dataclass
