@@ -69,7 +69,9 @@ def process_workflow_modes(
     # Handle different processing modes
     if from_tag is None and to_tag is None and not update_all_entries:
         # Normal mode: find missing entries
-        return handle_unreleased_mode(
+        from kittylog.mode_handlers import handle_missing_entries_mode
+
+        return handle_missing_entries_mode(
             changelog_file=changelog_file,
             model=model,
             hint=hint,
@@ -361,9 +363,16 @@ def main_business_logic(
 
     # Get model from config if not specified
     if not model:
-        model_from_config = config.get("model", "openai:gpt-4")
-        assert isinstance(model_from_config, str)  # for mypy
-        model = model_from_config
+        try:
+            model_from_config = config.get("model", "openai:gpt-4")
+            assert isinstance(model_from_config, str)  # for mypy
+            model = model_from_config
+        except (AssertionError, TypeError) as e:
+            if str(e):
+                handle_error(e)
+            else:
+                handle_error(Exception("No model specified in config"))
+            return False, None
 
     # Store original content for change detection
     original_content = read_changelog(changelog_file)

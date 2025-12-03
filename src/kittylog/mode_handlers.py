@@ -8,6 +8,7 @@ import logging
 
 import click
 
+from kittylog.ai import generate_changelog_entry
 from kittylog.changelog import (
     create_changelog_header,
     find_existing_boundaries,
@@ -335,7 +336,9 @@ def handle_update_all_mode(
     boundaries_to_process = []
     for boundary in all_boundaries:
         boundary_id = generate_boundary_identifier(boundary, grouping_mode)
-        if boundary_id in existing_boundaries:
+        # For version boundaries, strip 'v' prefix to match find_existing_boundaries behavior
+        comparison_id = boundary_id.lstrip("v") if grouping_mode == "tags" else boundary_id
+        if comparison_id in existing_boundaries:
             boundaries_to_process.append(boundary)
 
     if not quiet:
@@ -406,6 +409,105 @@ def handle_update_all_mode(
     return changelog_content, total_token_usage
 
 
+def handle_missing_entries_mode(
+    changelog_file: str,
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    no_unreleased: bool,
+    grouping_mode: str,
+    gap_threshold_hours: float,
+    date_grouping: str,
+    yes: bool = False,
+    include_diff: bool = False,
+    language: str | None = None,
+    translate_headings: bool = False,
+    audience: str | None = None,
+) -> tuple[str, dict[str, int] | None]:
+    """Handle missing entries mode - create entries for tags not in changelog."""
+    # Get all boundaries from git
+    all_boundaries = get_all_boundaries(
+        mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+    )
+
+    # Read existing changelog and find boundaries already covered
+    existing_content = read_changelog(changelog_file)
+    existing_boundaries = find_existing_boundaries(existing_content)
+
+    # Filter to only missing boundaries (exclude ones already in changelog)
+    boundaries_to_process = []
+    for boundary in all_boundaries:
+        boundary_id = generate_boundary_identifier(boundary, grouping_mode)
+        # For version boundaries, strip 'v' prefix to match find_existing_boundaries behavior
+        comparison_id = boundary_id.lstrip("v") if grouping_mode == "tags" else boundary_id
+        if comparison_id not in existing_boundaries:
+            boundaries_to_process.append(boundary)
+
+    if not quiet:
+        boundary_list = (
+            ", ".join([generate_boundary_display_name(boundary, grouping_mode) for boundary in boundaries_to_process])
+            if boundaries_to_process
+            else "none"
+        )
+        output = get_output_manager()
+        output.info(f"Will create {len(boundaries_to_process)} missing entries: {boundary_list}")
+
+    # If changelog doesn't exist, create header
+    if not existing_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+        logger.info("Created new changelog header")
+    else:
+        changelog_content = existing_content
+
+    # Process each missing boundary
+    for boundary in boundaries_to_process:
+        # Get commits between this boundary and the previous one
+        previous_boundary = get_previous_boundary(boundary, grouping_mode)
+        commits = get_commits_between_boundaries(previous_boundary, boundary, grouping_mode)
+
+        # Generate changelog content for this boundary
+        boundary_content, stats = generate_changelog_entry(
+            commits=commits,
+            tag=generate_boundary_identifier(boundary, grouping_mode),
+            from_tag=generate_boundary_identifier(previous_boundary, grouping_mode) if previous_boundary else None,
+            model=model,
+            hint=hint,
+            quiet=quiet,
+            boundary_mode=grouping_mode,
+            language=language,
+            translate_headings=False,
+            audience=audience,
+        )
+
+        # Update the changelog with the boundary content
+        # Insert version header before the content sections
+        if boundary_content.strip():
+            boundary_id = generate_boundary_identifier(boundary, grouping_mode)
+            # Format: ## [version] - date (if applicable)
+            if grouping_mode == "tags":
+                version_header = f"## [{boundary_id}]\n"
+            else:
+                # For date-based modes, include the date in the header
+                boundary_date_raw = boundary.get("date", "")
+                if boundary_date_raw:
+                    # Handle both string and datetime objects
+                    date_str = (
+                        boundary_date_raw.isoformat()
+                        if hasattr(boundary_date_raw, "isoformat")
+                        else str(boundary_date_raw)
+                    )
+                    boundary_date = date_str.split("T")[0]
+                else:
+                    boundary_date = ""
+                version_header = f"## [{boundary_id}] - {boundary_date}\n" if boundary_date else f"## [{boundary_id}]\n"
+
+            full_entry = version_header + "\n" + boundary_content
+            changelog_content = changelog_content.rstrip() + "\n\n" + full_entry
+
+    return changelog_content, None
+
+
 def determine_missing_entries(
     changelog_file: str,
     grouping_mode: str,
@@ -428,7 +530,9 @@ def determine_missing_entries(
     boundaries_to_process = []
     for boundary in all_boundaries:
         boundary_id = generate_boundary_identifier(boundary, grouping_mode)
-        if boundary_id not in existing_boundaries:
+        # For version boundaries, strip 'v' prefix to match find_existing_boundaries behavior
+        comparison_id = boundary_id.lstrip("v") if grouping_mode == "tags" else boundary_id
+        if comparison_id not in existing_boundaries:
             boundaries_to_process.append(boundary)
 
     # Check for unreleased changes to include in the count
