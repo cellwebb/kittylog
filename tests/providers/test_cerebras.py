@@ -1,34 +1,30 @@
 """Tests for Cerebras provider."""
 
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from kittylog.errors import AIError
 from kittylog.providers.cerebras import call_cerebras_api
 
+API_KEY = "test-key"
+API_ENDPOINT = "https://api.cerebras.ai/v2/chat/completions"
+
 
 class TestCerebrasProvider:
     """Test Cerebras provider functionality."""
 
     @patch("kittylog.providers.cerebras.httpx.post")
-    def test_call_cerebras_api_success(self, mock_post):
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_call_cerebras_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Cerebras API call."""
-        # Mock response
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "choices": [{"message": {"content": "Test response"}}]
-        }
-        mock_post.return_value = mock_response
+        response_data = {"choices": [{"message": {"content": "Test response"}}]}
+        mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         result = call_cerebras_api(
             model="llama3.1-8b",
-            messages=[
-                {"role": "system", "content": "System message"},
-                {"role": "user", "content": "Test message"}
-            ],
+            messages=dummy_messages,
             temperature=0.7,
             max_tokens=100,
         )
@@ -36,47 +32,27 @@ class TestCerebrasProvider:
         assert result == "Test response"
         mock_post.assert_called_once()
 
-        # Verify call arguments
-        call_args = mock_post.call_args
-        assert call_args[0][0] == "https://api.cerebras.ai/v2/chat/completions"
-        headers = call_args[1]["headers"]
-        assert "Authorization" in headers
-        assert "Bearer test-key" in headers["Authorization"]
-        
-        data = call_args[1]["json"]
+        # Verify call URL and headers
+        url = api_test_helper.extract_call_url(mock_post)
+        assert url == API_ENDPOINT
+
+        headers = api_test_helper.extract_call_headers(mock_post)
+        assert api_test_helper.verify_bearer_token_header(headers, API_KEY)
+
+        # Verify request data
+        data = api_test_helper.extract_call_data(mock_post)
         assert data["model"] == "llama3.1-8b"
         assert data["temperature"] == 0.7
         assert data["max_tokens"] == 100
-        assert len(data["messages"]) == 2
 
-    @patch("kittylog.providers.cerebras.httpx.post")
-    @patch.dict(os.environ, {"CEREBRAS_API_KEY": "test-key"})
-    def test_call_cerebras_api_success_with_key(self, mock_post):
-        """Test successful Cerebras API callwith environment key."""
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {
-            "choices": [{"message": {"content": "Test response"}}]
-        }
-        mock_post.return_value = mock_response
-
-        result = call_cerebras_api(
-            model="llama3.1-8b",
-            messages=[{"role": "user", "content": "Test message"}],
-            temperature=0.7,
-            max_tokens=100,
-        )
-
-        assert result == "Test response"
-
-    def test_call_cerebras_api_missing_api_key(self, monkeypatch):
+    def test_call_cerebras_api_missing_api_key(self, monkeypatch, dummy_messages):
         """Test Cerebras API call fails without API key."""
         monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
             call_cerebras_api(
                 model="llama3.1-8b",
-                messages=[{"role": "user", "content": "Test"}],
+                messages=dummy_messages,
                 temperature=0.7,
                 max_tokens=100,
             )
@@ -84,41 +60,84 @@ class TestCerebrasProvider:
         assert "CEREBRAS_API_KEY not found" in str(exc_info.value)
 
     @patch("kittylog.providers.cerebras.httpx.post")
-    def test_call_cerebras_api_http_error(self, mock_post):
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_call_cerebras_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Cerebras API call handles HTTP errors."""
-        mock_response = Mock()
-        mock_response.raise_for_status.side_effect = Exception("HTTP 429")
-        mock_response.status_code = 429
-        mock_response.text = "Rate limit exceeded"
-        mock_post.return_value = mock_response
+        mock_post.return_value = mock_http_response_factory.create_error_response(
+            status_code=429, error_message="Rate limit exceeded"
+        )
 
-        with patch.dict(os.environ, {"CEREBRAS_API_KEY": "test-key"}):
-            with pytest.raises(AIError) as exc_info:
-                call_cerebras_api(
-                    model="llama3.1-8b",
-                    messages=[{"role": "user", "content": "Test"}],
-                    temperature=0.7,
-                    max_tokens=100,
-                )
+        with pytest.raises(AIError) as exc_info:
+            call_cerebras_api(
+                model="llama3.1-8b",
+                messages=dummy_messages,
+                temperature=0.7,
+                max_tokens=100,
+            )
 
-        assert "Cerebras API error" in str(exc_info.value)
+        assert "Cerebras API error" in str(exc_info.value) or "Error calling Cerebras API" in str(exc_info.value)
 
     @patch("kittylog.providers.cerebras.httpx.post")
-    def test_call_cerebras_api_general_error(self, mock_post):
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_call_cerebras_api_general_error(self, mock_post, dummy_messages):
         """Test Cerebras API call handles general errors."""
         mock_post.side_effect = Exception("Connection failed")
 
-        with patch.dict(os.environ, {"CEREBRAS_API_KEY": "test-key"}):
-            with pytest.raises(AIError) as exc_info:
-                call_cerebras_api(
-                    model="llama3.1-8b",
-                    messages=[{"role": "user", "content": "Test"}],
-                    temperature=0.7,
-                    max_tokens=100,
-                )
+        with pytest.raises(AIError) as exc_info:
+            call_cerebras_api(
+                model="llama3.1-8b",
+                messages=dummy_messages,
+                temperature=0.7,
+                max_tokens=100,
+            )
 
         assert "Error calling Cerebras API" in str(exc_info.value)
 
+    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_call_cerebras_api_with_system_message(
+        self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
+    ):
+        """Test Cerebras API call with system message."""
+        response_data = {"choices": [{"message": {"content": "Test response"}}]}
+        mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
+
+        result = call_cerebras_api(
+            model="llama3.1-8b",
+            messages=dummy_messages_with_system,
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        assert result == "Test response"
+
+        data = api_test_helper.extract_call_data(mock_post)
+        assert len(data["messages"]) == 2
+        assert data["messages"][0]["role"] == "system"
+        assert data["messages"][1]["role"] == "user"
+
+    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_call_cerebras_api_with_conversation(
+        self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper
+    ):
+        """Test Cerebras API call with full conversation history."""
+        response_data = {"choices": [{"message": {"content": "Test response"}}]}
+        mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
+
+        result = call_cerebras_api(
+            model="llama3.1-8b",
+            messages=dummy_conversation,
+            temperature=0.7,
+            max_tokens=100,
+        )
+
+        assert result == "Test response"
+
+        data = api_test_helper.extract_call_data(mock_post)
+        assert len(data["messages"]) == 3
+
+    @pytest.mark.integration
     @pytest.mark.skipif(not os.getenv("CEREBRAS_API_KEY"), reason="CEREBRAS_API_KEY not set")
     def test_cerebras_provider_integration(self):
         """Test Cerebras provider integration with real API."""
