@@ -1,43 +1,51 @@
-"""StreamLake provider for kittylog."""
+"""StreamLake (Vanchin) API provider for kittylog."""
 
-from kittylog.providers.base import BaseAPIProvider
+import os
 
+import httpx
 
-class StreamLakeProvider(BaseAPIProvider):
-    """StreamLake AI API provider."""
-
-    API_URL = "https://api.streamlake.ai/v1/chat/completions"
-    API_KEY_ENV = "STREAMLAKE_API_KEY"
-    PROVIDER_NAME = "StreamLake"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
-
-
-# Create provider instance
-_streamlake_provider = StreamLakeProvider()
+from kittylog.errors import AIError
 
 
 def call_streamlake_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call StreamLake API directly.
+    """Call StreamLake (Vanchin) chat completions API."""
+    api_key = os.getenv("STREAMLAKE_API_KEY") or os.getenv("VC_API_KEY")
+    if not api_key:
+        raise AIError.generation_error(
+            "STREAMLAKE_API_KEY not found in environment variables (VC_API_KEY alias also not set)"
+        )
 
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
+    url = "https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    Returns:
-        Generated text content
+    data = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
 
-    Raises:
-        AIError: For any API-related errors
-    """
-    return _streamlake_provider.call(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    try:
+        response = httpx.post(url, headers=headers, json=data, timeout=120)
+        response.raise_for_status()
+        response_data = response.json()
+        choices = response_data.get("choices")
+        if not choices:
+            raise AIError.generation_error("StreamLake API returned no choices")
+
+        message = choices[0].get("message", {})
+        content = message.get("content")
+        if content is None:
+            raise AIError.generation_error("StreamLake API returned null content")
+        if content == "":
+            raise AIError.generation_error("StreamLake API returned empty content")
+
+        return content
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIError.generation_error(f"StreamLake API rate limit exceeded: {e.response.text}") from e
+        raise AIError.generation_error(f"StreamLake API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.generation_error(f"StreamLake API request timed out: {e!s}") from e
+    except Exception as e:
+        raise AIError.generation_error(f"Error calling StreamLake API: {e!s}") from e
