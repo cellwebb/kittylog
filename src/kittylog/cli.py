@@ -69,6 +69,13 @@ def changelog_options(f: Callable) -> Callable:
         help="Include git diff in AI context (warning: can dramatically increase token usage)",
     )(f)
     f = click.option(
+        "--context-entries",
+        "-C",
+        type=int,
+        default=0,
+        help="Number of preceding changelog entries to include for style reference (default: 0, disabled)",
+    )(f)
+    f = click.option(
         "--interactive/--no-interactive",
         "-i",
         default=True,
@@ -159,6 +166,7 @@ def add(
     tag,
     no_unreleased,
     include_diff,
+    context_entries,
     interactive,
     grouping_mode,
     gap_threshold,
@@ -208,6 +216,7 @@ def add(
             language=language or EnvDefaults.LANGUAGE,
             hint=hint or "",
             show_prompt=show_prompt,
+            context_entries_count=context_entries,
         )
 
         changelog_opts = ChangelogOptions(
@@ -299,6 +308,7 @@ def cli(ctx, version):
             tag=None,
             no_unreleased=False,
             include_diff=False,
+            context_entries=0,
             interactive=True,
             grouping_mode=None,
             gap_threshold=None,

@@ -356,6 +356,7 @@ class TestAIIntegration:
             language=None,
             translate_headings=False,
             audience=None,
+            context_entries="",
         )
 
         # Verify AI client was called

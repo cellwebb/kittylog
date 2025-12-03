@@ -11,6 +11,7 @@ import click
 
 from kittylog.ai import generate_changelog_entry
 from kittylog.changelog import read_changelog, write_changelog
+from kittylog.changelog_parser import extract_preceding_entries
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.constants import Audiences, GroupingMode, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
@@ -35,11 +36,24 @@ def _create_entry_generator(
     language: str | None,
     translate_headings: bool,
     audience: str | None,
+    changelog_file: str = "",
+    context_entries_count: int = 0,
 ):
     """Create a changelog entry generator function with captured parameters.
 
     Returns a function that can be passed to mode handlers as generate_entry_func.
     """
+    # Pre-extract context entries if requested and changelog file exists
+    context_entries = ""
+    if context_entries_count > 0 and changelog_file:
+        try:
+            changelog_content = read_changelog(changelog_file)
+            context_entries = extract_preceding_entries(changelog_content, context_entries_count)
+            if context_entries and not quiet:
+                logger.debug(f"Extracted {context_entries_count} preceding entries for context")
+        except (FileNotFoundError, OSError):
+            # No existing changelog, so no context to extract
+            pass
 
     def generator(commits: list[dict], tag: str, from_boundary: str | None = None, **kwargs) -> str:
         entry, _usage = generate_changelog_entry(
@@ -53,6 +67,7 @@ def _create_entry_generator(
             language=language,
             translate_headings=translate_headings,
             audience=audience,
+            context_entries=context_entries,
         )
         return entry
 
@@ -79,6 +94,7 @@ def process_workflow_modes(
     effective_language: str | None,
     translate_headings: bool,
     effective_audience: str | None,
+    context_entries_count: int = 0,
 ) -> tuple[str, dict[str, int] | None]:
     """Process changelog workflow based on mode selection."""
     # Create the entry generator function for mode handlers
@@ -91,6 +107,8 @@ def process_workflow_modes(
         language=effective_language,
         translate_headings=translate_headings,
         audience=effective_audience,
+        changelog_file=changelog_file,
+        context_entries_count=context_entries_count,
     )
 
     # Handle special unreleased mode
@@ -457,6 +475,7 @@ def main_business_logic(
             effective_language=effective_language,
             translate_headings=translate_headings,
             effective_audience=effective_audience,
+            context_entries_count=workflow_opts.context_entries_count,
         )
     except ChangelogError as e:
         handle_error(e)
