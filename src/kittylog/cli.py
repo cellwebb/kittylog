@@ -9,6 +9,7 @@ import sys
 import click
 
 from kittylog import __version__
+from kittylog.auth_cli import auth as auth_cli
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.config_cli import config as config_cli
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
@@ -17,6 +18,7 @@ from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
+from kittylog.model_cli import model as model_cli
 from kittylog.output import get_output_manager, set_output_mode
 from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
@@ -307,6 +309,8 @@ cli.add_command(language_cli)
 cli.add_command(init_changelog)
 cli.add_command(add)
 cli.add_command(update_version, "update")
+cli.add_command(auth_cli)
+cli.add_command(model_cli)
 
 
 @click.command(context_settings=language_cli.context_settings)
