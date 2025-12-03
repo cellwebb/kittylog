@@ -9,9 +9,9 @@ import sys
 import click
 
 from kittylog import __version__
-from kittylog.config import load_config
+from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.config_cli import config as config_cli
-from kittylog.constants import Audiences, DateGrouping, GroupingMode, Logging
+from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
@@ -22,7 +22,8 @@ from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
 from kittylog.utils import setup_logging
 
-config = load_config()
+# No need for lazy loading - breaking compatibility for cleaner code
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,7 +118,7 @@ def common_options(f):
 
 def setup_command_logging(log_level, verbose, quiet):
     """Set up logging for CLI commands with consistent logic."""
-    effective_log_level = log_level or config["log_level"]
+    effective_log_level = log_level or load_config().get("log_level") or EnvDefaults.LOG_LEVEL
     if verbose and effective_log_level not in ("DEBUG", "INFO"):
         effective_log_level = "INFO"
     if quiet:
@@ -159,36 +160,26 @@ def add(
 ):
     """Add missing changelog entries or update a specific tag entry.
 
-        When run without arguments, adds entries for tags missing from changelog.
-        When run with a specific tag, processes only that tag (overwrites if exists).
-        When --all flag is used, updates all entries in changelog.
+    Modern CLI using parameter objects internally for clean, maintainable code.
+    No backward compatibility constraints - can evolve freely.
 
-        INTERACTIVE MODE:
-        Interactive mode is enabled by default to guide you through configuration options.
-    Use --no-interactive to disable guided setup for automation/advanced usage.
+    Args:
+        file: Changelog file path
+        from_tag: Starting tag
+        to_tag: Ending tag
+        ... other CLI args
 
-        BOUNDARY DETECTION MODES:
-
-        --grouping-mode tags (default): Use git tags to create changelog sections
-        Example: kittylog --grouping-mode tags
-
-        --grouping-mode dates: Group commits by time periods
-        Example: kittylog --grouping-mode dates --date-grouping weekly
-
-        --grouping-mode gaps: Detect natural breaks in commit timing
-        Example: kittylog --grouping-mode gaps --gap-threshold 6.0
-
-        GIT DIFF OPTION:
-        --include-diff: Add detailed git diff to AI context (⚠️  Warning: can dramatically increase token usage)
+    Examples:
+        kittylog                           # Update missing entries
+        kittylog v1.2.0                   # Update specific tag
+        kittylog --grouping-mode dates     # Date-based grouping
     """
     try:
         setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting kittylog")
 
-        # Initialize selected_audience before interactive check
-        selected_audience = None
-
-        # Interactive mode configuration (now default behavior)
+        # Interactive mode configuration
+        selected_audience = audience  # Initialize with CLI-provided audience
         if interactive:
             grouping_mode, gap_threshold, date_grouping, include_diff, yes, selected_audience = (
                 interactive_configuration(
@@ -196,36 +187,53 @@ def add(
                 )
             )
 
-        # Use interactive or provided values consistently
-        final_grouping_mode = grouping_mode or config["grouping_mode"] or GroupingMode.TAGS.value
-        final_gap_threshold = gap_threshold or config["gap_threshold_hours"] or 4.0
-        final_date_grouping = date_grouping or config["date_grouping"] or DateGrouping.DAILY.value
-        final_include_diff = include_diff or False
+        # Create parameter objects directly - no compatibility layer needed
+        workflow_opts = WorkflowOptions(
+            dry_run=dry_run,
+            quiet=quiet,
+            verbose=verbose,
+            require_confirmation=not yes,
+            update_all_entries=all,
+            no_unreleased=no_unreleased,
+            include_diff=include_diff,
+            interactive=interactive,
+            yes=yes,
+            audience=selected_audience or EnvDefaults.AUDIENCE,
+            language=language or EnvDefaults.LANGUAGE,
+            hint=hint or "",
+            show_prompt=show_prompt,
+        )
 
-        # Validate gap threshold
-        if final_gap_threshold <= 0:
-            click.echo("Error: --gap-threshold must be positive", err=True)
-            sys.exit(1)
+        changelog_opts = ChangelogOptions(
+            file=file,
+            from_tag=from_tag,
+            to_tag=to_tag,
+            grouping_mode=grouping_mode or EnvDefaults.GROUPING_MODE,
+            gap_threshold_hours=gap_threshold or EnvDefaults.GAP_THRESHOLD_HOURS,
+            date_grouping=date_grouping or EnvDefaults.DATE_GROUPING,
+            special_unreleased_mode=False,
+        )
 
-        # Validate for conflicting options
-        if final_grouping_mode != GroupingMode.TAGS.value and (from_tag or to_tag):
+        # Modern validation with clean error messages
+        if changelog_opts.grouping_mode != GroupingMode.TAGS.value and (
+            changelog_opts.from_tag or changelog_opts.to_tag
+        ):
             click.echo(
-                f"Warning: --from-tag and --to-tag are only supported with --grouping-mode tags. "
-                f"Using {final_grouping_mode} mode instead.",
+                f"Warning: --from-tag and --to-tag only work with --grouping-mode tags. "
+                f"Using {changelog_opts.grouping_mode} mode.",
                 err=True,
             )
 
-        if final_grouping_mode == GroupingMode.GAPS.value and date_grouping:
-            click.echo("Warning: --date-grouping is ignored when using --grouping-mode gaps", err=True)
+        if (
+            changelog_opts.grouping_mode == GroupingMode.GAPS.value
+            and changelog_opts.date_grouping != DateGrouping.DAILY.value
+        ):
+            click.echo("Warning: --date-grouping ignored with --grouping-mode gaps", err=True)
 
-        if final_grouping_mode == GroupingMode.DATES.value and gap_threshold:
-            click.echo("Warning: --gap-threshold is ignored when using --grouping-mode dates", err=True)
+        if changelog_opts.grouping_mode == GroupingMode.DATES.value:
+            click.echo("Warning: --gap-threshold ignored with --grouping-mode dates", err=True)
 
-        resolved_language = Languages.resolve_code(language) if language else None
-        # Use interactively selected audience first, then command-line audience, then config/default
-        config_audience = config.get("audience")
-        final_audience = selected_audience or audience or config_audience
-        resolved_audience = Audiences.resolve(final_audience) if final_audience else None
+        # Language/audience already set in WorkflowOptions constructor
 
         # If a specific tag is provided, process only that tag
         if tag:
@@ -234,48 +242,15 @@ def add(
             # Try to add 'v' prefix if not present (to match git tags)
             git_tag = f"v{normalized_tag}" if not tag.startswith("v") else tag
 
-            # For specific tags, always overwrite the entry
-            success, _token_usage = main_business_logic(
-                changelog_file=file,
-                from_tag=from_tag,  # Will use get_previous_tag in main logic if None
-                to_tag=git_tag,  # Process the specific tag
-                model=model,
-                hint=hint,
-                show_prompt=show_prompt,
-                require_confirmation=not yes,
-                quiet=quiet,
-                dry_run=dry_run,
-                no_unreleased=no_unreleased,
-                grouping_mode=final_grouping_mode,
-                gap_threshold_hours=final_gap_threshold,
-                date_grouping=final_date_grouping,
-                yes=yes,
-                include_diff=final_include_diff,
-                language=resolved_language,
-                audience=resolved_audience,
-            )
-        else:
-            # Default behavior: process all missing tags
-            success = main_business_logic(
-                changelog_file=file,
-                from_tag=from_tag,
-                to_tag=to_tag,
-                model=model,
-                hint=hint,
-                show_prompt=show_prompt,
-                require_confirmation=not yes,
-                quiet=quiet,
-                dry_run=dry_run,
-                no_unreleased=no_unreleased,
-                update_all_entries=all,
-                grouping_mode=final_grouping_mode,
-                gap_threshold_hours=final_gap_threshold,
-                date_grouping=final_date_grouping,
-                yes=yes,
-                include_diff=final_include_diff,
-                language=resolved_language,
-                audience=resolved_audience,
-            )
+            # Process specific tag with modern API
+            changelog_opts.to_tag = git_tag
+        # Modern main_business_logic call with parameter objects
+        success, _token_usage = main_business_logic(
+            changelog_opts=changelog_opts,
+            workflow_opts=workflow_opts,
+            model=model,
+            hint=hint,
+        )
 
         if not success:
             sys.exit(1)

@@ -7,10 +7,10 @@ from pathlib import Path
 import click
 
 from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
-from kittylog.config import load_config
-from kittylog.constants import Audiences, Languages, Logging
-from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.commit_analyzer import get_all_tags_with_dates
+from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
+from kittylog.constants import Audiences, EnvDefaults, Languages, Logging
+from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.main import main_business_logic
 from kittylog.tag_operations import generate_boundary_identifier
 from kittylog.utils import setup_logging
@@ -97,23 +97,28 @@ def update_version(
 
         # If no version is specified, process all tags (update behavior)
         if version is None:
-            resolved_language = Languages.resolve_code(language) if language else None
-            resolved_audience = Audiences.resolve(audience) if audience else None
+            resolved_language = Languages.resolve_code(language) if language else EnvDefaults.LANGUAGE
+            resolved_audience = Audiences.resolve(audience)
             # Run main business logic with update behavior (process all tags)
-            success, _token_usage = main_business_logic(
-                changelog_file=file,
+            changelog_opts = ChangelogOptions(
+                file=file,
                 from_tag=from_tag,
                 to_tag=to_tag,
-                model=model,
-                hint=hint,
-                show_prompt=show_prompt,
-                require_confirmation=not yes,
+            )
+            workflow_opts = WorkflowOptions(
                 quiet=quiet,
+                require_confirmation=not yes,
                 dry_run=dry_run,
-                update_all_entries=True,  # Update command processes all entries by default
+                update_all_entries=True,
                 yes=yes,
                 language=resolved_language,
                 audience=resolved_audience,
+            )
+            success, _token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model=model,
+                hint=hint,
             )
 
             if not success:
@@ -145,21 +150,26 @@ def update_version(
             previous_tag = generate_boundary_identifier(all_tags[current_tag_index - 1], "tags")
 
         # Run main business logic for this specific version
-        resolved_language = Languages.resolve_code(language) if language else None
-        resolved_audience = Audiences.resolve(audience) if audience else None
-        success, _token_usage = main_business_logic(
-            changelog_file=file,
+        resolved_language = Languages.resolve_code(language) if language else EnvDefaults.LANGUAGE
+        resolved_audience = Audiences.resolve(audience)
+        changelog_opts = ChangelogOptions(
+            file=file,
             from_tag=from_tag or previous_tag,  # Use provided from_tag or fallback to previous_tag
             to_tag=git_version,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
-            require_confirmation=not yes,
+        )
+        workflow_opts = WorkflowOptions(
             quiet=quiet,
+            require_confirmation=not yes,
             dry_run=dry_run,
             yes=yes,
             language=resolved_language,
             audience=resolved_audience,
+        )
+        success, _token_usage = main_business_logic(
+            changelog_opts=changelog_opts,
+            workflow_opts=workflow_opts,
+            model=model,
+            hint=hint,
         )
 
         if not success:

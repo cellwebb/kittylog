@@ -9,12 +9,16 @@ import logging
 import click
 
 from kittylog.ai import generate_changelog_entry
-from kittylog.constants import GroupingMode
 from kittylog.changelog import (
     find_existing_boundaries,
     read_changelog,
     update_changelog,
 )
+from kittylog.commit_analyzer import (
+    get_commits_between_boundaries,
+    get_commits_between_tags,
+)
+from kittylog.output import get_output_manager
 from kittylog.tag_operations import (
     generate_boundary_display_name,
     generate_boundary_identifier,
@@ -24,11 +28,6 @@ from kittylog.tag_operations import (
     get_previous_boundary,
     is_current_commit_tagged,
 )
-from kittylog.commit_analyzer import (
-    get_commits_between_boundaries,
-    get_commits_between_tags,
-)
-from kittylog.output import get_output_manager
 from kittylog.utils import determine_next_version
 
 logger = logging.getLogger(__name__)

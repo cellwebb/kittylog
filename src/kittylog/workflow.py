@@ -10,16 +10,16 @@ from pathlib import Path
 import click
 
 from kittylog.changelog import read_changelog, write_changelog
-from kittylog.config import load_config
-from kittylog.constants import Audiences, DateGrouping, GroupingMode, Languages
+from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
+from kittylog.constants import Audiences, GroupingMode, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
-from kittylog.tag_operations import get_all_boundaries
 from kittylog.mode_handlers import (
     handle_boundary_range_mode,
     handle_single_boundary_mode,
     handle_unreleased_mode,
 )
 from kittylog.output import get_output_manager
+from kittylog.tag_operations import get_all_boundaries
 from kittylog.utils import find_changelog_file
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,7 @@ def handle_dry_run_and_confirmation(
         handle_error(e)
         return False, None
     except Exception as e:
-        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}") from e)
+        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
         return False, None
 
     if not quiet:
@@ -262,7 +262,9 @@ def validate_workflow_prereqs(
         raise GitError(f"Invalid git repository: {e}") from e
 
     # Validate gap threshold bounds
-    if grouping_mode in [GroupingMode.GAPS.value, GroupingMode.DATES.value] and (gap_threshold_hours <= 0 or gap_threshold_hours > 168):  # 1 week max
+    if grouping_mode in [GroupingMode.GAPS.value, GroupingMode.DATES.value] and (
+        gap_threshold_hours <= 0 or gap_threshold_hours > 168
+    ):  # 1 week max
         raise ConfigError(
             f"gap_threshold_hours must be between 0 and 168, got: {gap_threshold_hours}",
             config_key="gap_threshold_hours",
@@ -340,66 +342,46 @@ def validate_and_setup_workflow(
 
 
 def main_business_logic(
-    changelog_file: str = "CHANGELOG.md",
-    from_tag: str | None = None,
-    to_tag: str | None = None,
+    changelog_opts: ChangelogOptions,
+    workflow_opts: WorkflowOptions,
     model: str | None = None,
     hint: str = "",
-    language: str | None = None,
-    audience: str | None = None,
-    show_prompt: bool = False,
-    require_confirmation: bool = True,
-    quiet: bool = False,
-    dry_run: bool = False,
-    special_unreleased_mode: bool = False,
-    update_all_entries: bool = False,
-    no_unreleased: bool = False,
-    grouping_mode: str = GroupingMode.TAGS.value,
-    gap_threshold_hours: float = 4.0,
-    date_grouping: str = DateGrouping.DAILY.value,
-    yes: bool = False,
-    include_diff: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
-    """Main application logic for kittylog.
+    """Modern main business logic using parameter objects.
 
-    Orchestrates the changelog generation process using configurable boundary detection modes.
-    Supports tags (default), dates, and gap-based grouping for flexible changelog workflows.
+    Replaces the massive 17-parameter function with clean, validated
+    parameter objects. This is the new primary interface.
 
     Args:
-        changelog_file: Path to changelog file
-        from_tag: Starting boundary identifier (optional)
-        to_tag: Ending boundary identifier (optional)
+        changelog_opts: Changelog file and boundary options
+        workflow_opts: Workflow behavior and execution options
         model: AI model to use for generation
         hint: Additional context for AI generation
-        language: Override language for changelog entries
-        audience: Override audience slug influencing tone (developers/users/stakeholders)
-        show_prompt: Display the AI prompt
-        require_confirmation: Ask for user confirmation
-        quiet: Suppress output
-        dry_run: Preview only, don't write changes
-        special_unreleased_mode: Handle unreleased section only
-        update_all_entries: Update all existing entries
-        no_unreleased: Skip unreleased section management
-        grouping_mode: Boundary detection mode ('tags', 'dates', 'gaps')
-        gap_threshold_hours: Hours threshold for gap detection (gaps mode)
-        date_grouping: Date grouping granularity ('daily', 'weekly', 'monthly')
 
     Returns:
         Tuple of (success: bool, token_usage: dict | None)
 
     Examples:
-        # Default tags mode
-        success, usage = main_business_logic()
+        # Basic usage with defaults
+        changelog_opts = ChangelogOptions()
+        workflow_opts = WorkflowOptions()
+        success, usage = main_business_logic(changelog_opts, workflow_opts)
 
-        # Date-based grouping
-        success, usage = main_business_logic(grouping_mode=GroupingMode.DATES.value, date_grouping=DateGrouping.WEEKLY.value)
-
-        # Gap-based grouping with 8-hour threshold
-        success, usage = main_business_logic(grouping_mode=GroupingMode.GAPS.value, gap_threshold_hours=8.0)
+        # Advanced usage
+        changelog_opts = ChangelogOptions(
+            grouping_mode=GroupingMode.DATES.value,
+            date_grouping=DateGrouping.WEEKLY.value
+        )
+        workflow_opts = WorkflowOptions(dry_run=True, quiet=False)
+        success, usage = main_business_logic(changelog_opts, workflow_opts)
     """
-    logger.debug(f"main_business_logic called with special_unreleased_mode={special_unreleased_mode}")
+    logger.debug("main_business_logic called with parameter objects")
 
-    # Validate and setup workflow
+    # Validate parameter objects (they handle their own validation)
+    logger.debug(f"Changelog options: {changelog_opts}")
+    logger.debug(f"Workflow options: {workflow_opts}")
+
+    # Extract values from parameter objects for existing logic
     try:
         (
             changelog_file,
@@ -407,13 +389,13 @@ def main_business_logic(
             translate_headings,
             effective_audience,
         ) = validate_and_setup_workflow(
-            changelog_file=changelog_file,
-            language=language,
-            audience=audience,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
-            special_unreleased_mode=special_unreleased_mode,
+            changelog_file=changelog_opts.file,
+            language=workflow_opts.language,
+            audience=workflow_opts.audience,
+            grouping_mode=changelog_opts.grouping_mode,
+            gap_threshold_hours=changelog_opts.gap_threshold_hours,
+            date_grouping=changelog_opts.date_grouping,
+            special_unreleased_mode=changelog_opts.special_unreleased_mode,
         )
     except (ConfigError, GitError, AIError, ChangelogError) as e:
         handle_error(e)
@@ -433,21 +415,21 @@ def main_business_logic(
     try:
         existing_content, token_usage = process_workflow_modes(
             changelog_file=changelog_file,
-            from_tag=from_tag,
-            to_tag=to_tag,
+            from_tag=changelog_opts.from_tag,
+            to_tag=changelog_opts.to_tag,
             model=model,
             hint=hint,
-            show_prompt=show_prompt,
-            quiet=quiet,
-            dry_run=dry_run,
-            special_unreleased_mode=special_unreleased_mode,
-            update_all_entries=update_all_entries,
-            no_unreleased=no_unreleased,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
-            yes=yes,
-            include_diff=include_diff,
+            show_prompt=workflow_opts.show_prompt,
+            quiet=workflow_opts.quiet,
+            dry_run=workflow_opts.dry_run,
+            special_unreleased_mode=changelog_opts.special_unreleased_mode,
+            update_all_entries=workflow_opts.update_all_entries,
+            no_unreleased=workflow_opts.no_unreleased,
+            grouping_mode=changelog_opts.grouping_mode,
+            gap_threshold_hours=changelog_opts.gap_threshold_hours,
+            date_grouping=changelog_opts.date_grouping,
+            yes=workflow_opts.yes,
+            include_diff=workflow_opts.include_diff,
             effective_language=effective_language,
             translate_headings=translate_headings,
             effective_audience=effective_audience,
@@ -456,7 +438,7 @@ def main_business_logic(
         handle_error(e)
         return False, None
     except Exception as e:
-        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}") from e)
+        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
         return False, None
 
     # Handle dry run, confirmation, and saving
@@ -465,8 +447,8 @@ def main_business_logic(
         existing_content=existing_content,
         original_content=original_content,
         token_usage=token_usage,
-        dry_run=dry_run,
-        require_confirmation=require_confirmation,
-        quiet=quiet,
-        yes=yes,
+        dry_run=workflow_opts.dry_run,
+        require_confirmation=workflow_opts.require_confirmation,
+        quiet=workflow_opts.quiet,
+        yes=workflow_opts.yes,
     )
