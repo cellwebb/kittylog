@@ -100,7 +100,9 @@ bump: ## Bump version and update changelog
 	OLD_VERSION=$$(echo "$$RESULT" | awk '{print $$1}') && \
 	NEW_VERSION=$$(echo "$$RESULT" | awk '{print $$2}') && \
 	echo "Version bumped from $$OLD_VERSION to $$NEW_VERSION" && \
-		echo "📝 Preparing changelog for $$NEW_VERSION..." && \
+		echo "📝 Generating changelog with kittylog..." && \
+		uv run kittylog --yes && \
+		echo "📝 Preparing changelog for release $$NEW_VERSION..." && \
 		python scripts/prep_changelog_for_release.py CHANGELOG.md $$NEW_VERSION && \
 	git add -A && \
 	git commit -m "chore(version): bump version to $$NEW_VERSION" && \
