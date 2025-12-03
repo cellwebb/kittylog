@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures for kittylog tests."""
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -16,7 +17,7 @@ except ImportError:
 
 # Ensure we're in a valid directory at the start
 try:
-    os.getcwd()
+    Path.cwd()
 except Exception:
     os.chdir(str(Path.home()))
 
@@ -26,7 +27,7 @@ def clear_caches_between_tests():
     """Automatically clear all git caches between tests."""
     # Save original cwd
     try:
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
     except Exception:
         original_cwd = str(Path.home())
 
@@ -52,10 +53,8 @@ def clear_caches_between_tests():
     try:
         os.chdir(original_cwd)
     except Exception:
-        try:
+        with contextlib.suppress(Exception):
             os.chdir(str(Path.home()))
-        except Exception:
-            pass
 
 
 @pytest.fixture
@@ -73,17 +72,17 @@ def git_repo(temp_dir):
 
     clear_all_caches()
 
+    # Store original directory FIRST before any operations
+    try:
+        original_cwd = str(Path.cwd())
+    except Exception:
+        original_cwd = str(Path.home())
+
     repo = Repo.init(temp_dir)
 
     # Configure git user (required for commits)
     repo.config_writer().set_value("user", "name", "Test User").release()
     repo.config_writer().set_value("user", "email", "test@example.com").release()
-
-    # Store original directory
-    try:
-        original_cwd = os.getcwd()
-    except Exception:
-        original_cwd = str(Path.home())
 
     # Change to the repo directory for git operations
     os.chdir(str(temp_dir))
@@ -95,22 +94,24 @@ def git_repo(temp_dir):
     repo.index.add(["README.md"])
     repo.index.commit("Initial commit")
 
-    yield repo
-
-    # Clear git cache after test to prevent cross-test contamination
-    clear_all_caches()
-
-    # Restore original directory or change to a safe one
     try:
-        os.chdir(original_cwd)
-    except Exception:
-        os.chdir(str(Path.home()))
+        yield repo
+    finally:
+        # Clear git cache after test to prevent cross-test contamination
+        with contextlib.suppress(Exception):
+            clear_all_caches()
 
-    # Additional safety: make sure we're in a valid directory
-    try:
-        os.getcwd()
-    except Exception:
-        os.chdir(str(Path.home()))
+        # ALWAYS restore original directory - this is critical
+        # Use suppress to handle any exceptions during cleanup
+        with contextlib.suppress(Exception):
+            os.chdir(original_cwd)
+
+        # Fallback to home if original_cwd no longer exists
+        try:
+            Path.cwd()
+        except Exception:
+            with contextlib.suppress(Exception):
+                os.chdir(str(Path.home()))
 
 
 @pytest.fixture
@@ -333,6 +334,12 @@ def mock_all_git_operations():
 @pytest.fixture
 def isolated_config_test(temp_dir, monkeypatch):
     """Create isolated environment for config testing."""
+    # Store original directory FIRST
+    try:
+        original_cwd = str(Path.cwd())
+    except Exception:
+        original_cwd = str(Path.home())
+
     # Mock home directory
     fake_home = temp_dir / "home"
     fake_home.mkdir()
@@ -350,16 +357,21 @@ def isolated_config_test(temp_dir, monkeypatch):
         monkeypatch.delenv(var, raising=False)
 
     # Change to temp directory
-    original_cwd = os.getcwd()
     os.chdir(str(temp_dir))
 
-    yield {
-        "home": fake_home,
-        "cwd": temp_dir,
-    }
-
     try:
-        os.chdir(original_cwd)
-    except Exception:
-        # If the directory no longer exists, just stay where we are
-        pass
+        yield {
+            "home": fake_home,
+            "cwd": temp_dir,
+        }
+    finally:
+        # ALWAYS restore original directory
+        with contextlib.suppress(Exception):
+            os.chdir(original_cwd)
+
+        # Fallback to home if restoration fails
+        try:
+            Path.cwd()
+        except Exception:
+            with contextlib.suppress(Exception):
+                os.chdir(str(Path.home()))

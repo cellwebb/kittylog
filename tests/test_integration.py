@@ -1,5 +1,6 @@
 """Integration tests for kittylog."""
 
+import contextlib
 import os
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -277,8 +278,7 @@ class TestConfigIntegration:
         assert "KITTYLOG_MODEL" in result.output
 
         # Check the content of the config file directly
-        with open(config_file) as f:
-            config_content = f.read()
+        config_content = config_file.read_text()
         assert "anthropic:claude-3-5-haiku-latest" in config_content
 
         # Test config get
@@ -329,7 +329,7 @@ class TestErrorHandlingIntegration:
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -348,10 +348,8 @@ class TestErrorHandlingIntegration:
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
         assert result.exit_code == 1
 
@@ -363,7 +361,7 @@ class TestErrorHandlingIntegration:
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -382,10 +380,8 @@ class TestErrorHandlingIntegration:
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
 
         assert result is not None
         # Should handle gracefully, might succeed with empty commit list
@@ -409,7 +405,7 @@ class TestMultiTagIntegration:
         from pathlib import Path
 
         try:
-            original_cwd = os.getcwd()
+            original_cwd = str(Path.cwd())
         except Exception:
             # If current directory is invalid, use home directory as fallback
             original_cwd = str(Path.home())
@@ -542,7 +538,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -561,10 +557,8 @@ All notable changes to this project will be documented in this file.
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
 
         assert result.exit_code == 0
@@ -614,7 +608,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -634,10 +628,8 @@ All notable changes to this project will be documented in this file.
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
 
         assert result.exit_code == 0
@@ -686,7 +678,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -705,10 +697,8 @@ All notable changes to this project will be documented in this file.
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
 
         assert result.exit_code == 0
@@ -742,7 +732,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -764,10 +754,8 @@ All notable changes to this project will be documented in this file.
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
             assert result is not None
 
         assert result.exit_code == 0
@@ -837,7 +825,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -854,10 +842,8 @@ All notable changes to this project will be documented in this file.
             )
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
 
         assert result.exit_code == 0
@@ -956,7 +942,7 @@ All notable changes to this project will be documented in this file.
 
         runner = CliRunner()
         # Store original cwd for cleanup
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         result = None
         try:
             # Change to the git repo directory, not temp_dir
@@ -975,10 +961,8 @@ All notable changes to this project will be documented in this file.
             print(f"DEBUG: CLI output: {result.output}")
         finally:
             # Always restore original directory
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            except Exception:
-                pass
         assert result is not None
 
         assert result.exit_code == 0

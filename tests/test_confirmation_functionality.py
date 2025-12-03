@@ -2,6 +2,7 @@
 """Tests for confirmation functionality added to handler functions."""
 
 import os
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
@@ -52,7 +53,7 @@ class TestConfirmationFunctionality:
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("# Changelog\n\nAll notable changes will be documented in this file.\n")
 
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
@@ -120,7 +121,7 @@ All notable changes will be documented in this file.
         config_file = temp_dir / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=openai:gpt-4o-mini\n")
 
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
@@ -186,7 +187,7 @@ All notable changes will be documented in this file.
         config_file = temp_dir / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=openai:gpt-4o-mini\n")
 
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
@@ -267,7 +268,7 @@ All notable changes will be documented in this file.
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("# Changelog\n\nAll notable changes will be documented in this file.\n")
 
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
@@ -334,7 +335,7 @@ All notable changes will be documented in this file.
         config_file = temp_dir / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=groq:llama-3.3-70b-versatile\n")
 
-        original_cwd = os.getcwd()
+        original_cwd = str(Path.cwd())
         try:
             os.chdir(temp_dir)
             # Clear git cache to ensure we're working with the right repo
