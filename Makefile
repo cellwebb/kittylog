@@ -1,6 +1,6 @@
 # kittylog Development Makefile
 
-.PHONY: help install install-dev test test-coverage lint format check clean build publish docs
+.PHONY: help install install-dev test test-coverage lint format check clean build publish docs bump bump-patch bump-minor bump-major
 
 # Default target
 help: ## Show this help message
@@ -87,8 +87,8 @@ run-example: ## Run example usage
 pre-commit: ## Run pre-commit hooks
 	pre-commit run --all-files
 
-# Version management
-bump:
+# Version bumping
+bump: ## Bump version and update changelog
 	@# Check for uncommitted changes before starting
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "Error: Git working directory is not clean"; \
@@ -97,23 +97,25 @@ bump:
 		exit 1; \
 	fi
 	@echo "Bumping $(VERSION) version..."
-	@OLD_VERSION=$$(python -c "import re; content=open('.bumpversion.toml').read(); print(re.search(r'current_version = \"([^\"]+)\"', content).group(1))") && \
-	bump-my-version bump $(VERSION) --no-commit --no-tag && \
-	NEW_VERSION=$$(python -c "import re; content=open('.bumpversion.toml').read(); print(re.search(r'current_version = \"([^\"]+)\"', content).group(1))") && \
+	@RESULT=$$(BUMP_KIND=$(VERSION) python -c "import os, re; from pathlib import Path; version_file = Path('src/kittylog/__version__.py'); content = version_file.read_text(encoding='utf-8'); match = re.search(r'__version__ = \"([^\"]+)\"', content); old_version = match.group(1); parts = old_version.split('.'); major, minor, patch = map(int, parts); kind = os.environ['BUMP_KIND']; new_version = f'{major}.{minor}.{patch + 1}' if kind == 'patch' else f'{major}.{minor + 1}.0' if kind == 'minor' else f'{major + 1}.0.0'; version_file.write_text(content.replace(f'__version__ = \"{old_version}\"', f'__version__ = \"{new_version}\"', 1), encoding='utf-8'); print(old_version, new_version)") && \
+	OLD_VERSION=$$(echo "$$RESULT" | awk '{print $$1}') && \
+	NEW_VERSION=$$(echo "$$RESULT" | awk '{print $$2}') && \
 	echo "Version bumped from $$OLD_VERSION to $$NEW_VERSION" && \
+		echo "📝 Preparing changelog for $$NEW_VERSION..." && \
+		python scripts/prep_changelog_for_release.py CHANGELOG.md $$NEW_VERSION && \
 	git add -A && \
-	git commit -m "chore: bump version to $$NEW_VERSION" && \
+	git commit -m "chore(version): bump version to $$NEW_VERSION" && \
 	git tag -a "v$$NEW_VERSION" -m "Release version $$NEW_VERSION" && \
 	echo "✅ Created tag v$$NEW_VERSION" && \
 	echo "📦 To publish: git push && git push --tags"
 
-bump-patch: VERSION=patch
+bump-patch: VERSION=patch ## Bump patch version
 bump-patch: bump
 
-bump-minor: VERSION=minor
+bump-minor: VERSION=minor ## Bump minor version
 bump-minor: bump
 
-bump-major: VERSION=major
+bump-major: VERSION=major ## Bump major version
 bump-major: bump
 
 # Security
