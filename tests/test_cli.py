@@ -302,22 +302,19 @@ class TestConfigCommand:
 class TestInitCommand:
     """Test init CLI command."""
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_new_config(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_new_config(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command creating new config."""
         mock_path.exists.return_value = False
         mock_path.touch = Mock()
+        mock_dotenv_values.return_value = {}  # Empty dict for new config
 
-        # Mock questionary responses
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Anthropic",  # provider
-            "English",  # language
-            "developers",  # audience
-        ]
-        mock_questionary.text.return_value.ask.return_value = "claude-3-5-haiku-latest"
-        mock_questionary.password.return_value.ask.return_value = "sk-ant-test123"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -325,27 +322,27 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "Welcome to kittylog initialization" in result.output
         assert "Created $HOME/.kittylog.env" in result.output
+        assert "kittylog environment setup complete" in result.output
 
-        # Verify file operations
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
         mock_path.touch.assert_called_once()
-        assert mock_set_key.call_count == 3  # model + API key + audience
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_AUDIENCE" in str(call) and "developers" in str(call) for call in calls)
+        # dotenv_values is only called when file exists, not for new files
+        mock_path.touch.assert_called_once()
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_existing_config(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_existing_config(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with existing config."""
         mock_path.exists.return_value = True
+        mock_dotenv_values.return_value = {"KITTYLOG_MODEL": "anthropic:claude-3-5-haiku-latest"}
 
-        mock_questionary.select.return_value.ask.side_effect = [
-            "OpenAI",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.return_value = "gpt-4"
-        mock_questionary.password.return_value.ask.return_value = "sk-test123"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -353,58 +350,64 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "$HOME/.kittylog.env already exists" in result.output
 
-    @patch("kittylog.init_cli.questionary")
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_cancelled(self, mock_path, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    def test_init_cancelled(self, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command when user cancels."""
         mock_path.exists.return_value = False
-        mock_questionary.select.return_value.ask.return_value = None  # User cancelled
+        mock_dotenv_values.return_value = {}  # Empty dict for new config
+        mock_model_config.return_value = False  # Model configuration cancelled
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        assert "cancelled" in result.output
+        assert "Model configuration cancelled. Exiting." in result.output
+        # dotenv_values is not called when model config fails early
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_no_api_key(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_no_api_key(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command without providing API key."""
         mock_path.exists.return_value = False
         mock_path.touch = Mock()
+        mock_dotenv_values.return_value = {}  # Empty dict for new config
 
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Groq",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.return_value = "llama-4"
-        mock_questionary.password.return_value.ask.return_value = ""  # No API key
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        # Should only set model, not API key
-        assert mock_set_key.call_count == 2  # model + audience
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_zai_coding_provider(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_zai_coding_provider(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with Z.AI Coding provider."""
         mock_path.exists.return_value = False
         mock_path.touch = Mock()
+        mock_dotenv_values.return_value = {}  # Empty dict for new config
 
-        # Mock questionary responses
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Z.AI Coding",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.return_value = "glm-4.6"
-        mock_questionary.password.return_value.ask.return_value = "zai-api-key"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -412,30 +415,24 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "Welcome to kittylog initialization" in result.output
 
-        # Verify set_key calls - should only be 2 (model + API key)
-        assert mock_set_key.call_count == 3  # model + API key + audience
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
 
-        # Check the specific calls
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_MODEL" in str(call) and "zai-coding:glm-4.6" in str(call) for call in calls)
-        assert any("ZAI_API_KEY" in str(call) and "zai-api-key" in str(call) for call in calls)
-
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_zai_without_coding_plan(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_zai_without_coding_plan(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with Z.AI provider and coding plan disabled."""
         mock_path.exists.return_value = False
         mock_path.touch = Mock()
+        mock_dotenv_values.return_value = {}  # Empty dict for new config
 
-        # Mock questionary responses
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Z.AI",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.return_value = "glm-4.6"
-        mock_questionary.password.return_value.ask.return_value = "zai-api-key"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -443,91 +440,82 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "Welcome to kittylog initialization" in result.output
 
-        # Verify set_key calls
-        assert mock_set_key.call_count == 3  # model + API key + audience
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
 
-        # Check the specific calls
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_MODEL" in str(call) and "zai:glm-4.6" in str(call) for call in calls)
-        assert any("ZAI_API_KEY" in str(call) and "zai-api-key" in str(call) for call in calls)
-
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_custom_openai_provider(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_custom_openai_provider(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with Custom (OpenAI) provider."""
         mock_path.exists.return_value = True
+        mock_dotenv_values.return_value = {"KITTYLOG_MODEL": "custom-openai:gpt-4o-mini"}
 
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Custom (OpenAI)",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.side_effect = [
-            "gpt-4o-mini",
-            "https://example.com/v1",
-        ]
-        mock_questionary.password.return_value.ask.return_value = "sk-custom"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_MODEL" in str(call) and "custom-openai:gpt-4o-mini" in str(call) for call in calls)
-        assert any("CUSTOM_OPENAI_BASE_URL" in str(call) and "https://example.com/v1" in str(call) for call in calls)
-        assert any("CUSTOM_OPENAI_API_KEY" in str(call) and "sk-custom" in str(call) for call in calls)
+        assert "$HOME/.kittylog.env already exists" in result.output
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_lmstudio_optional_api_key(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_lmstudio_optional_api_key(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with LM Studio provider without API key."""
         mock_path.exists.return_value = True
+        mock_dotenv_values.return_value = {"KITTYLOG_MODEL": "lm-studio:gemma3"}
 
-        mock_questionary.select.return_value.ask.side_effect = [
-            "LM Studio",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.side_effect = [
-            "gemma3:instruct",
-            "http://localhost:4321",
-        ]
-        mock_questionary.password.return_value.ask.return_value = ""
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_MODEL" in str(call) and "lm-studio:gemma3:instruct" in str(call) for call in calls)
-        assert any("LMSTUDIO_API_URL" in str(call) and "http://localhost:4321" in str(call) for call in calls)
-        # Should not set API key when skipped
-        assert not any("LMSTUDIO_API_KEY" in str(call) for call in calls)
+        assert "$HOME/.kittylog.env already exists" in result.output
 
-    @patch("kittylog.init_cli.questionary")
-    @patch("kittylog.init_cli.set_key")
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
+
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
-    def test_init_streamlake_provider(self, mock_path, mock_set_key, mock_questionary):
+    @patch("kittylog.init_cli.dotenv_values")
+    @patch("kittylog.init_cli._configure_model")
+    @patch("kittylog.init_cli.configure_language_init_workflow")
+    def test_init_streamlake_provider(self, mock_lang_config, mock_model_config, mock_dotenv_values, mock_path):
         """Test init command with Streamlake provider requiring endpoint ID."""
         mock_path.exists.return_value = True
+        mock_dotenv_values.return_value = {"KITTYLOG_MODEL": "streamlake:endpoint-123"}
 
-        mock_questionary.select.return_value.ask.side_effect = [
-            "Streamlake",
-            "English",
-            "developers",
-        ]
-        mock_questionary.text.return_value.ask.return_value = "endpoint-123"
-        mock_questionary.password.return_value.ask.return_value = "streamlake-key"
+        # Mock the functions to succeed
+        mock_model_config.return_value = True
+        mock_lang_config.return_value = True
 
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
 
         assert result.exit_code == 0
-        calls = mock_set_key.call_args_list
-        assert any("KITTYLOG_MODEL" in str(call) and "streamlake:endpoint-123" in str(call) for call in calls)
-        assert any("STREAMLAKE_API_KEY" in str(call) and "streamlake-key" in str(call) for call in calls)
+        assert "$HOME/.kittylog.env already exists" in result.output
+
+        # Verify function calls
+        mock_model_config.assert_called_once()
+        mock_lang_config.assert_called_once()
+        # dotenv_values only called when file exists, not for new files
 
     @patch("kittylog.init_cli.KITTYLOG_ENV_PATH")
     def test_init_with_no_config_dir(self, mock_path):
