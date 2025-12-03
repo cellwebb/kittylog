@@ -9,6 +9,7 @@ import logging
 import click
 
 from kittylog.ai import generate_changelog_entry
+from kittylog.constants import GroupingMode
 from kittylog.changelog import (
     find_existing_boundaries,
     read_changelog,

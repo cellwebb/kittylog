@@ -11,7 +11,7 @@ import click
 
 from kittylog.changelog import read_changelog, write_changelog
 from kittylog.config import load_config
-from kittylog.constants import Audiences, Languages
+from kittylog.constants import Audiences, DateGrouping, GroupingMode, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.tag_operations import get_all_boundaries
 from kittylog.mode_handlers import (
@@ -206,8 +206,11 @@ def handle_dry_run_and_confirmation(
     # Write the updated changelog
     try:
         write_changelog(changelog_file, existing_content)
-    except Exception as e:
+    except ChangelogError as e:
         handle_error(e)
+        return False, None
+    except Exception as e:
+        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}") from e)
         return False, None
 
     if not quiet:
@@ -259,7 +262,7 @@ def validate_workflow_prereqs(
         raise GitError(f"Invalid git repository: {e}") from e
 
     # Validate gap threshold bounds
-    if grouping_mode in ["gaps", "dates"] and (gap_threshold_hours <= 0 or gap_threshold_hours > 168):  # 1 week max
+    if grouping_mode in [GroupingMode.GAPS.value, GroupingMode.DATES.value] and (gap_threshold_hours <= 0 or gap_threshold_hours > 168):  # 1 week max
         raise ConfigError(
             f"gap_threshold_hours must be between 0 and 168, got: {gap_threshold_hours}",
             config_key="gap_threshold_hours",
@@ -310,17 +313,17 @@ def validate_and_setup_workflow(
         # In special_unreleased_mode, we don't require boundaries
         if not all_boundaries and not special_unreleased_mode:
             output = get_output_manager()
-            if grouping_mode == "tags":
+            if grouping_mode == GroupingMode.TAGS.value:
                 output.warning("No git tags found. Create some tags first to generate changelog entries.")
                 output.info(
                     "💡 Tip: Try 'git tag v1.0.0' to create your first tag, or use --grouping-mode dates/gaps for tagless workflows"
                 )
-            elif grouping_mode == "dates":
+            elif grouping_mode == GroupingMode.DATES.value:
                 output.warning("No date-based boundaries found. This repository might have very few commits.")
                 output.info(
                     "💡 Tip: Try --date-grouping weekly/monthly for longer periods, or --grouping-mode gaps for activity-based grouping"
                 )
-            elif grouping_mode == "gaps":
+            elif grouping_mode == GroupingMode.GAPS.value:
                 output.warning(f"No gap-based boundaries found with {gap_threshold_hours} hour threshold.")
                 output.info(
                     f"💡 Tip: Try --gap-threshold {gap_threshold_hours / 2} for shorter gaps, or --grouping-mode dates for time-based grouping"
@@ -351,9 +354,9 @@ def main_business_logic(
     special_unreleased_mode: bool = False,
     update_all_entries: bool = False,
     no_unreleased: bool = False,
-    grouping_mode: str = "tags",
+    grouping_mode: str = GroupingMode.TAGS.value,
     gap_threshold_hours: float = 4.0,
-    date_grouping: str = "daily",
+    date_grouping: str = DateGrouping.DAILY.value,
     yes: bool = False,
     include_diff: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
@@ -389,10 +392,10 @@ def main_business_logic(
         success, usage = main_business_logic()
 
         # Date-based grouping
-        success, usage = main_business_logic(grouping_mode="dates", date_grouping="weekly")
+        success, usage = main_business_logic(grouping_mode=GroupingMode.DATES.value, date_grouping=DateGrouping.WEEKLY.value)
 
         # Gap-based grouping with 8-hour threshold
-        success, usage = main_business_logic(grouping_mode="gaps", gap_threshold_hours=8.0)
+        success, usage = main_business_logic(grouping_mode=GroupingMode.GAPS.value, gap_threshold_hours=8.0)
     """
     logger.debug(f"main_business_logic called with special_unreleased_mode={special_unreleased_mode}")
 
@@ -449,8 +452,11 @@ def main_business_logic(
             translate_headings=translate_headings,
             effective_audience=effective_audience,
         )
-    except Exception as e:
+    except ChangelogError as e:
         handle_error(e)
+        return False, None
+    except Exception as e:
+        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}") from e)
         return False, None
 
     # Handle dry run, confirmation, and saving

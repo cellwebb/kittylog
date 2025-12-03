@@ -11,7 +11,7 @@ import click
 from kittylog import __version__
 from kittylog.config import load_config
 from kittylog.config_cli import config as config_cli
-from kittylog.constants import Audiences, Languages, Logging
+from kittylog.constants import Audiences, DateGrouping, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.init_changelog import init_changelog
 from kittylog.init_cli import init as init_cli
@@ -69,7 +69,7 @@ def changelog_options(f):
     )(f)
     f = click.option(
         "--grouping-mode",
-        type=click.Choice(["tags", "dates", "gaps"], case_sensitive=False),
+        type=click.Choice([mode.value for mode in GroupingMode], case_sensitive=False),
         default=None,
         help="How to group commits: 'tags' uses git tags, 'dates' groups by time periods, 'gaps' detects natural breaks",
     )(f)
@@ -81,7 +81,7 @@ def changelog_options(f):
     )(f)
     f = click.option(
         "--date-grouping",
-        type=click.Choice(["daily", "weekly", "monthly"], case_sensitive=False),
+        type=click.Choice([mode.value for mode in DateGrouping], case_sensitive=False),
         default=None,
         help="Date grouping period for date-based grouping (default: daily)",
     )(f)
@@ -197,9 +197,9 @@ def add(
             )
 
         # Use interactive or provided values consistently
-        final_grouping_mode = grouping_mode or config["grouping_mode"] or "tags"
+        final_grouping_mode = grouping_mode or config["grouping_mode"] or GroupingMode.TAGS.value
         final_gap_threshold = gap_threshold or config["gap_threshold_hours"] or 4.0
-        final_date_grouping = date_grouping or config["date_grouping"] or "daily"
+        final_date_grouping = date_grouping or config["date_grouping"] or DateGrouping.DAILY.value
         final_include_diff = include_diff or False
 
         # Validate gap threshold
@@ -208,17 +208,17 @@ def add(
             sys.exit(1)
 
         # Validate for conflicting options
-        if final_grouping_mode != "tags" and (from_tag or to_tag):
+        if final_grouping_mode != GroupingMode.TAGS.value and (from_tag or to_tag):
             click.echo(
                 f"Warning: --from-tag and --to-tag are only supported with --grouping-mode tags. "
                 f"Using {final_grouping_mode} mode instead.",
                 err=True,
             )
 
-        if final_grouping_mode == "gaps" and date_grouping:
+        if final_grouping_mode == GroupingMode.GAPS.value and date_grouping:
             click.echo("Warning: --date-grouping is ignored when using --grouping-mode gaps", err=True)
 
-        if final_grouping_mode == "dates" and gap_threshold:
+        if final_grouping_mode == GroupingMode.DATES.value and gap_threshold:
             click.echo("Warning: --gap-threshold is ignored when using --grouping-mode dates", err=True)
 
         resolved_language = Languages.resolve_code(language) if language else None
