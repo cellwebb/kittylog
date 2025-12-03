@@ -17,14 +17,51 @@ def config():
 
 @config.command()
 def show() -> None:
-    """Show all current config values."""
-    if not KITTYLOG_ENV_PATH.exists():
-        click.echo("No $HOME/.kittylog.env found.")
+    """Show all current config values from both user and project sources."""
+    from dotenv import dotenv_values
+    
+    # User-level config
+    user_config_path = KITTYLOG_ENV_PATH
+    user_exists = user_config_path.exists()
+    
+    # Project-level config
+    project_config_path = Path(".kittylog.env")
+    project_exists = project_config_path.exists()
+    
+    if not user_exists and not project_exists:
+        click.echo("No kittylog configuration found.")
+        click.echo("Expected locations:")
+        click.echo(f"  User config: {user_config_path}")
+        click.echo(f"  Project config: {project_config_path}")
         return
-    load_dotenv(KITTYLOG_ENV_PATH, override=True)
-    with KITTYLOG_ENV_PATH.open() as f:
-        for line in f:
-            click.echo(line.rstrip())
+    
+    # Show user config
+    if user_exists:
+        click.echo(f"User config ({user_config_path}):")
+        user_config = dotenv_values(str(user_config_path))
+        for key, value in sorted(user_config.items()):
+            if value is not None:
+                # Hide sensitive values like API keys and tokens
+                if any(sensitive in key.lower() for sensitive in ["key", "token", "secret"]):
+                    display_value = "***hidden***"
+                else:
+                    display_value = value
+                click.echo(f"  {key}={display_value}")
+        click.echo()
+    
+    # Show project config
+    if project_exists:
+        click.echo(f"Project config ({project_config_path}):")
+        project_config = dotenv_values(str(project_config_path))
+        for key, value in sorted(project_config.items()):
+            if value is not None:
+                # Hide sensitive values like API keys and tokens
+                if any(sensitive in key.lower() for sensitive in ["key", "token", "secret"]):
+                    display_value = "***hidden***"
+                else:
+                    display_value = value
+                click.echo(f"  {key}={display_value}")
+        click.echo("\nNote: Project-level values override user-level values.")
 
 
 @config.command()
