@@ -7,7 +7,7 @@ from kittylog.tag_operations import determine_new_tags
 
 __all__ = [
     "__version__",
-    "get_commits_between_tags",
     "determine_new_tags",
+    "get_commits_between_tags",
     "update_changelog",
 ]
