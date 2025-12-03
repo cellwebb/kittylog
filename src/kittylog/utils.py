@@ -167,9 +167,10 @@ def count_tokens(text: str, model: str) -> int:
 
         return len(encoding.encode(text))
     except Exception as e:
-        logger.debug(f"Token counting failed: {e}, using character-based estimation")
-        # If encoding fails, return 0
-        return 0
+        logger.warning(f"Token counting failed: {e}, using character-based fallback estimation")
+        # Fallback: estimate tokens as ~1/4 of characters (rough average for English text)
+        # This is better than returning 0 which would completely mask the issue
+        return max(1, len(text) // 4)
 
 
 def format_commit_for_display(commit: dict, max_message_length: int | None = None, max_files: int | None = None) -> str:
