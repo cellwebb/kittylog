@@ -190,3 +190,59 @@ def get_changelog_stats(file_path: str) -> dict:
     except Exception as e:
         logger.error(f"Failed to get changelog stats: {e}")
         return {"error": str(e)}
+
+
+def prepare_release(file_path: str, version: str) -> str:
+    """Prepare changelog for release by converting Unreleased section to versioned.
+
+    This function:
+    1. Replaces "## [Unreleased]" with "## [version] - YYYY-MM-DD"
+    2. Adds a version link reference if link references exist in the file
+
+    Args:
+        file_path: Path to the changelog file
+        version: Version string (e.g., "2.3.0" - without 'v' prefix)
+
+    Returns:
+        The updated changelog content
+    """
+    import re
+    from datetime import datetime
+
+    content = read_changelog(file_path)
+    if not content:
+        raise ChangelogError(f"Changelog file {file_path} is empty or does not exist")
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Normalize version (remove 'v' prefix if present)
+    version = version.lstrip("v")
+
+    # Check if there's an Unreleased section to replace
+    if "## [Unreleased]" in content:
+        # Replace "## [Unreleased]" with the new version header
+        content = re.sub(
+            r"## \[Unreleased\]\s*\n",
+            f"## [{version}] - {today}\n\n",
+            content,
+            count=1,
+        )
+        logger.info(f"Converted [Unreleased] section to [{version}] - {today}")
+    else:
+        logger.warning("No [Unreleased] section found in changelog")
+
+    # Extract link format from existing link and add new one if links exist
+    link_match = re.search(r"\[[\d.]+\]:\s+(.*?)v[\d.]+", content)
+    if link_match:
+        base_url = link_match.group(1)
+        new_link = f"[{version}]: {base_url}v{version}\n"
+
+        # Find the position of the first link reference
+        first_link = re.search(r"^\[[\d.]+\]:", content, re.MULTILINE)
+        if first_link:
+            pos = first_link.start()
+            content = content[:pos] + new_link + content[pos:]
+            logger.info(f"Added version link reference for {version}")
+
+    write_changelog(file_path, content)
+    return content
