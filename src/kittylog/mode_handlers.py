@@ -374,7 +374,7 @@ def handle_update_all_mode(
             for key, value in token_usage.items():
                 total_token_usage[key] = total_token_usage.get(key, 0) + value
 
-    return existing_content, total_token_usage
+    return changelog_content, total_token_usage
 
 
 def handle_missing_entries_mode(

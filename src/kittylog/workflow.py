@@ -325,10 +325,11 @@ def validate_and_setup_workflow(
                 output.info(
                     f"💡 Tip: Try --gap-threshold {gap_threshold_hours / 2} for shorter gaps, or --grouping-mode dates for time-based grouping"
                 )
-            raise ValueError(f"No {grouping_mode} boundaries found in repository")
+            raise GitError(f"No {grouping_mode} boundaries found in repository")
+    except GitError:
+        # Re-raise GitError for no boundaries - it will be caught upstream
+        raise
     except Exception as e:
-        if "No" in str(e) and "boundaries found" in str(e):
-            raise
         handle_error(e)
         raise
 

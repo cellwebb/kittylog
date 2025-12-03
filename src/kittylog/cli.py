@@ -185,6 +185,9 @@ def add(
         setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting kittylog")
 
+        # Initialize selected_audience before interactive check
+        selected_audience = None
+
         # Interactive mode configuration (now default behavior)
         if interactive:
             grouping_mode, gap_threshold, date_grouping, include_diff, yes, selected_audience = (
