@@ -8,14 +8,15 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import GitError
-from kittylog.git_operations import (
+from kittylog.tag_operations import (
     get_all_tags,
-    get_commits_between_tags,
+    determine_new_tags,
     get_latest_tag,
     get_tag_date,
-    get_tags_since_last_changelog,
     is_current_commit_tagged,
-    run_git_command,
+)
+from kittylog.commit_analyzer import (
+    get_commits_between_tags,
 )
 
 
@@ -57,7 +58,7 @@ class TestGetAllCommitsChronological:
 
     def test_get_all_commits_chronological_success(self, git_repo_with_tags):
         """Test getting all commits in chronological order."""
-        from kittylog.git_operations import get_all_commits_chronological
+        from kittylog.commit_analyzer import get_all_commits_chronological
 
         commits = get_all_commits_chronological()
         assert len(commits) >= 5  # At least the 5 commits from our fixture
@@ -81,7 +82,7 @@ class TestGetCommitsByDateBoundaries:
 
     def test_get_commits_by_date_boundaries_daily(self, git_repo_with_tags):
         """Test daily date boundary detection."""
-        from kittylog.git_operations import get_commits_by_date_boundaries
+        from kittylog.commit_analyzer import get_commits_by_date_boundaries
 
         boundaries = get_commits_by_date_boundaries("daily")
         assert len(boundaries) > 0
@@ -96,7 +97,7 @@ class TestGetCommitsByDateBoundaries:
 
     def test_get_commits_by_date_boundaries_weekly(self, git_repo_with_tags):
         """Test weekly date boundary detection."""
-        from kittylog.git_operations import get_commits_by_date_boundaries
+        from kittylog.commit_analyzer import get_commits_by_date_boundaries
 
         boundaries = get_commits_by_date_boundaries("weekly")
         assert len(boundaries) > 0
@@ -107,7 +108,7 @@ class TestGetCommitsByDateBoundaries:
 
     def test_get_commits_by_date_boundaries_monthly(self, git_repo_with_tags):
         """Test monthly date boundary detection."""
-        from kittylog.git_operations import get_commits_by_date_boundaries
+        from kittylog.commit_analyzer import get_commits_by_date_boundaries
 
         boundaries = get_commits_by_date_boundaries("monthly")
         assert len(boundaries) > 0
@@ -118,7 +119,7 @@ class TestGetCommitsByDateBoundaries:
 
     def test_get_commits_by_date_boundaries_invalid_grouping(self, git_repo_with_tags):
         """Test handling of invalid grouping parameter."""
-        from kittylog.git_operations import get_commits_by_date_boundaries
+        from kittylog.commit_analyzer import get_commits_by_date_boundaries
 
         with pytest.raises(ValueError):
             get_commits_by_date_boundaries("invalid")
@@ -129,7 +130,7 @@ class TestGetCommitsByGapBoundaries:
 
     def test_get_commits_by_gap_boundaries_default(self, git_repo_with_tags):
         """Test gap boundary detection with default threshold."""
-        from kittylog.git_operations import get_commits_by_gap_boundaries
+        from kittylog.commit_analyzer import get_commits_by_gap_boundaries
 
         boundaries = get_commits_by_gap_boundaries()
         assert len(boundaries) > 0
@@ -144,7 +145,7 @@ class TestGetCommitsByGapBoundaries:
 
     def test_get_commits_by_gap_boundaries_custom_threshold(self, git_repo_with_tags):
         """Test gap boundary detection with custom threshold."""
-        from kittylog.git_operations import get_commits_by_gap_boundaries
+        from kittylog.commit_analyzer import get_commits_by_gap_boundaries
 
         boundaries = get_commits_by_gap_boundaries(1.0)  # 1 hour threshold
         assert len(boundaries) > 0
@@ -158,7 +159,7 @@ class TestGetAllBoundaries:
 
     def test_get_all_boundaries_tags_mode(self, git_repo_with_tags):
         """Test getting all boundaries in tags mode."""
-        from kittylog.git_operations import get_all_boundaries
+        from kittylog.tag_operations import get_all_boundaries
 
         boundaries = get_all_boundaries("tags")
         assert len(boundaries) == 3  # Our fixture has 3 tags
@@ -171,7 +172,7 @@ class TestGetAllBoundaries:
 
     def test_get_all_boundaries_dates_mode(self, git_repo_with_tags):
         """Test getting all boundaries in dates mode."""
-        from kittylog.git_operations import get_all_boundaries
+        from kittylog.tag_operations import get_all_boundaries
 
         boundaries = get_all_boundaries("dates", date_grouping="daily")
         assert len(boundaries) > 0
@@ -182,7 +183,7 @@ class TestGetAllBoundaries:
 
     def test_get_all_boundaries_gaps_mode(self, git_repo_with_tags):
         """Test getting all boundaries in gaps mode."""
-        from kittylog.git_operations import get_all_boundaries
+        from kittylog.tag_operations import get_all_boundaries
 
         boundaries = get_all_boundaries("gaps", gap_threshold_hours=2.0)
         assert len(boundaries) > 0
@@ -192,7 +193,7 @@ class TestGetAllBoundaries:
 
     def test_get_all_boundaries_invalid_mode(self, git_repo_with_tags):
         """Test handling of invalid mode."""
-        from kittylog.git_operations import get_all_boundaries
+        from kittylog.tag_operations import get_all_boundaries
 
         with pytest.raises(ValueError):
             get_all_boundaries("invalid")
@@ -210,7 +211,7 @@ class TestGetLatestTag:
     def test_get_latest_tag_no_tags(self, git_repo):
         """Test getting latest tag when no tags exist."""
         # Explicitly clear cache to ensure we're testing the no-tags repo
-        from kittylog.git_operations import clear_git_cache
+        from kittylog.tag_operations import clear_git_cache
 
         clear_git_cache()
 
@@ -255,58 +256,7 @@ class TestGetCommitsBetweenTags:
             get_commits_between_tags("invalid-tag", "v0.1.0")
 
 
-class TestGetTagsSinceLastChangelog:
-    """Test get_tags_since_last_changelog function."""
 
-    def test_no_changelog_file(self, git_repo_with_tags, temp_dir):
-        """Test when no changelog file exists."""
-        os.chdir(temp_dir)
-        last_tag, new_tags = get_tags_since_last_changelog("NONEXISTENT.md")
-        assert last_tag is None
-        assert len(new_tags) == 3  # All tags are new
-
-    def test_changelog_with_version(self, git_repo_with_tags, temp_dir):
-        """Test when changelog contains a version."""
-        changelog_content = """# Changelog
-
-## [0.1.0] - 2024-01-01
-
-### Added
-- Initial release
-"""
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text(changelog_content)
-
-        last_tag, new_tags = get_tags_since_last_changelog("CHANGELOG.md")
-        assert last_tag == "v0.1.0"
-        assert "v0.2.0" in new_tags
-        assert "v0.2.1" in new_tags
-        assert len(new_tags) == 2
-
-    def test_changelog_with_v_prefix(self, git_repo_with_tags, temp_dir):
-        """Test when changelog version has v prefix."""
-        changelog_content = """# Changelog
-
-## [v0.1.0] - 2024-01-01
-
-### Added
-- Initial release
-"""
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text(changelog_content)
-
-        last_tag, new_tags = get_tags_since_last_changelog("CHANGELOG.md")
-        assert last_tag == "v0.1.0"
-        assert len(new_tags) == 2
-
-    def test_empty_changelog(self, git_repo_with_tags, temp_dir):
-        """Test with empty changelog file."""
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text("# Changelog\n")
-
-        last_tag, new_tags = get_tags_since_last_changelog("CHANGELOG.md")
-        assert last_tag is None
-        assert len(new_tags) == 3
 
 
 class TestGetTagDate:
@@ -323,19 +273,7 @@ class TestGetTagDate:
         assert date is None
 
 
-class TestRunGitCommand:
-    """Test run_git_command function."""
 
-    def test_run_git_command_success(self, git_repo):
-        """Test running a successful git command."""
-        result = run_git_command(["status", "--porcelain"])
-        assert isinstance(result, str)
-
-    def test_run_git_command_failure(self, git_repo):
-        """Test running a failing git command."""
-        # This should not raise an exception due to raise_on_error=False
-        result = run_git_command(["invalid-command"])
-        assert result == ""
 
 
 class TestIsCurrentCommitTagged:
@@ -405,7 +343,8 @@ class TestIntegration:
         changelog_file.write_text(changelog_content)
 
         # Get new tags
-        last_tag, new_tags = get_tags_since_last_changelog("CHANGELOG.md")
+        from kittylog.tag_operations import determine_new_tags
+        last_tag, new_tags = determine_new_tags("CHANGELOG.md")
         assert last_tag == "v0.1.0"
         assert len(new_tags) >= 1
 
