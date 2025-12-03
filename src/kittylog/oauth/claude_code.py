@@ -359,16 +359,12 @@ def load_stored_token() -> str | None:
 
 
 def save_token(access_token: str) -> bool:
-    """Save access token to .kittylog.env and update environment."""
-    import os
-
+    """Save access token to .kittylog.env file."""
     from dotenv import set_key
 
     env_path = get_token_storage_path()
     try:
         set_key(str(env_path), "CLAUDE_CODE_ACCESS_TOKEN", access_token)
-        # Also update the current environment so the token is immediately available
-        os.environ["CLAUDE_CODE_ACCESS_TOKEN"] = access_token
         return True
     except Exception as exc:
         logger.error("Failed to save token: %s", exc)
