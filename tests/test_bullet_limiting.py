@@ -87,10 +87,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 """
 
         # Update the changelog
-        updated_content, token_usage = update_changelog(
+        updated_content, _token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag=None,
+            from_boundary="v0.1.0",
+            to_boundary=None,
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
@@ -199,10 +199,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 """
 
         # Update the changelog in standard mode (append)
-        updated_content, token_usage = update_changelog(
+        updated_content, _token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag=None,
+            from_boundary="v0.1.0",
+            to_boundary=None,
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
@@ -299,10 +299,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 """
 
         # Update the changelog in replace mode (overwrite sections)
-        updated_content, token_usage = update_changelog(
+        updated_content, _token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag="v0.1.0",
-            to_tag=None,
+            from_boundary="v0.1.0",
+            to_boundary=None,
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,

@@ -301,10 +301,10 @@ class TestUpdateChangelog:
 """
 
         # Update changelog
-        result, token_usage = update_changelog(
+        result, _token_usage = update_changelog(
             existing_content=existing_content,
-            from_tag="v0.1.0",
-            to_tag="v0.2.0",
+            from_boundary="v0.1.0",
+            to_boundary="v0.2.0",
             model="openai:gpt-4o-mini",
             hint="",
             show_prompt=False,
@@ -329,17 +329,17 @@ class TestUpdateChangelog:
 
         existing_content = "# Changelog\n"
 
-        result, token_usage = update_changelog(
+        result, _token_usage = update_changelog(
             existing_content=existing_content,
-            from_tag="v0.1.0",
-            to_tag="v0.2.0",
+            from_boundary="v0.1.0",
+            to_boundary="v0.2.0",
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
         )
 
         assert result == existing_content  # Content should be unchanged
-        assert token_usage is None
+        assert _token_usage is None
 
     @patch("kittylog.changelog.get_commits_between_tags")
     @patch("kittylog.changelog.generate_changelog_entry")
@@ -364,10 +364,10 @@ class TestUpdateChangelog:
 - Initial release
 """
 
-        result, token_usage = update_changelog(
+        result, _token_usage = update_changelog(
             existing_content=existing_content,
-            from_tag=None,
-            to_tag="v0.1.0",
+            from_boundary=None,
+            to_boundary="v0.1.0",
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
@@ -405,10 +405,10 @@ class TestUpdateChangelog:
 - Initial release
 """
 
-        result, token_usage = update_changelog(
+        result, _token_usage = update_changelog(
             existing_content=existing_content,
-            from_tag="v0.1.0",
-            to_tag=None,
+            from_boundary="v0.1.0",
+            to_boundary=None,
             model="openai:gpt-4o-mini",
             quiet=True,
             no_unreleased=False,
@@ -450,9 +450,8 @@ class TestChangelogIO:
 
     def test_write_changelog_directory_error(self):
         """Test writing changelog file when path is a directory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with pytest.raises(OSError):
-                write_changelog(tmpdir, "content")
+        with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(OSError):
+            write_changelog(tmpdir, "content")
 
 
 class TestFindInsertionPointByVersion:

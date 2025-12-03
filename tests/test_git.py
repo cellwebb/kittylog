@@ -40,9 +40,9 @@ class TestGetAllTags:
         repo = git_repo
 
         # Create tags in non-sequential order
-        test_file = repo.working_dir + "/test.py"
+        test_file = Path(repo.working_dir) / "test.py"
         for version in ["v0.10.0", "v0.2.0", "v0.1.0"]:
-            with open(test_file, "w") as f:
+            with test_file.open("w") as f:
                 f.write(f"# Version {version}\n")
             repo.index.add([test_file])
             commit = repo.index.commit(f"Version {version}")

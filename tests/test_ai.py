@@ -92,12 +92,11 @@ class TestGenerateChangelogEntry:
         mock_count_tokens.return_value = 100
         mock_generate.side_effect = Exception("AI service error")
 
-        with patch("kittylog.ai.config", mock_config):
-            with pytest.raises(AIError):
-                generate_changelog_entry(
-                    commits=sample_commits,
-                    tag="v1.0.0",
-                )
+        with patch("kittylog.ai.config", mock_config), pytest.raises(AIError):
+            generate_changelog_entry(
+                commits=sample_commits,
+                tag="v1.0.0",
+            )
 
 
 class TestGenerateWithRetries:
@@ -340,7 +339,7 @@ class TestAIIntegration:
             result = generate_changelog_entry(
                 commits=sample_commits,
                 tag="v1.0.0",
-                from_tag="v0.9.0",
+                from_boundary="v0.9.0",
                 hint="Focus on user-facing changes",
                 show_prompt=False,
                 quiet=True,
@@ -356,7 +355,7 @@ class TestAIIntegration:
         mock_build_prompt.assert_called_once_with(
             commits=sample_commits,
             tag="v1.0.0",
-            from_tag="v0.9.0",
+            from_boundary="v0.9.0",
             hint="Focus on user-facing changes",
             boundary_mode="tags",
             language=None,

@@ -25,17 +25,17 @@ class TestMainBusinessLogicFixed:
     @patch("kittylog.git_operations.get_previous_boundary")
     def test_main_logic_tags_success(
         self,
-        mock_get_previous_boundary,  # noqa: ARG002
+        mock_get_previous_boundary,
         mock_get_commits_between_tags,
         mock_generate_display,
         mock_generate_identifier,
         mock_is_tagged,
         mock_get_latest_boundary,
-        mock_find_existing,  # noqa: ARG002
+        mock_find_existing,
         mock_get_all_boundaries,
         mock_update,
         mock_read,
-        mock_write,  # noqa: ARG002
+        mock_write,
         mock_get_repo,
         mock_output_manager,
         temp_dir,

@@ -1,5 +1,6 @@
 """Tests for CLI module."""
 
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
@@ -99,10 +100,8 @@ class TestUpdateCommand:
         assert call_args["audience"] == "users"
 
         # Clean up created file
-        import os
-
-        if os.path.exists("CHANGES.md"):
-            os.unlink("CHANGES.md")
+        if Path("CHANGES.md").exists():
+            Path("CHANGES.md").unlink()
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_short_options(self, mock_main_logic):
@@ -140,10 +139,8 @@ class TestUpdateCommand:
         assert call_args["audience"] == "stakeholders"
 
         # Clean up created file
-        import os
-
-        if os.path.exists("CHANGES.md"):
-            os.unlink("CHANGES.md")
+        if Path("CHANGES.md").exists():
+            Path("CHANGES.md").unlink()
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_failure_exit_code(self, mock_main_logic):

@@ -176,18 +176,17 @@ class TestEdgeCases:
     def test_high_activity_repository_warnings(self, mock_logger, mock_get_all_commits):
         """Test warnings for repositories with very high activity."""
         # Mock a very active day with many commits
-        mock_commits = []
-        for hour in range(24):  # 24 commits in one day
-            mock_commits.append(
-                {
-                    "hash": f"abc{hour:02d}",
-                    "short_hash": f"abc{hour:02d}",
-                    "message": f"Commit at {hour}:00",
-                    "author": "Test Author",
-                    "date": datetime(2024, 1, 1, hour, 0, tzinfo=timezone.utc),
-                    "files": [f"file{hour}.py"],
-                }
-            )
+        mock_commits = [
+            {
+                "hash": f"abc{hour:02d}",
+                "short_hash": f"abc{hour:02d}",
+                "message": f"Commit at {hour}:00",
+                "author": "Test Author",
+                "date": datetime(2024, 1, 1, hour, 0, tzinfo=timezone.utc),
+                "files": [f"file{hour}.py"],
+            }
+            for hour in range(24)  # 24 commits in one day
+        ]
         mock_get_all_commits.return_value = mock_commits
 
         boundaries = get_commits_by_date_boundaries(date_grouping="daily")

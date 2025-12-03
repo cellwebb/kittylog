@@ -45,13 +45,14 @@ class TestCountTokens:
 
     @patch("kittylog.utils.tiktoken")
     def test_count_tokens_error_handling(self, mock_tiktoken):
-        """Test error handling in token counting."""
+        """Test error handling in token counting with character-based fallback."""
         mock_tiktoken.encoding_for_model.side_effect = Exception("General error")
         mock_tiktoken.get_encoding.side_effect = Exception("Fallback error")
 
-        # Should return 0 on errors
-        count = count_tokens("test text", "model")
-        assert count == 0
+        # Should return character-based estimate on errors (len // 4, minimum 1)
+        text = "test text"  # 9 characters -> 9 // 4 = 2
+        count = count_tokens(text, "model")
+        assert count == max(1, len(text) // 4)
 
     def test_count_tokens_empty_text(self):
         """Test token counting with empty text."""
