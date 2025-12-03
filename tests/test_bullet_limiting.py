@@ -313,9 +313,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         assert "## [Unreleased]" in updated_content
 
         # In replace mode, existing bullets should be dropped and only AI content should remain
-        # Count bullet points in each section
-        added_matches = re.findall(r"### Added\s*\n(?:\s*- .*\s*\n)+", updated_content)
-        fixed_matches = re.findall(r"### Fixed\s*\n(?:\s*- .*\s*\n)+", updated_content)
+        # Count bullet points in each section - use a more robust pattern
+        # that handles the last bullet not having a trailing newline
+        added_matches = re.findall(r"### Added\s*\n((?:\s*- .*(?:\n|$))+)", updated_content)
+        fixed_matches = re.findall(r"### Fixed\s*\n((?:\s*- .*(?:\n|$))+)", updated_content)
 
         # Should find both sections in the updated content
         assert len(added_matches) == 1
