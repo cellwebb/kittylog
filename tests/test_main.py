@@ -14,7 +14,7 @@ from kittylog.main import main_business_logic
 class TestMainBusinessLogic:
     """Minimal working tests for main business logic."""
 
-    @patch("kittylog.main.get_output_manager")
+    @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.git_operations.get_repo")
     def test_main_logic_no_model_error(self, mock_get_repo, mock_output_manager, temp_dir):
         """Test error handling when no model is specified."""
@@ -34,7 +34,7 @@ class TestMainBusinessLogic:
             "max_retries": 3,
         }
 
-        with patch("kittylog.main.config", config_without_model):
+        with patch("kittylog.workflow.config", config_without_model):
             success, token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"), model=None, quiet=True
             )

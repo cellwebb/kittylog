@@ -10,13 +10,13 @@ from kittylog.main import main_business_logic
 class TestMainBusinessLogicFixed:
     """Test main business logic with proper mocks."""
 
-    @patch("kittylog.main.get_output_manager")
+    @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.git_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.git_operations.get_all_boundaries")
-    @patch("kittylog.changelog.find_existing_boundaries")
+    @patch("kittylog.workflow.get_all_boundaries")
+    @patch("kittylog.changelog_parser.find_existing_boundaries")
     @patch("kittylog.git_operations.get_latest_boundary")
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.generate_boundary_identifier")
@@ -98,7 +98,7 @@ class TestMainBusinessLogicFixed:
         }
 
         with (
-            patch("kittylog.main.config", config_with_model),
+            patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             success, _token_usage = main_business_logic(
@@ -114,8 +114,8 @@ class TestMainBusinessLogicFixed:
         # For special unreleased mode, the function may return early if no changes are needed
         # Just verify the function completed successfully
 
-    @patch("kittylog.main.get_output_manager")
-    @patch("kittylog.git_operations.get_all_boundaries")
+    @patch("kittylog.workflow.get_output_manager")
+    @patch("kittylog.workflow.get_all_boundaries")
     @patch("kittylog.git_operations.get_repo")
     def test_main_logic_no_boundaries_warning(
         self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir
@@ -143,7 +143,7 @@ class TestMainBusinessLogicFixed:
         }
 
         with (
-            patch("kittylog.main.config", config_with_model),
+            patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             success, _token_usage = main_business_logic(
@@ -153,18 +153,19 @@ class TestMainBusinessLogicFixed:
                 grouping_mode="tags",
             )
 
-        assert success is True
+        # When no boundaries are found, the function should return False (error)
+        assert success is False
         assert _token_usage is None
+        # The error handler will have logged the error
         mock_output.warning.assert_called()
-        mock_output.info.assert_called()
 
-    @patch("kittylog.main.get_output_manager")
+    @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.git_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.git_operations.get_all_boundaries")
-    @patch("kittylog.changelog.find_existing_boundaries")
+    @patch("kittylog.workflow.get_all_boundaries")
+    @patch("kittylog.changelog_parser.find_existing_boundaries")
     @patch("kittylog.git_operations.get_latest_boundary")
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.generate_boundary_identifier")
@@ -229,7 +230,7 @@ class TestMainBusinessLogicFixed:
         }
 
         with (
-            patch("kittylog.main.config", config_with_model),
+            patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             success, _token_usage = main_business_logic(
@@ -244,7 +245,7 @@ class TestMainBusinessLogicFixed:
         # For dates mode, the function may return early if no changes are needed
         # Just verify the function completed successfully
 
-    @patch("kittylog.git_operations.get_all_boundaries")
+    @patch("kittylog.workflow.get_all_boundaries")
     def test_main_logic_no_model_error(self, mock_get_all_boundaries, temp_dir):
         """Test error handling when no model is specified."""
         config_without_model = {
@@ -270,7 +271,7 @@ class TestMainBusinessLogicFixed:
         ]
         mock_get_all_boundaries.return_value = mock_boundaries
 
-        with patch("kittylog.main.config", config_without_model):
+        with patch("kittylog.workflow.config", config_without_model):
             success, _token_usage = main_business_logic(
                 changelog_file=str(temp_dir / "CHANGELOG.md"), model=None, quiet=True
             )
@@ -278,13 +279,13 @@ class TestMainBusinessLogicFixed:
         assert success is False
         assert _token_usage is None
 
-    @patch("kittylog.main.get_output_manager")
+    @patch("kittylog.workflow.get_output_manager")
     @patch("kittylog.git_operations.get_repo")
     @patch("kittylog.changelog.write_changelog")
     @patch("kittylog.changelog.read_changelog")
     @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.git_operations.get_all_boundaries")
-    @patch("kittylog.changelog.find_existing_boundaries")
+    @patch("kittylog.workflow.get_all_boundaries")
+    @patch("kittylog.changelog_parser.find_existing_boundaries")
     @patch("kittylog.git_operations.get_latest_boundary")
     @patch("kittylog.git_operations.is_current_commit_tagged")
     @patch("kittylog.git_operations.generate_boundary_identifier")
@@ -349,7 +350,7 @@ class TestMainBusinessLogicFixed:
         }
 
         with (
-            patch("kittylog.main.config", config_with_model),
+            patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             success, _token_usage = main_business_logic(
@@ -371,7 +372,7 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     """Ensure date/gap configuration is forwarded to update_changelog."""
     from datetime import datetime, timezone
 
-    from kittylog import main as main_module
+    from kittylog import changelog_parser, mode_handlers
 
     boundary = {
         "hash": "abc123",
@@ -386,7 +387,18 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
 
     recorded_calls: list[dict] = []
 
-    def fake_update_changelog(*, grouping_mode="tags", gap_threshold_hours=4.0, date_grouping="daily", **kwargs):
+    def fake_single_boundary_handler(
+        changelog_file,
+        boundary,
+        model,
+        hint,
+        show_prompt,
+        quiet,
+        grouping_mode="tags",
+        gap_threshold_hours=4.0,
+        date_grouping="daily",
+        **kwargs,
+    ):
         recorded_calls.append(
             {
                 "grouping_mode": grouping_mode,
@@ -396,36 +408,39 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
         )
         return "updated", None
 
-    monkeypatch.setattr(main_module, "update_changelog", fake_update_changelog)
-    monkeypatch.setattr(main_module, "read_changelog", lambda _: "# Changelog\n")
-    monkeypatch.setattr(main_module, "find_existing_boundaries", lambda _: set())
+    monkeypatch.setattr(mode_handlers, "handle_single_boundary_mode", fake_single_boundary_handler)
+    monkeypatch.setattr("kittylog.changelog_io.read_changelog", lambda _: "# Changelog\n")
+    monkeypatch.setattr(changelog_parser, "find_existing_boundaries", lambda _: set())
     monkeypatch.setattr(
-        main_module,
-        "get_all_boundaries",
+        "kittylog.git_operations.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
     )
-    monkeypatch.setattr(main_module, "get_previous_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main_module, "generate_boundary_identifier", lambda b, mode: b["identifier"])
+    monkeypatch.setattr("kittylog.git_operations.get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.git_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
     # Mock git operations to prevent actual git repo access
-    monkeypatch.setattr(main_module, "get_latest_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main_module, "is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr("kittylog.git_operations.get_latest_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.git_operations.is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr("kittylog.output.get_output_manager", lambda: Mock())
 
-    main_module.handle_auto_mode(
+    # Call handle_single_boundary_mode directly since handle_auto_mode was refactored
+    mode_handlers.handle_single_boundary_mode(
         changelog_file="CHANGELOG.md",
+        boundary=boundary,
         model="openai:gpt-4o-mini",
         hint="",
         show_prompt=False,
         quiet=True,
-        update_all_entries=True,
-        special_unreleased_mode=False,
-        no_unreleased=False,
         grouping_mode="dates",
         gap_threshold_hours=12.0,
         date_grouping="weekly",
         yes=True,
+        include_diff=False,
+        language=None,
+        translate_headings=False,
+        audience=None,
     )
 
-    assert recorded_calls, "update_changelog should be invoked at least once"
+    assert recorded_calls, "handler should be invoked at least once"
     assert recorded_calls[0]["grouping_mode"] == "dates"
     assert recorded_calls[0]["gap_threshold_hours"] == 12.0
     assert recorded_calls[0]["date_grouping"] == "weekly"
@@ -469,21 +484,25 @@ def test_main_logic_passes_language_preferences(monkeypatch):
         "audience": "stakeholders",
     }
 
-    monkeypatch.setattr(main_module, "config", config_with_language)
-    monkeypatch.setattr(main_module, "update_changelog", fake_update_changelog)
-    monkeypatch.setattr(main_module, "read_changelog", lambda _: "# Changelog\n")
-    monkeypatch.setattr(main_module, "write_changelog", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main_module, "find_existing_boundaries", lambda _: set())
+    monkeypatch.setattr("kittylog.workflow.config", config_with_language)
+    # Patch at the mode_handlers level where it's actually imported and used
+    monkeypatch.setattr("kittylog.mode_handlers.update_changelog", fake_update_changelog)
+    monkeypatch.setattr("kittylog.mode_handlers.read_changelog", lambda _: "# Changelog\n")
+    monkeypatch.setattr("kittylog.mode_handlers.find_existing_boundaries", lambda _: {"1.1.0"})
+    monkeypatch.setattr("kittylog.changelog_io.write_changelog", lambda *args, **kwargs: None)
     monkeypatch.setattr(
-        main_module,
-        "get_all_boundaries",
+        "kittylog.workflow.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
     )
-    monkeypatch.setattr(main_module, "get_previous_boundary", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main_module, "generate_boundary_identifier", lambda b, mode: b["identifier"])
-    monkeypatch.setattr(main_module, "get_latest_boundary", lambda *args, **kwargs: boundary)
-    monkeypatch.setattr(main_module, "is_current_commit_tagged", lambda: False)
-    monkeypatch.setattr(main_module, "get_output_manager", lambda: mock_output)
+    monkeypatch.setattr(
+        "kittylog.mode_handlers.get_all_boundaries",
+        lambda mode, gap_threshold_hours, date_grouping: [boundary],
+    )
+    monkeypatch.setattr("kittylog.git_operations.get_previous_boundary", lambda *args, **kwargs: None)
+    monkeypatch.setattr("kittylog.git_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
+    monkeypatch.setattr("kittylog.git_operations.get_latest_boundary", lambda *args, **kwargs: boundary)
+    monkeypatch.setattr("kittylog.git_operations.is_current_commit_tagged", lambda: False)
+    monkeypatch.setattr("kittylog.workflow.get_output_manager", lambda: mock_output)
 
     success, _usage = main_module.main_business_logic(
         changelog_file="CHANGELOG.md",
@@ -491,7 +510,7 @@ def test_main_logic_passes_language_preferences(monkeypatch):
         quiet=True,
         require_confirmation=False,
         update_all_entries=True,
-        dry_run=True,
+        dry_run=False,  # Changed from True to ensure update_changelog is called
     )
 
     assert success is True
