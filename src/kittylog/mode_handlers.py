@@ -32,6 +32,21 @@ from kittylog.utils import determine_next_version
 logger = logging.getLogger(__name__)
 
 
+def _ensure_changelog_exists(changelog_file: str, no_unreleased: bool) -> str:
+    """Create changelog with header if it doesn't exist, return content.
+    
+    Args:
+        changelog_file: Path to the changelog file
+        no_unreleased: Whether to exclude the unreleased section
+        
+    Returns:
+        The changelog content (new if created, existing if already present)
+    """
+    existing_content = read_changelog(changelog_file)
+    
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
+
+
 def handle_unreleased_mode(
     changelog_file: str,
     model: str,
@@ -50,14 +65,7 @@ def handle_unreleased_mode(
 ) -> tuple[str, dict[str, int] | None]:
     """Handle unreleased changes workflow for all boundary modes."""
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
-    existing_content = read_changelog(changelog_file)
-
-    # If changelog doesn't exist, create header
-    if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
-    else:
-        changelog_content = existing_content
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     logger.debug(f"Existing changelog content: {repr(changelog_content[:200])}")
 
@@ -86,7 +94,7 @@ def handle_unreleased_mode(
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
-                return changelog_content, None
+                return existing_content, None
 
     # Get latest boundary for commit range based on mode
     # (already calculated above as latest_boundary and from_boundary)
@@ -97,8 +105,8 @@ def handle_unreleased_mode(
     # Update changelog for this version
     changelog_content, token_usage = update_changelog(
         existing_content=changelog_content,
-        from_tag=from_boundary,
-        to_tag=None,  # None indicates unreleased
+        from_boundary=from_boundary,
+        to_boundary=None,  # None indicates unreleased
         model=model,
         hint=hint,
         show_prompt=show_prompt,
@@ -110,7 +118,7 @@ def handle_unreleased_mode(
         audience=audience,
     )
 
-    return changelog_content, token_usage
+    return existing_content, token_usage
 
 
 def handle_single_boundary_mode(
@@ -131,21 +139,10 @@ def handle_single_boundary_mode(
     date_grouping: str = "daily",
 ) -> tuple[str, dict[str, int] | None]:
     """Handle single boundary processing workflow."""
-    # Read existing changelog content
-    existing_content = read_changelog(changelog_file)
-
-    # If changelog doesn't exist, create header
-    if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
-    else:
-        changelog_content = existing_content
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     # Determine previous boundary for context
     if grouping_mode != "tags":
-        # Import needed for non-tags mode boundary operations
-        from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
-
         # For dates/gaps mode, we need to find the boundary object first
         all_boundaries = get_all_boundaries(
             mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
@@ -157,9 +154,6 @@ def handle_single_boundary_mode(
                     previous_boundary = generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
                 break
     else:
-        # Import needed for tags mode boundary operations
-        from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries, get_previous_boundary
-
         # For tags mode, we need to find the boundary object first
         target_boundary = None
         for boundary in get_all_boundaries(mode="tags"):
@@ -184,13 +178,13 @@ def handle_single_boundary_mode(
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
-                return changelog_content, None
+                return existing_content, None
 
     # Update changelog for this specific boundary only (overwrite if exists)
     changelog_content, token_usage = update_changelog(
         existing_content=changelog_content,
-        from_tag=previous_boundary,
-        to_tag=to_boundary,
+        from_boundary=previous_boundary,
+        to_boundary=to_boundary,
         model=model,
         hint=hint,
         show_prompt=show_prompt,
@@ -202,7 +196,7 @@ def handle_single_boundary_mode(
         audience=audience,
     )
 
-    return changelog_content, token_usage
+    return existing_content, token_usage
 
 
 def handle_boundary_range_mode(
@@ -225,9 +219,6 @@ def handle_boundary_range_mode(
     audience: str | None = None,
 ) -> tuple[str, dict[str, int] | None]:
     """Handle boundary range processing workflow."""
-    # Import needed for boundary identifier generation
-    from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries
-
     # Process specific boundary range
     if to_boundary is None and not special_unreleased_mode:
         latest_boundary = get_latest_boundary(grouping_mode)
@@ -240,8 +231,6 @@ def handle_boundary_range_mode(
     elif from_boundary is None and to_boundary is not None and not special_unreleased_mode:
         # When only to_boundary is specified, find the previous boundary to use as from_boundary
         if grouping_mode != "tags":
-            from kittylog.git_operations import generate_boundary_identifier, get_all_boundaries
-
             # We need to find the boundary corresponding to to_boundary
             all_boundaries = get_all_boundaries(
                 mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
@@ -262,15 +251,7 @@ def handle_boundary_range_mode(
                         from_boundary = generate_boundary_identifier(all_boundaries[i - 1], "tags")
                     break
 
-    # Read existing changelog content
-    existing_content = read_changelog(changelog_file)
-
-    # If changelog doesn't exist, create header
-    if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
-    else:
-        changelog_content = existing_content
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     if not quiet:
         output = get_output_manager()
@@ -290,8 +271,8 @@ def handle_boundary_range_mode(
     # Update changelog for this range
     changelog_content, token_usage = update_changelog(
         existing_content=changelog_content,
-        from_tag=from_boundary,
-        to_tag=to_boundary,
+        from_boundary=from_boundary,
+        to_boundary=to_boundary,
         model=model,
         hint=hint,
         show_prompt=show_prompt,
@@ -303,7 +284,7 @@ def handle_boundary_range_mode(
         audience=audience,
     )
 
-    return changelog_content, token_usage
+    return existing_content, token_usage
 
 
 def handle_update_all_mode(
@@ -350,12 +331,7 @@ def handle_update_all_mode(
         output = get_output_manager()
         output.info(f"Will update all {len(boundaries_to_process)} existing boundaries: {boundary_list}")
 
-    # If changelog doesn't exist, create header
-    if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
-    else:
-        changelog_content = existing_content
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     # Ask for confirmation before making LLM calls
     if boundaries_to_process and not quiet and not yes:
@@ -388,8 +364,8 @@ def handle_update_all_mode(
         # Update this specific boundary (overwrite existing content)
         changelog_content, token_usage = update_changelog(
             existing_content=changelog_content,
-            from_tag=from_boundary_id,
-            to_tag=boundary_id,
+            from_boundary=from_boundary_id,
+            to_boundary=boundary_id,
             model=model,
             hint=hint,
             show_prompt=show_prompt,
@@ -406,7 +382,7 @@ def handle_update_all_mode(
             for key, value in token_usage.items():
                 total_token_usage[key] = total_token_usage.get(key, 0) + value
 
-    return changelog_content, total_token_usage
+    return existing_content, total_token_usage
 
 
 def handle_missing_entries_mode(
@@ -453,12 +429,7 @@ def handle_missing_entries_mode(
         output = get_output_manager()
         output.info(f"Will create {len(boundaries_to_process)} missing entries: {boundary_list}")
 
-    # If changelog doesn't exist, create header
-    if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
-    else:
-        changelog_content = existing_content
+    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     # Process each missing boundary
     for boundary in boundaries_to_process:
@@ -505,7 +476,7 @@ def handle_missing_entries_mode(
             full_entry = version_header + "\n" + boundary_content
             changelog_content = changelog_content.rstrip() + "\n\n" + full_entry
 
-    return changelog_content, None
+    return existing_content, None
 
 
 def determine_missing_entries(
