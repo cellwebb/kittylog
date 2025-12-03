@@ -12,6 +12,7 @@ KITTYLOG_ENV_PATH = Path.home() / ".kittylog.env"
 @click.group()
 def config():
     """Manage kittylog configuration."""
+    # Pass is intentional - this is just a command group decorator
     pass
 
 
@@ -19,22 +20,22 @@ def config():
 def show() -> None:
     """Show all current config values from both user and project sources."""
     from dotenv import dotenv_values
-    
+
     # User-level config
     user_config_path = KITTYLOG_ENV_PATH
     user_exists = user_config_path.exists()
-    
+
     # Project-level config
     project_config_path = Path(".kittylog.env")
     project_exists = project_config_path.exists()
-    
+
     if not user_exists and not project_exists:
         click.echo("No kittylog configuration found.")
         click.echo("Expected locations:")
         click.echo(f"  User config: {user_config_path}")
         click.echo(f"  Project config: {project_config_path}")
         return
-    
+
     # Show user config
     if user_exists:
         click.echo(f"User config ({user_config_path}):")
@@ -48,7 +49,7 @@ def show() -> None:
                     display_value = value
                 click.echo(f"  {key}={display_value}")
         click.echo()
-    
+
     # Show project config
     if project_exists:
         click.echo(f"Project config ({project_config_path}):")
