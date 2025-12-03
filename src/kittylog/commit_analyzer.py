@@ -8,26 +8,14 @@ import logging
 from datetime import timedelta
 
 import git
-from git import InvalidGitRepositoryError, Repo
+from git import InvalidGitRepositoryError
 
 from kittylog.cache import cached
 from kittylog.errors import GitError
+from kittylog.tag_operations import get_repo
 from kittylog.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
-
-
-@cached
-def get_repo() -> Repo:
-    """Get the Git repository object for the current directory.
-
-    This function is cached to avoid repeated initialization overhead
-    during a single execution.
-    """
-    try:
-        return Repo(".", search_parent_directories=True)
-    except InvalidGitRepositoryError as e:
-        raise GitError("Not in a git repository") from e
 
 
 @cached
