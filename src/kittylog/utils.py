@@ -1,5 +1,6 @@
 """Utility functions for kittylog."""
 
+import locale
 import logging
 import re
 import subprocess
@@ -20,13 +21,43 @@ __all__ = [
     "find_changelog_file",
     "format_commit_for_display",
     "get_changelog_file_patterns",
+    "get_safe_encodings",
     "is_semantic_version",
     "normalize_tag",
     "print_message",
+    "run_subprocess_with_encoding",
     "truncate_text",
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def get_safe_encodings() -> list[str]:
+    """Get a list of safe encodings to try for subprocess output.
+    
+    Returns a prioritized list of encodings that should handle most
+    system configurations including Chinese Windows and other non-UTF8
+    environments.
+    
+    Returns:
+        List of encoding strings to try in order
+    """
+    encodings = [
+        "utf-8",  # Primary encoding
+        locale.getpreferredencoding(False) or "utf-8",  # System locale
+        "utf-16",  # Windows fallback
+        "latin1",  # Never fails, covers all bytes
+        "cp1252",  # Windows Western Europe
+        "gbk",  # Chinese Windows
+        "gb2312",  # Chinese simplified
+        "big5",  # Traditional Chinese
+        "shift_jis",  # Japanese
+        "euc-jp",  # Japanese Unix
+    ]
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    return [encoding for encoding in encodings if not (encoding in seen or seen.add(encoding))]
 
 
 def setup_logging(
@@ -89,6 +120,125 @@ def print_message(message: str, level: str = "info") -> None:
     console.print(message, style=level)
 
 
+def run_subprocess_with_encoding(
+    command: list[str],
+    silent: bool = False,
+    timeout: int = 60,
+    check: bool = True,
+    strip_output: bool = True,
+    raise_on_error: bool = True,
+    errors: str = "replace",
+) -> str:
+    """Run a subprocess command with encoding fallback support.
+    
+    This function tries multiple encodings to handle systems where
+    the default encoding isn't UTF-8 (e.g., Chinese Windows).
+    
+    Args:
+        command: List of command arguments
+        silent: If True, suppress debug logging
+        timeout: Command timeout in seconds
+        check: Whether to check return code (for compatibility)
+        strip_output: Whether to strip whitespace from output
+        raise_on_error: Whether to raise an exception on error
+        errors: Error handling strategy for decode errors
+    
+    Returns:
+        Command output as string
+        
+    Raises:
+        KittylogError: If the command times out
+        subprocess.CalledProcessError: If the command fails and raise_on_error is True
+    """
+    if not silent:
+        logger.debug(f"Running command: {' '.join(command)}")
+        
+    # First try the original subprocess.run with text=True (UTF-8)
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+        )
+        
+        # If we got here without UnicodeDecodeError, return the result
+        should_raise = result.returncode != 0 and (check or raise_on_error)
+        
+        if should_raise:
+            if not silent:
+                logger.debug(f"Command stderr: {result.stderr}")
+            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+            
+        output = result.stdout
+        if strip_output:
+            output = output.strip()
+        return output
+        
+    except UnicodeDecodeError:
+        # UTF-8 failed, try different encodings
+        pass  # Fall through to encoding fallback
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
+        raise KittylogError(f"Command timed out: {' '.join(command)}") from e
+    except subprocess.CalledProcessError as e:
+        if not silent:
+            logger.error(f"Command failed: {e.stderr.strip() if e.stderr else str(e)}")
+        if raise_on_error:
+            raise
+        return ""
+        
+    # Try different encodings
+    for encoding in get_safe_encodings():
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                timeout=timeout,
+                check=False,
+            )
+            
+            # Decode stdout and stderr with the current encoding
+            stdout = result.stdout.decode(encoding, errors=errors)
+            stderr = result.stderr.decode(encoding, errors=errors) if result.stderr else ""
+            
+            should_raise = result.returncode != 0 and (check or raise_on_error)
+            
+            if should_raise:
+                if not silent:
+                    logger.debug(f"Command stderr: {stderr}")
+                raise subprocess.CalledProcessError(result.returncode, command, stdout, stderr)
+                
+            output = stdout
+            if strip_output:
+                output = output.strip()
+                
+            if not silent:
+                logger.debug(f"Successfully decoded output using {encoding} encoding")
+                
+            return output
+            
+        except (UnicodeDecodeError, LookupError):
+            continue  # Try next encoding
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
+            raise KittylogError(f"Command timed out: {' '.join(command)}") from e
+        except subprocess.CalledProcessError as e:
+            if not silent:
+                logger.error(f"Command failed: {e.stderr.strip() if hasattr(e, 'stderr') and e.stderr else str(e)}")
+            if raise_on_error:
+                raise
+            return ""
+            
+    # If we get here, all encodings failed
+    final_error = f"Failed to decode command output with any supported encoding: {get_safe_encodings()}"
+    logger.error(final_error)
+    if raise_on_error:
+        raise KittylogError(final_error)
+    return ""
+
+
 def run_subprocess(
     command: list[str],
     silent: bool = False,
@@ -98,6 +248,9 @@ def run_subprocess(
     raise_on_error: bool = True,
 ) -> str:
     """Run a subprocess command safely and return the output.
+    
+    This is a wrapper around run_subprocess_with_encoding for backward compatibility.
+    New code should prefer run_subprocess_with_encoding for better encoding support.
 
     Args:
         command: List of command arguments
@@ -114,46 +267,15 @@ def run_subprocess(
         KittylogError: If the command times out
         subprocess.CalledProcessError: If the command fails and raise_on_error is True
     """
-    if not silent:
-        logger.debug(f"Running command: {' '.join(command)}")
-
-    try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=timeout,
-        )
-
-        should_raise = result.returncode != 0 and (check or raise_on_error)
-
-        if should_raise:
-            if not silent:
-                logger.debug(f"Command stderr: {result.stderr}")
-            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
-
-        output = result.stdout
-        if strip_output:
-            output = output.strip()
-
-        return output
-    except subprocess.TimeoutExpired as e:
-        logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
-        raise KittylogError(f"Command timed out: {' '.join(command)}") from e
-    except subprocess.CalledProcessError as e:
-        if not silent:
-            logger.error(f"Command failed: {e.stderr.strip() if e.stderr else str(e)}")
-        if raise_on_error:
-            raise
-        return ""
-    except Exception as e:
-        if not silent:
-            logger.debug(f"Command error: {e}")
-        if raise_on_error:
-            # Convert generic exceptions to CalledProcessError for consistency
-            raise subprocess.CalledProcessError(1, command, "", str(e)) from e
-        return ""
+    return run_subprocess_with_encoding(
+        command=command,
+        silent=silent,
+        timeout=timeout,
+        check=check,
+        strip_output=strip_output,
+        raise_on_error=raise_on_error,
+        errors="replace",
+    )
 
 
 def count_tokens(text: str, model: str) -> int:
