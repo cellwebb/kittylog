@@ -187,12 +187,12 @@ class TestConfigIntegration:
         if config_file.exists():
             config_file.unlink()
 
-        # Mock dotenv_values to prevent loading global config file
-        def mock_dotenv_values(filepath):
-            # Return empty dict for any config file to prevent loading existing configs
-            return {}
+        # Mock load_dotenv to prevent loading global config file
+        def mock_load_dotenv(*args, **kwargs):
+            # Do nothing - prevents loading actual config files
+            pass
 
-        monkeypatch.setattr("kittylog.config.loader.dotenv_values", mock_dotenv_values)
+        monkeypatch.setattr("kittylog.config.loader.load_dotenv", mock_load_dotenv)
 
         # Also mock the KITTYLOG_ENV_PATH in config.cli to point to our fake home
         import kittylog.config.cli

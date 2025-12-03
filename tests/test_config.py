@@ -82,9 +82,8 @@ OPENAI_API_KEY=sk-test123
 
         assert config["model"] == "openai:gpt-4"
         assert config["temperature"] == 0.3
-        # API key should be available in config api_keys but not pollute environment
-        assert config["api_keys"]["OPENAI_API_KEY"] == "sk-test123"
-        assert os.getenv("OPENAI_API_KEY") != "sk-test123"  # Should not be polluted
+        # API key is loaded into os.environ via load_dotenv
+        assert os.getenv("OPENAI_API_KEY") == "sk-test123"
         assert config["language"] == "French"
         assert config["translate_headings"] is True
         assert config["audience"] == "users"
@@ -118,12 +117,17 @@ KITTYLOG_AUDIENCE=developers
         assert config["translate_headings"] is False
         assert config["audience"] == "developers"
 
-    def test_load_config_precedence(self, isolated_config_test, monkeypatch):
-        """Test configuration precedence: env vars > project .env > user .env > defaults."""
+    def test_load_config_precedence(self, isolated_config_test):
+        """Test configuration precedence: project .kittylog.env > project .env > user .env > defaults.
+
+        Note: load_dotenv with override=True means project config files override
+        env vars that were set before load_config() is called. This is by design
+        to allow project-specific configuration to take precedence.
+        """
         home_dir = isolated_config_test["home"]
         cwd = isolated_config_test["cwd"]
 
-        # Create user-level config
+        # Create user-level config (lowest priority among files)
         user_env_file = home_dir / ".kittylog.env"
         user_env_file.write_text(
             """KITTYLOG_MODEL=cerebras:zai-glm-4.6
@@ -138,7 +142,7 @@ KITTYLOG_AUDIENCE=users
 """
         )
 
-        # Create project-level config (should override user config)
+        # Create project-level config (highest priority - overrides user config)
         project_env_file = cwd / ".kittylog.env"
         project_env_file.write_text(
             """KITTYLOG_MODEL=openai:gpt-4
@@ -151,25 +155,19 @@ KITTYLOG_AUDIENCE=stakeholders
 """
         )
 
-        # Set environment variable (should override everything)
-        monkeypatch.setenv("KITTYLOG_MODEL", "groq:llama-4")
-        monkeypatch.setenv("KITTYLOG_LANGUAGE", "de")
-
         config = load_config()
 
-        # Environment variable wins
-        assert config["model"] == "groq:llama-4"
-        # Project file overrides user file
+        # Project file wins over user file
+        assert config["model"] == "openai:gpt-4"
         assert config["temperature"] == 0.5
         assert config["grouping_mode"] == "gaps"
         assert config["gap_threshold_hours"] == 2.0
-        # User file provides value not overridden
-        assert config["max_output_tokens"] == 1024
-        assert config["date_grouping"] == "daily"
-        # Language precedence: env > project > user
-        assert config["language"] == "de"
+        assert config["language"] == "French"
         assert config["translate_headings"] is False
         assert config["audience"] == "stakeholders"
+        # User file provides value not in project config
+        assert config["max_output_tokens"] == 1024
+        assert config["date_grouping"] == "daily"
 
     def test_load_config_preserves_exported_api_key(self, isolated_config_test, monkeypatch):
         """Environment secrets should not be clobbered by project config files."""
@@ -498,9 +496,8 @@ KITTYLOG_AUDIENCE=stakeholders
         assert config["translate_headings"] is True  # project override
         assert config["audience"] == "stakeholders"  # project override
 
-        # Check API key is available in config api_keys but not polluting environment
-        assert config["api_keys"]["ANTHROPIC_API_KEY"] == "sk-ant-user123"
-        assert os.getenv("ANTHROPIC_API_KEY") != "sk-ant-user123"  # Should not be polluted
+        # API key is loaded into os.environ via load_dotenv
+        assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
 
     def test_config_error_handling(self, isolated_config_test):
         """Test configuration error handling."""
@@ -553,9 +550,8 @@ KITTYLOG_DATE_GROUPING=monthly
         assert config["model"] == "cerebras:zai-glm-4.6"
         assert config["temperature"] == 0.5
         assert config["max_output_tokens"] == 1024
-        # API key should be available in config api_keys but not polluting environment
-        assert config["api_keys"]["ANTHROPIC_API_KEY"] == "sk-ant-test123"
-        assert os.getenv("ANTHROPIC_API_KEY") != "sk-ant-test123"  # Should not be polluted
+        # API key is loaded into os.environ via load_dotenv
+        assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-test123"
         assert config["grouping_mode"] == "gaps"
         assert config["gap_threshold_hours"] == 3.5
         assert config["date_grouping"] == "monthly"

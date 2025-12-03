@@ -116,15 +116,11 @@ def load_config() -> dict:
         "max_output_tokens": _safe_int(os.getenv("KITTYLOG_MAX_OUTPUT_TOKENS"), EnvDefaults.MAX_OUTPUT_TOKENS),
         "max_retries": _safe_int(os.getenv("KITTYLOG_RETRIES"), EnvDefaults.MAX_RETRIES, min_value=0),
         "log_level": _safe_enum(os.getenv("KITTYLOG_LOG_LEVEL"), EnvDefaults.LOG_LEVEL, valid_log_levels),
-        "warning_limit_tokens": _safe_int(
-            os.getenv("KITTYLOG_WARNING_LIMIT_TOKENS"), EnvDefaults.WARNING_LIMIT_TOKENS
-        ),
+        "warning_limit_tokens": _safe_int(os.getenv("KITTYLOG_WARNING_LIMIT_TOKENS"), EnvDefaults.WARNING_LIMIT_TOKENS),
         "grouping_mode": _safe_enum(
             os.getenv("KITTYLOG_GROUPING_MODE"), EnvDefaults.GROUPING_MODE, valid_grouping_modes
         ),
-        "gap_threshold_hours": _safe_float(
-            os.getenv("KITTYLOG_GAP_THRESHOLD_HOURS"), EnvDefaults.GAP_THRESHOLD_HOURS
-        ),
+        "gap_threshold_hours": _safe_float(os.getenv("KITTYLOG_GAP_THRESHOLD_HOURS"), EnvDefaults.GAP_THRESHOLD_HOURS),
         "date_grouping": _safe_enum(
             os.getenv("KITTYLOG_DATE_GROUPING"), EnvDefaults.DATE_GROUPING, valid_date_groupings
         ),
