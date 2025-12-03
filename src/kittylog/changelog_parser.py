@@ -55,10 +55,11 @@ def find_insertion_point(content: str) -> int:
         if re.match(r"^##\s*\[\s*Unreleased\s*\]", line, re.IGNORECASE):
             # Check if this is the only section (no version sections)
             has_version_sections = any(
-                re.match(r"^##\s*\[\s*", lines[l]) and not re.match(r"^##\s*\[\s*Unreleased\s*\]", lines[l], re.IGNORECASE)
-                for l in range(i + 1, len(lines))
+                re.match(r"^##\s*\[\s*", lines[line_idx])
+                and not re.match(r"^##\s*\[\s*Unreleased\s*\]", lines[line_idx], re.IGNORECASE)
+                for line_idx in range(i + 1, len(lines))
             )
-            
+
             if not has_version_sections:
                 # Only unreleased section exists, insert after first non-empty line
                 for j, content_line in enumerate(lines):
@@ -78,14 +79,14 @@ def find_insertion_point(content: str) -> int:
 
     # If no sections found, handle special cases
     has_any_header = any(re.match(r"^##\s*\[\s*", line) for line in lines)
-    
+
     if not has_any_header:
         # Insert after the first non-empty line
         for i, line in enumerate(lines):
             if line.strip():
                 return i + 1
         return len(lines)
-    
+
     # Insert at the end of the header section
     for i, line in enumerate(lines):
         if line.strip() == "" and i > 0 and i < len(lines) - 1:

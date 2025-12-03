@@ -18,6 +18,7 @@ from kittylog.changelog_parser import (
     limit_bullets_in_sections,
 )
 from kittylog.git_operations import get_commits_between_tags, get_git_diff, get_tag_date, is_current_commit_tagged
+from kittylog.postprocess import remove_unreleased_sections
 
 logger = logging.getLogger(__name__)
 
@@ -359,8 +360,6 @@ def _remove_unreleased_section_if_empty(existing_content: str, unreleased_commit
 
 
 # Re-export functions from specialized modules for backward compatibility
-from kittylog.postprocess import remove_unreleased_sections
-
 __all__ = [
     # Core functions
     "create_changelog_header",
