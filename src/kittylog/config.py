@@ -11,12 +11,13 @@ Configuration precedence (highest to lowest):
 
 import os
 from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, TypedDict, TypeVar
 
 from dotenv import dotenv_values
 
-from kittylog.constants import Audiences, EnvDefaults, Logging
+from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import ConfigError
 
 T = TypeVar("T")
@@ -41,6 +42,85 @@ class KittylogConfig(TypedDict, total=False):
     language: str | None
     audience: str | None
     translate_headings: bool | None
+
+
+def _get_env_vars() -> dict[str, str | None]:
+    """Get environment variables from .env files and os.environ."""
+    # Start with actual environment variables (highest priority)
+    env_vars: dict[str, str | None] = dict(os.environ)
+    
+    # Load config files (lower priority, will be overridden by env vars)
+    user_config = Path.home() / ".kittylog.env"
+    project_env = Path(".env")
+    project_config_env = Path(".kittylog.env")
+    
+    # Load in order (later ones override earlier, but env vars still win)
+    for config_file in [user_config, project_env, project_config_env]:
+        if config_file.exists():
+            file_vars = dotenv_values(config_file)
+            # Only set if not already in os.environ
+            env_vars.update({k: v for k, v in file_vars.items() if k not in os.environ})
+    
+    return env_vars
+
+
+@dataclass
+class KittylogConfigData:
+    """Centralized configuration with validation.
+    
+    This dataclass replaces the TypedDict with proper validation
+    and default values.
+    """
+    model: str = field(default_factory=lambda: EnvDefaults.MODEL)
+    temperature: float = field(default_factory=lambda: EnvDefaults.TEMPERATURE)
+    max_output_tokens: int = field(default_factory=lambda: EnvDefaults.MAX_OUTPUT_TOKENS)
+    max_retries: int = field(default_factory=lambda: EnvDefaults.MAX_RETRIES)
+    log_level: str = field(default_factory=lambda: EnvDefaults.LOG_LEVEL)
+    warning_limit_tokens: int = field(default_factory=lambda: EnvDefaults.WARNING_LIMIT_TOKENS)
+    grouping_mode: str = field(default_factory=lambda: EnvDefaults.GROUPING_MODE)
+    gap_threshold_hours: float = field(default_factory=lambda: EnvDefaults.GAP_THRESHOLD_HOURS)
+    date_grouping: str = field(default_factory=lambda: EnvDefaults.DATE_GROUPING)
+    language: str = field(default_factory=lambda: EnvDefaults.LANGUAGE)
+    audience: str = field(default_factory=lambda: EnvDefaults.AUDIENCE)
+    translate_headings: bool = field(default_factory=lambda: EnvDefaults.TRANSLATE_HEADINGS)
+    
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        if not 0.0 <= self.temperature <= 2.0:
+            raise ValueError(f"Temperature must be between 0.0 and 2.0, got {self.temperature}")
+        if self.max_output_tokens < 1:
+            raise ValueError(f"Max output tokens must be positive, got {self.max_output_tokens}")
+        if self.max_retries < 0:
+            raise ValueError(f"Max retries must be non-negative, got {self.max_retries}")
+        if self.gap_threshold_hours <= 0 or self.gap_threshold_hours > 168:
+            raise ValueError(f"Gap threshold hours must be between 0 and 168, got {self.gap_threshold_hours}")
+        if self.grouping_mode not in [mode.value for mode in GroupingMode]:
+            raise ValueError(f"Invalid grouping mode: {self.grouping_mode}")
+        if self.date_grouping not in [mode.value for mode in DateGrouping]:
+            raise ValueError(f"Invalid date grouping: {self.date_grouping}")
+    
+    @classmethod
+    def from_env(cls) -> 'KittylogConfigData':
+        """Create configuration from environment variables."""
+        env_vars = _get_env_vars()
+        return cls(
+            model=env_vars.get('KITTYLOG_MODEL') or EnvDefaults.MODEL,
+            temperature=float(env_vars.get('KITTYLOG_TEMPERATURE', str(EnvDefaults.TEMPERATURE))),
+            max_output_tokens=int(env_vars.get('KITTYLOG_MAX_OUTPUT_TOKENS', str(EnvDefaults.MAX_OUTPUT_TOKENS))),
+            max_retries=int(env_vars.get('KITTYLOG_RETRIES', str(EnvDefaults.MAX_RETRIES))),
+            log_level=env_vars.get('KITTYLOG_LOG_LEVEL') or EnvDefaults.LOG_LEVEL,
+            warning_limit_tokens=int(env_vars.get('KITTYLOG_WARNING_LIMIT_TOKENS', str(EnvDefaults.WARNING_LIMIT_TOKENS))),
+            grouping_mode=env_vars.get('KITTYLOG_GROUPING_MODE') or EnvDefaults.GROUPING_MODE,
+            gap_threshold_hours=float(env_vars.get('KITTYLOG_GAP_THRESHOLD_HOURS', str(EnvDefaults.GAP_THRESHOLD_HOURS))),
+            date_grouping=env_vars.get('KITTYLOG_DATE_GROUPING') or EnvDefaults.DATE_GROUPING,
+            language=env_vars.get('KITTYLOG_LANGUAGE') or EnvDefaults.LANGUAGE,
+            audience=env_vars.get('KITTYLOG_AUDIENCE') or EnvDefaults.AUDIENCE,
+            translate_headings=env_vars.get('KITTYLOG_TRANSLATE_HEADINGS', str(EnvDefaults.TRANSLATE_HEADINGS)).lower() == 'true',
+        )
+    
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for backward compatibility."""
+        return asdict(self)
 
 
 # API keys that should be exported to environment
@@ -298,7 +378,7 @@ def load_config() -> KittylogConfig:
         validate_env_var(
             env_date_grouping,
             str,
-            lambda x: x in ["daily", "weekly", "monthly"],
+            lambda x: x in [mode.value for mode in DateGrouping],
             EnvDefaults.DATE_GROUPING,
             "date_grouping",
             "Must be one of 'daily', 'weekly', or 'monthly'",
@@ -320,17 +400,17 @@ def load_config() -> KittylogConfig:
 
     if config["temperature"] is None:
         config_temperature_str = config_vars.get("KITTYLOG_TEMPERATURE")
-        config["temperature"] = _safe_float(config_temperature_str, EnvDefaults.TEMPERATURE) or EnvDefaults.TEMPERATURE
+        config["temperature"] = _safe_float(config_temperature_str, EnvDefaults.TEMPERATURE)
 
     if config["max_output_tokens"] is None:
         config_max_output_tokens_str = config_vars.get("KITTYLOG_MAX_OUTPUT_TOKENS")
         config["max_output_tokens"] = (
-            _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS) or EnvDefaults.MAX_OUTPUT_TOKENS
+            _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS)
         )
 
     if config["max_retries"] is None:
         config_max_retries_str = config_vars.get("KITTYLOG_RETRIES")
-        config["max_retries"] = _safe_int(config_max_retries_str, EnvDefaults.MAX_RETRIES) or EnvDefaults.MAX_RETRIES
+        config["max_retries"] = _safe_int(config_max_retries_str, EnvDefaults.MAX_RETRIES)
 
     if config["log_level"] is None:
         config["log_level"] = config_vars.get("KITTYLOG_LOG_LEVEL") or Logging.DEFAULT_LEVEL
@@ -349,7 +429,7 @@ def load_config() -> KittylogConfig:
     if config["gap_threshold_hours"] is None:
         gap_threshold_str = config_vars.get("KITTYLOG_GAP_THRESHOLD_HOURS")
         config["gap_threshold_hours"] = (
-            _safe_float(gap_threshold_str, EnvDefaults.GAP_THRESHOLD_HOURS) or EnvDefaults.GAP_THRESHOLD_HOURS
+            _safe_float(gap_threshold_str, EnvDefaults.GAP_THRESHOLD_HOURS)
         )
 
     if config["date_grouping"] is None:
@@ -411,7 +491,7 @@ def validate_config(config: KittylogConfig) -> None:
 
     validate_config_value(
         config.get("date_grouping"),
-        lambda x: x in ["daily", "weekly", "monthly"],
+        lambda x: x in [mode.value for mode in DateGrouping],
         "date_grouping",
         "Must be one of 'daily', 'weekly', or 'monthly'",
     )
@@ -474,7 +554,7 @@ def apply_config_defaults(config: KittylogConfig) -> KittylogConfig:
 
     # Apply date_grouping defaults
     date_grouping = config.get("date_grouping")
-    if date_grouping is not None and date_grouping not in ["daily", "weekly", "monthly"]:
+    if date_grouping is not None and date_grouping not in [mode.value for mode in DateGrouping]:
         validated_config["date_grouping"] = EnvDefaults.DATE_GROUPING
 
     # Apply translate_headings defaults
