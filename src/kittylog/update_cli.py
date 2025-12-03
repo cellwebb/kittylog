@@ -9,7 +9,7 @@ import click
 from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages, Logging
-from kittylog.errors import handle_error
+from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
 from kittylog.git_operations import get_all_tags_with_dates
 from kittylog.main import main_business_logic
 from kittylog.tag_operations import generate_boundary_identifier
@@ -166,7 +166,7 @@ def update_version(
         if not success:
             sys.exit(1)
 
-    except Exception as e:
+    except (ConfigError, GitError, AIError, ChangelogError) as e:
         handle_error(e)
         sys.exit(1)
 

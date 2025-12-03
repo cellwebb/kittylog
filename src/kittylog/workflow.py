@@ -11,7 +11,7 @@ import click
 from kittylog.changelog import read_changelog, write_changelog
 from kittylog.config import load_config
 from kittylog.constants import Audiences, Languages
-from kittylog.errors import handle_error
+from kittylog.errors import ConfigError, GitError, AIError, ChangelogError, handle_error
 from kittylog.git_operations import get_all_boundaries
 from kittylog.mode_handlers import (
     handle_boundary_range_mode,
@@ -154,7 +154,7 @@ def process_workflow_modes(
 
 def handle_dry_run_and_confirmation(
     changelog_file: str,
-    changelog_content: str,
+    existing_content: str,
     original_content: str,
     token_usage: dict[str, int] | None,
     dry_run: bool,
@@ -168,11 +168,11 @@ def handle_dry_run_and_confirmation(
         output = get_output_manager()
         output.warning("Dry run: Changelog content generated but not saved")
         output.echo("\nPreview of updated changelog:")
-        output.panel(changelog_content, title="Updated Changelog", style="cyan")
+        output.panel(existing_content, title="Updated Changelog", style="cyan")
         return True, token_usage
 
     # Check if content actually changed (user might have cancelled)
-    if changelog_content == original_content:
+    if existing_content == original_content:
         # No changes were made, skip save confirmation
         if not quiet:
             output = get_output_manager()
@@ -183,9 +183,9 @@ def handle_dry_run_and_confirmation(
         output = get_output_manager()
         output.print("\n[bold green]Updated changelog preview:[/bold green]")
         # Show just the new parts for confirmation
-        preview_lines = changelog_content.split("\n")[:50]  # First 50 lines
+        preview_lines = existing_content.split("\n")[:50]  # First 50 lines
         preview_text = "\n".join(preview_lines)
-        if len(changelog_content.split("\n")) > 50:
+        if len(existing_content.split("\n")) > 50:
             preview_text += "\n\n... (content truncated for preview)"
 
         output.panel(preview_text, title="Changelog Preview", style="cyan")
@@ -204,7 +204,7 @@ def handle_dry_run_and_confirmation(
 
     # Write the updated changelog
     try:
-        write_changelog(changelog_file, changelog_content)
+        write_changelog(changelog_file, existing_content)
     except Exception as e:
         handle_error(e)
         return False, None
@@ -213,6 +213,55 @@ def handle_dry_run_and_confirmation(
         logger.info(f"Successfully updated changelog: {changelog_file}")
 
     return True, token_usage
+
+
+def validate_workflow_prereqs(
+    changelog_file: str,
+    gap_threshold_hours: float,
+    grouping_mode: str,
+) -> None:
+    """Perform early validation of workflow requirements.
+    
+    Args:
+        changelog_file: Path to changelog file
+        gap_threshold_hours: Gap threshold for date/gaps mode
+        grouping_mode: The boundary grouping mode
+        
+    Raises:
+        ChangelogError: If changelog file is not writable
+        GitError: If git repository is invalid
+        ConfigError: If gap_threshold_hours is invalid
+    """
+    import os
+    from kittylog.git_operations import get_repo
+    
+    # Validate changelog file is writable
+    try:
+        # Check if we can write to the directory
+        changelog_dir = os.path.dirname(os.path.abspath(changelog_file))
+        if not os.access(changelog_dir, os.W_OK):
+            raise ChangelogError(f"Cannot write to changelog directory: {changelog_dir}")
+        
+        # If file exists, check if it's writable
+        if os.path.exists(changelog_file) and not os.access(changelog_file, os.W_OK):
+            raise ChangelogError(f"Changelog file is not writable: {changelog_file}")
+            
+    except OSError as e:
+        raise ChangelogError(f"Cannot access changelog file: {e}")
+    
+    # Validate git repository exists and is valid
+    try:
+        get_repo()  # This will raise GitError if invalid
+    except Exception as e:
+        raise GitError(f"Invalid git repository: {e}")
+    
+    # Validate gap threshold bounds
+    if grouping_mode in ["gaps", "dates"] and (gap_threshold_hours <= 0 or gap_threshold_hours > 168):  # 1 week max
+        raise ConfigError(
+            f"gap_threshold_hours must be between 0 and 168, got: {gap_threshold_hours}",
+            config_key="gap_threshold_hours",
+            config_value=str(gap_threshold_hours)
+        )
 
 
 def validate_and_setup_workflow(
@@ -225,6 +274,9 @@ def validate_and_setup_workflow(
     special_unreleased_mode: bool,
 ) -> tuple[str, str | None, bool, str | None]:
     """Validate inputs and setup workflow parameters."""
+    # Early validation
+    validate_workflow_prereqs(changelog_file, gap_threshold_hours, grouping_mode)
+    
     # Auto-detect changelog file if using default
     if changelog_file == "CHANGELOG.md":
         changelog_file = find_changelog_file()
@@ -357,7 +409,7 @@ def main_business_logic(
             date_grouping=date_grouping,
             special_unreleased_mode=special_unreleased_mode,
         )
-    except Exception as e:
+    except (ConfigError, GitError, AIError, ChangelogError) as e:
         handle_error(e)
         return False, None
 
@@ -379,10 +431,10 @@ def main_business_logic(
 
     # Process workflow based on mode
     try:
-        changelog_content, token_usage = process_workflow_modes(
+        existing_content, token_usage = process_workflow_modes(
             changelog_file=changelog_file,
-            from_tag=from_tag,
-            to_tag=to_tag,
+            from_boundary=from_tag,
+            to_boundary=to_tag,
             model=model,
             hint=hint,
             show_prompt=show_prompt,
@@ -407,7 +459,7 @@ def main_business_logic(
     # Handle dry run, confirmation, and saving
     return handle_dry_run_and_confirmation(
         changelog_file=changelog_file,
-        changelog_content=changelog_content,
+        existing_content=existing_content,
         original_content=original_content,
         token_usage=token_usage,
         dry_run=dry_run,
