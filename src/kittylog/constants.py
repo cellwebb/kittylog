@@ -17,7 +17,7 @@ class FileStatus(Enum):
 
 class GroupingMode(str, Enum):
     """Grouping modes for changelog entries."""
-    
+
     TAGS = "tags"
     DATES = "dates"
     GAPS = "gaps"
@@ -25,7 +25,7 @@ class GroupingMode(str, Enum):
 
 class DateGrouping(str, Enum):
     """Date grouping strategies."""
-    
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -34,6 +34,7 @@ class DateGrouping(str, Enum):
 class EnvDefaults:
     """Default values for environment variables."""
 
+    MODEL: str = "openai:gpt-4"
     MAX_RETRIES: int = 3
     TEMPERATURE: float = 1.0
     MAX_OUTPUT_TOKENS: int = 1024
@@ -43,6 +44,8 @@ class EnvDefaults:
     DATE_GROUPING: str = DateGrouping.DAILY.value
     TRANSLATE_HEADINGS: bool = False
     AUDIENCE: str = "stakeholders"
+    LOG_LEVEL: str = "WARNING"
+    LANGUAGE: str = "English"
 
 
 class Logging:
@@ -159,6 +162,11 @@ class Languages:
             return Languages.CODE_MAP[code_lower]
         return language
 
+    @classmethod
+    def __iter__(cls):
+        """Make the class iterable over its language options."""
+        return iter(cls.LANGUAGES)
+
 
 class Audiences:
     """Audience presets for changelog tone and focus."""
@@ -213,3 +221,8 @@ class Audiences:
             if value == slug:
                 return label
         return slug.title()
+
+    @classmethod
+    def __iter__(cls):
+        """Make the class iterable over its audience options."""
+        return iter(cls.slugs())

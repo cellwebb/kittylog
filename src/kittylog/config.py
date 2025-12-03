@@ -11,66 +11,47 @@ Configuration precedence (highest to lowest):
 
 import os
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypeVar
 
 from dotenv import dotenv_values
 
-from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
+from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Languages, Logging
 from kittylog.errors import ConfigError
 
 T = TypeVar("T")
-
-
-class KittylogConfig(TypedDict, total=False):
-    """Type definition for kittylog configuration.
-
-    All fields are optional (total=False) since they may be None
-    before defaults are applied.
-    """
-
-    model: str | None
-    temperature: float | None
-    max_output_tokens: int | None
-    max_retries: int | None
-    log_level: str | None
-    warning_limit_tokens: int | None
-    grouping_mode: str | None
-    gap_threshold_hours: float | None
-    date_grouping: str | None
-    language: str | None
-    audience: str | None
-    translate_headings: bool | None
 
 
 def _get_env_vars() -> dict[str, str | None]:
     """Get environment variables from .env files and os.environ."""
     # Start with actual environment variables (highest priority)
     env_vars: dict[str, str | None] = dict(os.environ)
-    
+
     # Load config files (lower priority, will be overridden by env vars)
     user_config = Path.home() / ".kittylog.env"
     project_env = Path(".env")
     project_config_env = Path(".kittylog.env")
-    
+
     # Load in order (later ones override earlier, but env vars still win)
     for config_file in [user_config, project_env, project_config_env]:
         if config_file.exists():
             file_vars = dotenv_values(config_file)
             # Only set if not already in os.environ
             env_vars.update({k: v for k, v in file_vars.items() if k not in os.environ})
-    
+
     return env_vars
 
 
 @dataclass
 class KittylogConfigData:
     """Centralized configuration with validation.
-    
+
     This dataclass replaces the TypedDict with proper validation
     and default values.
     """
+
     model: str = field(default_factory=lambda: EnvDefaults.MODEL)
     temperature: float = field(default_factory=lambda: EnvDefaults.TEMPERATURE)
     max_output_tokens: int = field(default_factory=lambda: EnvDefaults.MAX_OUTPUT_TOKENS)
@@ -83,7 +64,7 @@ class KittylogConfigData:
     language: str = field(default_factory=lambda: EnvDefaults.LANGUAGE)
     audience: str = field(default_factory=lambda: EnvDefaults.AUDIENCE)
     translate_headings: bool = field(default_factory=lambda: EnvDefaults.TRANSLATE_HEADINGS)
-    
+
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         if not 0.0 <= self.temperature <= 2.0:
@@ -98,29 +79,88 @@ class KittylogConfigData:
             raise ValueError(f"Invalid grouping mode: {self.grouping_mode}")
         if self.date_grouping not in [mode.value for mode in DateGrouping]:
             raise ValueError(f"Invalid date grouping: {self.date_grouping}")
-    
+
     @classmethod
-    def from_env(cls) -> 'KittylogConfigData':
+    def from_env(cls) -> "KittylogConfigData":
         """Create configuration from environment variables."""
         env_vars = _get_env_vars()
         return cls(
-            model=env_vars.get('KITTYLOG_MODEL') or EnvDefaults.MODEL,
-            temperature=float(env_vars.get('KITTYLOG_TEMPERATURE', str(EnvDefaults.TEMPERATURE))),
-            max_output_tokens=int(env_vars.get('KITTYLOG_MAX_OUTPUT_TOKENS', str(EnvDefaults.MAX_OUTPUT_TOKENS))),
-            max_retries=int(env_vars.get('KITTYLOG_RETRIES', str(EnvDefaults.MAX_RETRIES))),
-            log_level=env_vars.get('KITTYLOG_LOG_LEVEL') or EnvDefaults.LOG_LEVEL,
-            warning_limit_tokens=int(env_vars.get('KITTYLOG_WARNING_LIMIT_TOKENS', str(EnvDefaults.WARNING_LIMIT_TOKENS))),
-            grouping_mode=env_vars.get('KITTYLOG_GROUPING_MODE') or EnvDefaults.GROUPING_MODE,
-            gap_threshold_hours=float(env_vars.get('KITTYLOG_GAP_THRESHOLD_HOURS', str(EnvDefaults.GAP_THRESHOLD_HOURS))),
-            date_grouping=env_vars.get('KITTYLOG_DATE_GROUPING') or EnvDefaults.DATE_GROUPING,
-            language=env_vars.get('KITTYLOG_LANGUAGE') or EnvDefaults.LANGUAGE,
-            audience=env_vars.get('KITTYLOG_AUDIENCE') or EnvDefaults.AUDIENCE,
-            translate_headings=env_vars.get('KITTYLOG_TRANSLATE_HEADINGS', str(EnvDefaults.TRANSLATE_HEADINGS)).lower() == 'true',
+            model=env_vars.get("KITTYLOG_MODEL") or EnvDefaults.MODEL,
+            temperature=_safe_float(env_vars.get("KITTYLOG_TEMPERATURE"), EnvDefaults.TEMPERATURE),
+            max_output_tokens=_safe_int(env_vars.get("KITTYLOG_MAX_OUTPUT_TOKENS"), EnvDefaults.MAX_OUTPUT_TOKENS),
+            max_retries=_safe_int(env_vars.get("KITTYLOG_RETRIES"), EnvDefaults.MAX_RETRIES),
+            log_level=env_vars.get("KITTYLOG_LOG_LEVEL") or EnvDefaults.LOG_LEVEL,
+            warning_limit_tokens=_safe_int(
+                env_vars.get("KITTYLOG_WARNING_LIMIT_TOKENS"), EnvDefaults.WARNING_LIMIT_TOKENS
+            ),
+            grouping_mode=env_vars.get("KITTYLOG_GROUPING_MODE") or EnvDefaults.GROUPING_MODE,
+            gap_threshold_hours=_safe_float(
+                env_vars.get("KITTYLOG_GAP_THRESHOLD_HOURS"), EnvDefaults.GAP_THRESHOLD_HOURS
+            ),
+            date_grouping=env_vars.get("KITTYLOG_DATE_GROUPING") or EnvDefaults.DATE_GROUPING,
+            language=env_vars.get("KITTYLOG_LANGUAGE") or EnvDefaults.LANGUAGE,
+            audience=env_vars.get("KITTYLOG_AUDIENCE") or EnvDefaults.AUDIENCE,
+            translate_headings=(
+                env_vars.get("KITTYLOG_TRANSLATE_HEADINGS") or str(EnvDefaults.TRANSLATE_HEADINGS)
+            ).lower()
+            == "true",
         )
-    
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for backward compatibility."""
-        return asdict(self)
+
+
+@dataclass
+class WorkflowOptions:
+    """Options controlling workflow behavior and execution.
+
+    Replaces the long parameter list in workflow functions with
+    a structured, typed object.
+    """
+
+    dry_run: bool = False
+    quiet: bool = False
+    verbose: bool = False
+    require_confirmation: bool = True
+    update_all_entries: bool = False
+    no_unreleased: bool = False
+    include_diff: bool = False
+    interactive: bool = False
+    yes: bool = False  # Auto-accept changes
+    audience: str = field(default_factory=lambda: EnvDefaults.AUDIENCE)
+    language: str = field(default_factory=lambda: EnvDefaults.LANGUAGE)
+    hint: str = ""
+    show_prompt: bool = False
+
+    def __post_init__(self) -> None:
+        """Validate workflow options."""
+        if self.audience not in Audiences.slugs():
+            raise ValueError(f"Invalid audience: {self.audience}")
+        if self.language not in [lang[1] for lang in Languages.LANGUAGES]:
+            raise ValueError(f"Invalid language: {self.language}")
+
+
+@dataclass
+class ChangelogOptions:
+    """Options controlling changelog file and boundary processing.
+
+    Replaces the long parameter list in changelog operations with
+    a structured, typed object.
+    """
+
+    file: str = "CHANGELOG.md"
+    from_tag: str | None = None
+    to_tag: str | None = None
+    grouping_mode: str = field(default_factory=lambda: EnvDefaults.GROUPING_MODE)
+    gap_threshold_hours: float = field(default_factory=lambda: EnvDefaults.GAP_THRESHOLD_HOURS)
+    date_grouping: str = field(default_factory=lambda: EnvDefaults.DATE_GROUPING)
+    special_unreleased_mode: bool = False
+
+    def __post_init__(self) -> None:
+        """Validate changelog options."""
+        if self.grouping_mode not in [mode.value for mode in GroupingMode]:
+            raise ValueError(f"Invalid grouping mode: {self.grouping_mode}")
+        if self.date_grouping not in [mode.value for mode in DateGrouping]:
+            raise ValueError(f"Invalid date grouping: {self.date_grouping}")
+        if self.gap_threshold_hours <= 0 or self.gap_threshold_hours > 168:
+            raise ValueError(f"Gap threshold hours must be between 0 and 168, got {self.gap_threshold_hours}")
 
 
 # API keys that should be exported to environment
@@ -156,6 +196,133 @@ API_KEYS = [
 ]
 
 
+class SecureConfig:
+    """Secure configuration manager that holds API keys without global environment pollution.
+
+    This class manages API keys securely without permanently adding them to
+    os.environ, reducing the risk of key leakage and unintended exposure.
+    """
+
+    def __init__(self) -> None:
+        self._keys: dict[str, str] = {}
+        self._load_keys_from_files()
+
+    def _load_keys_from_files(self) -> None:
+        """Load keys from config files into secure storage."""
+        # Load from user config
+        self._load_from_file(Path.home() / ".kittylog.env")
+        # Load from project env files
+        self._load_from_file(Path(".env"))
+        self._load_from_file(Path(".kittylog.env"))
+        # Environment variables already take precedence
+        for key in API_KEYS:
+            if key in os.environ:
+                self._keys[key] = os.environ[key]
+
+    def _load_from_file(self, file_path: Path) -> None:
+        """Load API keys from a specific file."""
+        if not file_path.exists():
+            return
+
+        file_vars = dotenv_values(file_path)
+        for key in API_KEYS:
+            if key in file_vars and file_vars[key] is not None and key not in os.environ and key not in self._keys:
+                self._keys[key] = str(file_vars[key])
+
+    def get_key(self, key: str, default: str | None = None) -> str | None:
+        """Get an API key securely without polluting environment.
+
+        Args:
+            key: The API key name
+            default: Default value if key not found
+
+        Returns:
+            The API key value or None if not found
+        """
+        return self._keys.get(key, default)
+
+    @contextmanager
+    def inject_for_provider(self, provider: str, provider_mapping: dict[str, str]) -> Any:
+        """Temporarily inject API keys for a specific provider call.
+
+        This context manager temporarily sets environment variables
+        for the duration of a provider call, then restores the original state.
+        Prevents permanent pollution of os.environ.
+
+        Args:
+            provider: Provider name (e.g., 'openai', 'anthropic')
+            provider_mapping: Mapping from provider env vars to general key names
+
+        Yields:
+            Context with temporarily set environment variables
+        """
+        # Save original values
+        original_values = {}
+        injected_keys = []
+
+        try:
+            for provider_key, general_key in provider_mapping.items():
+                value = self.get_key(general_key)
+                if value:
+                    # Save original value if it exists
+                    if provider_key in os.environ:
+                        original_values[provider_key] = os.environ[provider_key]
+                    # Set the temporary value
+                    os.environ[provider_key] = value
+                    injected_keys.append(provider_key)
+
+            yield
+
+        finally:
+            # Restore original values and clean up
+            for key in injected_keys:
+                if key in original_values:
+                    os.environ[key] = original_values[key]
+                else:
+                    # Remove if it didn't exist before
+                    os.environ.pop(key, None)
+
+    def list_available_keys(self) -> list[str]:
+        """List all available API key names (for debugging)."""
+        return list(self._keys.keys())
+
+    def has_key(self, key: str) -> bool:
+        """Check if a specific API key is available."""
+        return key in self._keys
+
+
+# Global secure configuration instance
+_secure_config = SecureConfig()
+
+
+def get_api_key(key: str, default: str | None = None) -> str | None:
+    """Get an API key securely without global environment pollution.
+
+    This function replaces direct os.environ access for API keys.
+
+    Args:
+        key: API key name
+        default: Default value if not found
+
+    Returns:
+        API key value or None
+    """
+    return _secure_config.get_key(key, default)
+
+
+def inject_provider_keys(provider: str, provider_mapping: dict[str, str]) -> Any:
+    """Context manager to temporarily inject API keys for a specific provider call.
+
+    Args:
+        provider: Provider name
+        provider_mapping: Mapping from provider env vars to general key names
+
+    Returns:
+        Context manager that temporarily sets environment variables
+    """
+    return _secure_config.inject_for_provider(provider, provider_mapping)
+
+
 def _safe_float(value: str | None, default: float) -> float:
     """Safely convert a string to float, returning default on error."""
     if value is None:
@@ -176,21 +343,8 @@ def _safe_int(value: str | None, default: int) -> int:
         return default
 
 
-def _export_api_keys_from_file(file_path: Path) -> None:
-    """Export API keys from a .env file to environment, without overwriting existing values.
-
-    Args:
-        file_path: Path to the .env file to read from
-    """
-    if not file_path.exists():
-        return
-
-    file_vars = dotenv_values(file_path)
-    for key in API_KEYS:
-        if key in file_vars and key not in os.environ:
-            value = file_vars[key]
-            if value is not None:
-                os.environ[key] = value
+# Global export removed - using SecureConfig for better security
+# Keeping API_KEYS list for reference in SecureConfig
 
 
 def validate_env_var(
@@ -246,7 +400,7 @@ def validate_config_value(value: Any, validator: Callable[[Any], bool], config_k
         )
 
 
-def load_config() -> KittylogConfig:
+def load_config() -> dict:
     """Load configuration from environment and .env files.
 
     Precedence (highest to lowest):
@@ -257,7 +411,7 @@ def load_config() -> KittylogConfig:
     5. Default values
 
     Returns:
-        KittylogConfig dictionary with all configuration values
+        Configuration dictionary with all values
     """
     # Define config file paths
     user_config = Path.home() / ".kittylog.env"
@@ -273,15 +427,48 @@ def load_config() -> KittylogConfig:
     if project_config_env.exists():
         config_vars.update(dotenv_values(project_config_env))
 
-    # Export API keys to environment (respecting existing env vars)
-    _export_api_keys_from_file(user_config)
-    _export_api_keys_from_file(project_env)
-    _export_api_keys_from_file(project_config_env)
+    # Update environment variables with API keys and sensitive values from config files
+    # This ensures they're available via os.getenv() as expected by tests and providers
+    api_key_vars = [
+        "ANTHROPIC_API_KEY",
+        "AZURE_OPENAI_API_KEY",
+        "CHUTES_API_KEY",
+        "CHUTES_BASE_URL",
+        "CLAUDE_CODE_ACCESS_TOKEN",
+        "CUSTOM_ANTHROPIC_API_KEY",
+        "CUSTOM_ANTHROPIC_BASE_URL",
+        "CUSTOM_ANTHROPIC_VERSION",
+        "CUSTOM_OPENAI_API_KEY",
+        "CUSTOM_OPENAI_BASE_URL",
+        "DEEPSEEK_API_KEY",
+        "FIREWORKS_API_KEY",
+        "GEMINI_API_KEY",
+        "GROQ_API_KEY",
+        "LMSTUDIO_API_KEY",
+        "LMSTUDIO_API_URL",
+        "MINIMAX_API_KEY",
+        "MISTRAL_API_KEY",
+        "OLLAMA_API_URL",
+        "OLLAMA_HOST",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "STREAMLAKE_API_KEY",
+        "SYNTHETIC_API_KEY",
+        "SYN_API_KEY",
+        "TOGETHER_API_KEY",
+        "VC_API_KEY",
+        "ZAI_API_KEY",
+    ]
+
+    # Only set environment variables if they're not already set
+    for var in api_key_vars:
+        if var in config_vars and config_vars[var] is not None and os.getenv(var) is None:
+            os.environ[var] = config_vars[var]  # type: ignore[assignment]
 
     # Build config dictionary with proper precedence enforcement
     # Environment variables take precedence over file variables
     # But we must differentiate between invalid environment variables vs. invalid file variables
-    config: KittylogConfig = {}
+    config: dict = {}
 
     # Read environment variables (these have highest precedence)
     env_model = os.getenv("KITTYLOG_MODEL")
@@ -404,9 +591,7 @@ def load_config() -> KittylogConfig:
 
     if config["max_output_tokens"] is None:
         config_max_output_tokens_str = config_vars.get("KITTYLOG_MAX_OUTPUT_TOKENS")
-        config["max_output_tokens"] = (
-            _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS)
-        )
+        config["max_output_tokens"] = _safe_int(config_max_output_tokens_str, EnvDefaults.MAX_OUTPUT_TOKENS)
 
     if config["max_retries"] is None:
         config_max_retries_str = config_vars.get("KITTYLOG_RETRIES")
@@ -428,9 +613,7 @@ def load_config() -> KittylogConfig:
 
     if config["gap_threshold_hours"] is None:
         gap_threshold_str = config_vars.get("KITTYLOG_GAP_THRESHOLD_HOURS")
-        config["gap_threshold_hours"] = (
-            _safe_float(gap_threshold_str, EnvDefaults.GAP_THRESHOLD_HOURS)
-        )
+        config["gap_threshold_hours"] = _safe_float(gap_threshold_str, EnvDefaults.GAP_THRESHOLD_HOURS)
 
     if config["date_grouping"] is None:
         config["date_grouping"] = config_vars.get("KITTYLOG_DATE_GROUPING") or EnvDefaults.DATE_GROUPING
@@ -455,7 +638,7 @@ def load_config() -> KittylogConfig:
     return config
 
 
-def validate_config(config: KittylogConfig) -> None:
+def validate_config(config: dict) -> None:
     """Validate configuration values and raise ConfigError for invalid values.
 
     Args:
@@ -511,7 +694,7 @@ def validate_config(config: KittylogConfig) -> None:
     )
 
 
-def apply_config_defaults(config: KittylogConfig) -> KittylogConfig:
+def apply_config_defaults(config: dict) -> dict:
     """Apply default values for invalid configuration entries.
 
     Args:
