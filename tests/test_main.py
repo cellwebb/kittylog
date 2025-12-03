@@ -4,6 +4,7 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+from kittylog.config import ChangelogOptions, WorkflowOptions
 from kittylog.main import main_business_logic
 
 
@@ -101,13 +102,19 @@ class TestMainBusinessLogic:
             patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
-            success, _token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
+                grouping_mode="tags",
+                special_unreleased_mode=True,
+            )
+            workflow_opts = WorkflowOptions(
                 quiet=True,
                 require_confirmation=False,
-                grouping_mode="tags",
-                special_unreleased_mode=True,  # Use special unreleased mode for simpler path
+            )
+            success, _token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is True
@@ -146,11 +153,17 @@ class TestMainBusinessLogic:
             patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
-            success, _token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
-                quiet=True,
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="tags",
+            )
+            workflow_opts = WorkflowOptions(
+                quiet=True,
+            )
+            success, _token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         # When no boundaries are found, the function should return False (error)
@@ -233,12 +246,18 @@ class TestMainBusinessLogic:
             patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
-            success, _token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
+                grouping_mode="dates",
+            )
+            workflow_opts = WorkflowOptions(
                 quiet=True,
                 require_confirmation=False,
-                grouping_mode="dates",
+            )
+            success, _token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is True
@@ -272,8 +291,16 @@ class TestMainBusinessLogic:
         mock_get_all_boundaries.return_value = mock_boundaries
 
         with patch("kittylog.workflow.config", config_without_model):
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
+            )
+            workflow_opts = WorkflowOptions(
+                quiet=True,
+            )
             success, _token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"), model=None, quiet=True
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model=None,
             )
 
         assert success is False
@@ -353,13 +380,19 @@ class TestMainBusinessLogic:
             patch("kittylog.workflow.config", config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
-            success, _token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
+                grouping_mode="tags",
+            )
+            workflow_opts = WorkflowOptions(
                 quiet=True,
                 require_confirmation=False,
                 dry_run=True,  # Enable dry run
-                grouping_mode="tags",
+            )
+            success, _token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is True
@@ -504,13 +537,20 @@ def test_main_logic_passes_language_preferences(monkeypatch):
     monkeypatch.setattr("kittylog.tag_operations.is_current_commit_tagged", lambda: False)
     monkeypatch.setattr("kittylog.workflow.get_output_manager", lambda: mock_output)
 
-    success, _usage = main_module.main_business_logic(
-        changelog_file="CHANGELOG.md",
-        model="openai:gpt-4o-mini",
+    changelog_opts = ChangelogOptions(
+        file="CHANGELOG.md",
+    )
+    workflow_opts = WorkflowOptions(
         quiet=True,
         require_confirmation=False,
         update_all_entries=True,
-        dry_run=False,  # Changed from True to ensure update_changelog is called
+        language="Spanish",
+        audience="stakeholders",
+    )
+    success, _usage = main_module.main_business_logic(
+        changelog_opts=changelog_opts,
+        workflow_opts=workflow_opts,
+        model="openai:gpt-4o-mini",
     )
 
     assert success is True

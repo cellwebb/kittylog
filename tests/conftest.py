@@ -23,11 +23,15 @@ except Exception:
 
 # Import cache clearing functions
 try:
-    from kittylog.tag_operations import clear_git_cache
     from kittylog.commit_analyzer import clear_commit_analyzer_cache
+    from kittylog.tag_operations import clear_git_cache
 except ImportError:
-    clear_git_cache = lambda: None
-    clear_commit_analyzer_cache = lambda: None
+
+    def clear_git_cache():
+        pass
+
+    def clear_commit_analyzer_cache():
+        pass
 
 
 @pytest.fixture(autouse=True)
@@ -74,8 +78,8 @@ def temp_dir():
 def git_repo(temp_dir):
     """Create a temporary git repository for testing."""
     # Clear git cache before setting up new repo
-    from kittylog.tag_operations import clear_git_cache
     from kittylog.commit_analyzer import clear_commit_analyzer_cache
+    from kittylog.tag_operations import clear_git_cache
 
     clear_git_cache()
     clear_commit_analyzer_cache()
@@ -107,7 +111,8 @@ def git_repo(temp_dir):
     finally:
         # Clear git cache after test to prevent cross-test contamination
         with contextlib.suppress(Exception):
-            clear_all_caches()
+            clear_git_cache()
+            clear_commit_analyzer_cache()
 
         # ALWAYS restore original directory - this is critical
         # Use suppress to handle any exceptions during cleanup
@@ -286,6 +291,13 @@ def mock_api_calls():
         # For Anthropic provider, which has a different response format
         anthropic_response = {"content": [{"text": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}]}
 
+        # For Gemini provider, which uses candidates format
+        gemini_response = {
+            "candidates": [
+                {"content": {"parts": [{"text": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}]}}
+            ]
+        }
+
         # Configure the mock to return appropriate responses based on URL
         def side_effect(*args, **kwargs):
             url = args[0] if args else kwargs.get("url", "")
@@ -295,6 +307,8 @@ def mock_api_calls():
                 mock_response.json.return_value = {
                     "message": {"content": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}
                 }
+            elif "googleapis.com" in url:
+                mock_response.json.return_value = gemini_response
             else:
                 mock_response.json.return_value = {
                     "choices": [{"message": {"content": "### Added\n\n- Test feature\n\n### Fixed\n\n- Test bug fix"}}]

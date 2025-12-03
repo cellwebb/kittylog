@@ -46,14 +46,20 @@ class TestUpdateCommand:
         assert result.exit_code == 0
         mock_main_logic.assert_called_once()
 
-        # Check default arguments
+        # Check default arguments - now using parameter objects
         call_args = mock_main_logic.call_args[1]
-        assert call_args["changelog_file"] == "CHANGELOG.md"
-        assert call_args["dry_run"] is False
-        assert call_args["require_confirmation"] is True
-        assert call_args["quiet"] is False
-        assert call_args["language"] is None
-        assert call_args["audience"] is None
+
+        # Check changelog_opts
+        changelog_opts = call_args["changelog_opts"]
+        assert changelog_opts.file == "CHANGELOG.md"
+
+        # Check workflow_opts
+        workflow_opts = call_args["workflow_opts"]
+        assert workflow_opts.dry_run is False
+        assert workflow_opts.require_confirmation is True
+        assert workflow_opts.quiet is False
+        assert workflow_opts.language == "English"  # Uses default
+        assert workflow_opts.audience == "stakeholders"  # Uses default
 
     @patch("kittylog.update_cli.main_business_logic")
     def test_update_with_all_options(self, mock_main_logic):
@@ -88,16 +94,25 @@ class TestUpdateCommand:
         assert result.exit_code == 0
         mock_main_logic.assert_called_once()
 
-        # Check arguments
+        # Check arguments - now using parameter objects
         call_args = mock_main_logic.call_args[1]
-        assert call_args["changelog_file"] == "CHANGES.md"
-        assert call_args["model"] == "openai:gpt-4"
-        assert call_args["hint"] == "Focus on breaking changes"
-        assert call_args["dry_run"] is True
-        assert call_args["require_confirmation"] is False
-        assert call_args["quiet"] is True
-        assert call_args["language"] == "Spanish"
-        assert call_args["audience"] == "users"
+
+        # Check changelog_opts
+        changelog_opts = call_args["changelog_opts"]
+        assert changelog_opts.file == "CHANGES.md"
+        assert changelog_opts.from_tag == "v1.0.0"
+        assert changelog_opts.to_tag == "v1.1.0"
+
+        # Check workflow_opts
+        workflow_opts = call_args["workflow_opts"]
+        assert workflow_opts.dry_run is True
+        assert workflow_opts.require_confirmation is False
+        assert workflow_opts.yes is True
+        assert workflow_opts.quiet is True
+        assert workflow_opts.language == "Spanish"
+        assert workflow_opts.audience == "users"
+
+        # Check direct parameters
 
         # Clean up created file
         if Path("CHANGES.md").exists():
@@ -130,13 +145,22 @@ class TestUpdateCommand:
         assert result.exit_code == 0
 
         call_args = mock_main_logic.call_args[1]
-        assert call_args["changelog_file"] == "CHANGES.md"
+
+        # Check changelog_opts
+        changelog_opts = call_args["changelog_opts"]
+        assert changelog_opts.file == "CHANGES.md"
+
+        # Check workflow_opts
+        workflow_opts = call_args["workflow_opts"]
+        assert workflow_opts.require_confirmation is False  # --yes flag sets this to False
+        assert workflow_opts.quiet is True
+        assert workflow_opts.yes is True
+        assert workflow_opts.language == "French"
+        assert workflow_opts.audience == "stakeholders"
+
+        # Check direct parameters
         assert call_args["model"] == "cerebras:zai-glm-4.6"
         assert call_args["hint"] == "Test hint"
-        assert call_args["require_confirmation"] is False  # --yes flag sets this to False
-        assert call_args["quiet"] is True
-        assert call_args["language"] == "French"
-        assert call_args["audience"] == "stakeholders"
 
         # Clean up created file
         if Path("CHANGES.md").exists():

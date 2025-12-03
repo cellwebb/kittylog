@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from kittylog.commit_analyzer import get_commits_by_date_boundaries, get_commits_by_gap_boundaries
+from kittylog.config import ChangelogOptions, WorkflowOptions
 from kittylog.workflow import main_business_logic
 
 
@@ -38,11 +39,18 @@ class TestEdgeCases:
         }
 
         with patch("kittylog.workflow.config", config_with_model):
-            success, token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
-                quiet=True,
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="tags",
+            )
+            workflow_opts = WorkflowOptions(
+                quiet=True,
+                yes=True,  # Auto-accept to avoid interaction
+            )
+            success, token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is False  # Should fail when no boundaries found
@@ -81,11 +89,18 @@ class TestEdgeCases:
         }
 
         with patch("kittylog.workflow.config", config_with_model):
-            success, token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
-                quiet=True,
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="dates",
+            )
+            workflow_opts = WorkflowOptions(
+                quiet=True,
+                yes=True,  # Auto-accept to avoid interaction
+            )
+            success, token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is False  # Should fail when no boundaries found
@@ -124,12 +139,19 @@ class TestEdgeCases:
         }
 
         with patch("kittylog.workflow.config", config_with_model):
-            success, token_usage = main_business_logic(
-                changelog_file=str(temp_dir / "CHANGELOG.md"),
-                model="openai:gpt-4o-mini",
-                quiet=True,
+            changelog_opts = ChangelogOptions(
+                file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="gaps",
                 gap_threshold_hours=4.0,
+            )
+            workflow_opts = WorkflowOptions(
+                quiet=True,
+                yes=True,  # Auto-accept to avoid interaction
+            )
+            success, token_usage = main_business_logic(
+                changelog_opts=changelog_opts,
+                workflow_opts=workflow_opts,
+                model="openai:gpt-4o-mini",
             )
 
         assert success is False  # Should fail when no boundaries found

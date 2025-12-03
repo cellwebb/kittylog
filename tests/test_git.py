@@ -1,22 +1,21 @@
 """Tests for git operations module."""
 
-import os
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from kittylog.commit_analyzer import (
+    get_commits_between_tags,
+)
 from kittylog.errors import GitError
 from kittylog.tag_operations import (
-    get_all_tags,
     determine_new_tags,
+    get_all_tags,
     get_latest_tag,
     get_tag_date,
     is_current_commit_tagged,
-)
-from kittylog.commit_analyzer import (
-    get_commits_between_tags,
 )
 
 
@@ -256,9 +255,6 @@ class TestGetCommitsBetweenTags:
             get_commits_between_tags("invalid-tag", "v0.1.0")
 
 
-
-
-
 class TestGetTagDate:
     """Test get_tag_date function."""
 
@@ -271,9 +267,6 @@ class TestGetTagDate:
         """Test getting date for invalid tag."""
         date = get_tag_date("invalid-tag")
         assert date is None
-
-
-
 
 
 class TestIsCurrentCommitTagged:
@@ -343,7 +336,7 @@ class TestIntegration:
         changelog_file.write_text(changelog_content)
 
         # Get new tags
-        from kittylog.tag_operations import determine_new_tags
+
         last_tag, new_tags = determine_new_tags("CHANGELOG.md")
         assert last_tag == "v0.1.0"
         assert len(new_tags) >= 1

@@ -229,6 +229,8 @@ class TestClassifyError:
 
     def test_classify_authentication_error(self):
         """Test classification of authentication errors."""
+        from kittylog.types import classify_error
+
         errors = [
             Exception("authentication failed"),
             Exception("unauthorized access"),
@@ -236,64 +238,56 @@ class TestClassifyError:
         ]
 
         for error in errors:
-            # Import here for tests
-            from kittylog.ai import classify_error
-
             assert classify_error(error) == "authentication"
 
     def test_classify_model_error(self):
         """Test classification of model errors."""
+        from kittylog.types import classify_error
+
         errors = [
             Exception("model not found"),
             Exception("model does not exist"),
         ]
 
         for error in errors:
-            # Import here for tests
-            from kittylog.ai import classify_error
-
             assert classify_error(error) == "model_not_found"
 
     def test_classify_rate_limit_error(self):
         """Test classification of rate limit errors."""
+        from kittylog.types import classify_error
+
         errors = [
             Exception("rate limit exceeded"),
             Exception("quota exceeded"),
         ]
 
         for error in errors:
-            # Import here for tests
-            from kittylog.ai import classify_error
-
             assert classify_error(error) == "rate_limit"
 
     def test_classify_timeout_error(self):
         """Test classification of timeout errors."""
-        error = Exception("request timeout")
-        # Import here for tests
-        from kittylog.ai import classify_error
+        from kittylog.types import classify_error
 
+        error = Exception("request timeout")
         assert classify_error(error) == "timeout"
 
     def test_classify_context_length_error(self):
         """Test classification of context length errors."""
+        from kittylog.types import classify_error
+
         errors = [
             Exception("context too long"),
             Exception("context length exceeded"),
         ]
 
         for error in errors:
-            # Import here for tests
-            from kittylog.ai import classify_error
-
             assert classify_error(error) == "context_length"
 
     def test_classify_unknown_error(self):
         """Test classification of unknown errors."""
-        error = Exception("some random error")
-        # Import here for tests
-        from kittylog.ai import classify_error
+        from kittylog.types import classify_error
 
+        error = Exception("some random error")
         assert classify_error(error) == "unknown"
 
 

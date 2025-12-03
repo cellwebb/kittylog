@@ -21,6 +21,7 @@ from kittylog.changelog_parser import (
     find_insertion_point,
     find_insertion_point_by_version,
 )
+from kittylog.errors import ChangelogError
 from kittylog.postprocess import (
     remove_unreleased_sections,
 )
@@ -450,7 +451,7 @@ class TestChangelogIO:
 
     def test_write_changelog_directory_error(self):
         """Test writing changelog file when path is a directory."""
-        with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(OSError):
+        with tempfile.TemporaryDirectory() as tmpdir, pytest.raises(ChangelogError):
             write_changelog(tmpdir, "content")
 
 
