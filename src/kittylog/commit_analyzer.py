@@ -11,13 +11,14 @@ from functools import cache, lru_cache
 import git
 from git import InvalidGitRepositoryError, Repo
 
+from kittylog.cache import cached
 from kittylog.errors import GitError
 from kittylog.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
+@cached
 def get_repo() -> Repo:
     """Get the Git repository object for the current directory.
 
@@ -30,7 +31,7 @@ def get_repo() -> Repo:
         raise GitError("Not in a git repository") from e
 
 
-@cache
+@cached
 def get_all_commits_chronological() -> list[dict]:
     """Get all commits in chronological order with metadata.
 
@@ -63,12 +64,15 @@ def get_all_commits_chronological() -> list[dict]:
         logger.debug(f"Found {len(commits)} commits in chronological order")
         return commits
 
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get commits: {e!s}")
         raise GitError(f"Failed to get commits: {e!s}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error getting commits: {e!s}")
+        raise GitError(f"Unexpected error getting commits: {e!s}") from e
 
 
-@cache
+@cached
 def get_all_tags_with_dates() -> list[dict]:
     """Get all tags with their commit information and dates.
 
@@ -96,14 +100,17 @@ def get_all_tags_with_dates() -> list[dict]:
                 continue
 
         # Sort tags by commit date
-        tags.sort(key=lambda t: t["date"])  # type: ignore[arg-type, return-value]
+        tags.sort(key=lambda t: t["date"])  # type: ignore[arg-type, return-value]  # Dict values are datetime objects, mypy can't infer this
 
         logger.debug(f"Found {len(tags)} tags with dates")
         return tags
 
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get tags with dates: {e!s}")
         raise GitError(f"Failed to get tags with dates: {e!s}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error getting tags: {e!s}")
+        raise GitError(f"Unexpected error getting tags: {e!s}") from e
 
 
 def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:

@@ -8,6 +8,8 @@ import logging
 import re
 from datetime import datetime
 from functools import lru_cache
+
+from kittylog.cache import cached
 from pathlib import Path
 
 from git import InvalidGitRepositoryError, Repo
@@ -17,7 +19,7 @@ from kittylog.errors import GitError
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=1)
+@cached
 def get_repo() -> Repo:
     """Get the Git repository object for the current directory.
 
@@ -30,7 +32,7 @@ def get_repo() -> Repo:
         raise GitError("Not in a git repository") from e
 
 
-@lru_cache(maxsize=1)
+@cached
 def get_all_tags() -> list[str]:
     """Get all git tags sorted by semantic version if possible, otherwise by creation date.
 
@@ -72,7 +74,7 @@ def get_all_tags() -> list[str]:
         raise GitError(f"Failed to get tags: {e!s}") from e
 
 
-@lru_cache(maxsize=1)
+@cached
 def get_latest_tag() -> str | None:
     """Get the latest tag (highest semantic version or most recent).
 
@@ -83,7 +85,7 @@ def get_latest_tag() -> str | None:
     return tags[-1] if tags else None
 
 
-@lru_cache(maxsize=1)
+@cached
 def get_current_commit_hash() -> str:
     """Get the current commit hash (HEAD).
 
