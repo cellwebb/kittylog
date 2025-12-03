@@ -10,7 +10,6 @@ import click
 
 from kittylog.ai import generate_changelog_entry
 from kittylog.changelog import (
-    create_changelog_header,
     find_existing_boundaries,
     read_changelog,
     update_changelog,
@@ -32,19 +31,54 @@ from kittylog.utils import determine_next_version
 logger = logging.getLogger(__name__)
 
 
+def _find_previous_boundary_id(
+    target_boundary_id: str,
+    grouping_mode: str,
+    gap_threshold_hours: float = 4.0,
+    date_grouping: str = "daily",
+) -> str | None:
+    """Find the previous boundary identifier for a given target boundary.
+
+    Args:
+        target_boundary_id: The identifier of the target boundary
+        grouping_mode: The boundary grouping mode (tags, dates, gaps)
+        gap_threshold_hours: Gap threshold for gaps mode
+        date_grouping: Date grouping for dates mode
+
+    Returns:
+        The previous boundary identifier, or None if target is the first boundary
+    """
+    if grouping_mode == "tags":
+        all_boundaries = get_all_boundaries(mode="tags")
+    else:
+        all_boundaries = get_all_boundaries(
+            mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
+        )
+
+    for i, boundary in enumerate(all_boundaries):
+        if generate_boundary_identifier(boundary, grouping_mode) == target_boundary_id:
+            if i > 0:
+                return generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
+            return None
+    return None
+
+
 def _ensure_changelog_exists(changelog_file: str, no_unreleased: bool) -> str:
     """Create changelog with header if it doesn't exist, return content.
-    
+
     Args:
         changelog_file: Path to the changelog file
         no_unreleased: Whether to exclude the unreleased section
-        
+
     Returns:
         The changelog content (new if created, existing if already present)
     """
-    existing_content = read_changelog(changelog_file)
-    
-    changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
+    from kittylog.changelog_io import create_changelog_header
+
+    changelog_content = read_changelog(changelog_file)
+    if not changelog_content.strip():
+        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
+    return changelog_content
 
 
 def handle_unreleased_mode(
@@ -67,7 +101,7 @@ def handle_unreleased_mode(
     logger.debug(f"In special_unreleased_mode, changelog_file={changelog_file}")
     changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
-    logger.debug(f"Existing changelog content: {repr(changelog_content[:200])}")
+    logger.debug(f"Existing changelog content: {changelog_content[:200]!r}")
 
     # Get latest tag to determine next version
     latest_tag = get_latest_tag()
@@ -94,7 +128,7 @@ def handle_unreleased_mode(
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
-                return existing_content, None
+                return changelog_content, None
 
     # Get latest boundary for commit range based on mode
     # (already calculated above as latest_boundary and from_boundary)
@@ -118,7 +152,7 @@ def handle_unreleased_mode(
         audience=audience,
     )
 
-    return existing_content, token_usage
+    return changelog_content, token_usage
 
 
 def handle_single_boundary_mode(
@@ -142,30 +176,7 @@ def handle_single_boundary_mode(
     changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
     # Determine previous boundary for context
-    if grouping_mode != "tags":
-        # For dates/gaps mode, we need to find the boundary object first
-        all_boundaries = get_all_boundaries(
-            mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
-        )
-        previous_boundary = None
-        for i, boundary in enumerate(all_boundaries):
-            if generate_boundary_identifier(boundary, grouping_mode) == to_boundary:
-                if i > 0:
-                    previous_boundary = generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
-                break
-    else:
-        # For tags mode, we need to find the boundary object first
-        target_boundary = None
-        for boundary in get_all_boundaries(mode="tags"):
-            if generate_boundary_identifier(boundary, "tags") == to_boundary:
-                target_boundary = boundary
-                break
-
-        if target_boundary:
-            prev_boundary = get_previous_boundary(target_boundary, "tags")
-            previous_boundary = generate_boundary_identifier(prev_boundary, "tags") if prev_boundary else None
-        else:
-            previous_boundary = None
+    previous_boundary = _find_previous_boundary_id(to_boundary, grouping_mode, gap_threshold_hours, date_grouping)
 
     if not quiet:
         output = get_output_manager()
@@ -178,7 +189,7 @@ def handle_single_boundary_mode(
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
-                return existing_content, None
+                return changelog_content, None
 
     # Update changelog for this specific boundary only (overwrite if exists)
     changelog_content, token_usage = update_changelog(
@@ -196,7 +207,7 @@ def handle_single_boundary_mode(
         audience=audience,
     )
 
-    return existing_content, token_usage
+    return changelog_content, token_usage
 
 
 def handle_boundary_range_mode(
@@ -230,26 +241,7 @@ def handle_boundary_range_mode(
             raise ValueError("No tags found in repository")
     elif from_boundary is None and to_boundary is not None and not special_unreleased_mode:
         # When only to_boundary is specified, find the previous boundary to use as from_boundary
-        if grouping_mode != "tags":
-            # We need to find the boundary corresponding to to_boundary
-            all_boundaries = get_all_boundaries(
-                mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
-            )
-            from_boundary = None
-            for i, boundary in enumerate(all_boundaries):
-                if generate_boundary_identifier(boundary, grouping_mode) == to_boundary:
-                    if i > 0:
-                        from_boundary = generate_boundary_identifier(all_boundaries[i - 1], grouping_mode)
-                    break
-        else:
-            # Tags mode - find previous tag
-            all_boundaries = get_all_boundaries(mode="tags")
-            from_boundary = None
-            for i, boundary in enumerate(all_boundaries):
-                if generate_boundary_identifier(boundary, "tags") == to_boundary:
-                    if i > 0:
-                        from_boundary = generate_boundary_identifier(all_boundaries[i - 1], "tags")
-                    break
+        from_boundary = _find_previous_boundary_id(to_boundary, grouping_mode, gap_threshold_hours, date_grouping)
 
     changelog_content = _ensure_changelog_exists(changelog_file, no_unreleased)
 
@@ -266,7 +258,7 @@ def handle_boundary_range_mode(
 
             if not click.confirm("\nProceed with generating changelog entry?", default=True):
                 output.warning("Operation cancelled by user.")
-                return existing_content, None
+                return changelog_content, None
 
     # Update changelog for this range
     changelog_content, token_usage = update_changelog(
@@ -284,7 +276,7 @@ def handle_boundary_range_mode(
         audience=audience,
     )
 
-    return existing_content, token_usage
+    return changelog_content, token_usage
 
 
 def handle_update_all_mode(
@@ -346,7 +338,7 @@ def handle_update_all_mode(
 
         if not click.confirm("\nProceed with updating changelog entries?", default=True):
             output.warning("Operation cancelled by user.")
-            return existing_content, None
+            return changelog_content, None
 
     # Process each boundary
     total_token_usage: dict[str, int] = {}
@@ -438,10 +430,10 @@ def handle_missing_entries_mode(
         commits = get_commits_between_boundaries(previous_boundary, boundary, grouping_mode)
 
         # Generate changelog content for this boundary
-        boundary_content, stats = generate_changelog_entry(
+        boundary_content, _stats = generate_changelog_entry(
             commits=commits,
             tag=generate_boundary_identifier(boundary, grouping_mode),
-            from_tag=generate_boundary_identifier(previous_boundary, grouping_mode) if previous_boundary else None,
+            from_boundary=generate_boundary_identifier(previous_boundary, grouping_mode) if previous_boundary else None,
             model=model,
             hint=hint,
             quiet=quiet,
@@ -476,7 +468,7 @@ def handle_missing_entries_mode(
             full_entry = version_header + "\n" + boundary_content
             changelog_content = changelog_content.rstrip() + "\n\n" + full_entry
 
-    return existing_content, None
+    return changelog_content, None
 
 
 def determine_missing_entries(
