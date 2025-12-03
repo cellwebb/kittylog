@@ -80,8 +80,8 @@ def generate_with_retries(
 
         except Exception as e:
             last_exception = e
-            # Import classify_error function from ai module for compatibility
-            from kittylog.ai import classify_error
+            # Import classify_error from types module to avoid circular import
+            from kittylog.types import classify_error
 
             error_type = classify_error(e)
 
