@@ -101,7 +101,7 @@ def update_version(
             resolved_audience = Audiences.resolve(audience)
             # Run main business logic with update behavior (process all tags)
             changelog_opts = ChangelogOptions(
-                file=file,
+                changelog_file=file,
                 from_tag=from_tag,
                 to_tag=to_tag,
             )
@@ -153,7 +153,7 @@ def update_version(
         resolved_language = Languages.resolve_code(language) if language else EnvDefaults.LANGUAGE
         resolved_audience = Audiences.resolve(audience)
         changelog_opts = ChangelogOptions(
-            file=file,
+            changelog_file=file,
             from_tag=from_tag or previous_tag,  # Use provided from_tag or fallback to previous_tag
             to_tag=git_version,
         )

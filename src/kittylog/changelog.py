@@ -18,6 +18,7 @@ from kittylog.changelog_parser import (
     limit_bullets_in_sections,
 )
 from kittylog.commit_analyzer import get_commits_between_tags, get_git_diff
+from kittylog.errors import AIError
 from kittylog.postprocess import remove_unreleased_sections
 from kittylog.tag_operations import get_tag_date, is_current_commit_tagged
 
@@ -165,7 +166,7 @@ def handle_unreleased_section_update(
         logger.debug("Successfully updated unreleased section")
         return updated_content
 
-    except Exception as e:
+    except (AIError, ValueError, KeyError) as e:
         logger.error(f"Failed to update unreleased section: {e}")
         raise
 
@@ -236,7 +237,7 @@ def handle_version_update(
         logger.debug(f"Successfully updated version section for {to_boundary}")
         return updated_content
 
-    except Exception as e:
+    except (AIError, ValueError, KeyError) as e:
         logger.error(f"Failed to update version section for {to_boundary}: {e}")
         raise
 

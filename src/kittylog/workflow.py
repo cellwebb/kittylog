@@ -9,12 +9,12 @@ from pathlib import Path
 
 import click
 
+from kittylog.ai import generate_changelog_entry
 from kittylog.changelog import read_changelog, write_changelog
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.constants import Audiences, GroupingMode, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.mode_handlers import (
-    handle_boundary_range_mode,
     handle_single_boundary_mode,
     handle_unreleased_mode,
 )
@@ -24,6 +24,39 @@ from kittylog.utils import find_changelog_file
 
 logger = logging.getLogger(__name__)
 config = load_config()
+
+
+def _create_entry_generator(
+    model: str,
+    hint: str,
+    show_prompt: bool,
+    quiet: bool,
+    include_diff: bool,
+    language: str | None,
+    translate_headings: bool,
+    audience: str | None,
+):
+    """Create a changelog entry generator function with captured parameters.
+
+    Returns a function that can be passed to mode handlers as generate_entry_func.
+    """
+
+    def generator(commits: list[dict], tag: str, from_boundary: str | None = None, **kwargs) -> str:
+        entry, _usage = generate_changelog_entry(
+            commits=commits,
+            tag=tag,
+            from_boundary=from_boundary,
+            model=model,
+            hint=hint,
+            show_prompt=show_prompt,
+            quiet=quiet,
+            language=language,
+            translate_headings=translate_headings,
+            audience=audience,
+        )
+        return entry
+
+    return generator
 
 
 def process_workflow_modes(
@@ -48,109 +81,100 @@ def process_workflow_modes(
     effective_audience: str | None,
 ) -> tuple[str, dict[str, int] | None]:
     """Process changelog workflow based on mode selection."""
+    # Create the entry generator function for mode handlers
+    generate_entry_func = _create_entry_generator(
+        model=model,
+        hint=hint,
+        show_prompt=show_prompt,
+        quiet=quiet,
+        include_diff=include_diff,
+        language=effective_language,
+        translate_headings=translate_headings,
+        audience=effective_audience,
+    )
+
     # Handle special unreleased mode
     if special_unreleased_mode:
-        return handle_unreleased_mode(
+        _, content = handle_unreleased_mode(
             changelog_file=changelog_file,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
-            quiet=quiet,
+            generate_entry_func=generate_entry_func,
             no_unreleased=no_unreleased,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
+            quiet=quiet,
             yes=yes,
-            include_diff=include_diff,
-            language=effective_language,
-            translate_headings=translate_headings,
-            audience=effective_audience,
+            dry_run=dry_run,
         )
+        return content, None
 
     # Handle different processing modes
     if from_tag is None and to_tag is None and not update_all_entries:
         # Normal mode: find missing entries
         from kittylog.mode_handlers import handle_missing_entries_mode
 
-        return handle_missing_entries_mode(
+        _, content = handle_missing_entries_mode(
             changelog_file=changelog_file,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
+            generate_entry_func=generate_entry_func,
             quiet=quiet,
-            no_unreleased=no_unreleased,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
             yes=yes,
-            include_diff=include_diff,
-            language=effective_language,
-            translate_headings=translate_headings,
-            audience=effective_audience,
+            dry_run=dry_run,
         )
+        return content, None
 
     if update_all_entries:
         # Update all existing entries
         from kittylog.mode_handlers import handle_update_all_mode
 
-        return handle_update_all_mode(
+        _, content = handle_update_all_mode(
             changelog_file=changelog_file,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
+            generate_entry_func=generate_entry_func,
+            mode=grouping_mode,
             quiet=quiet,
-            no_unreleased=no_unreleased,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
             yes=yes,
-            include_diff=include_diff,
-            language=effective_language,
-            translate_headings=translate_headings,
-            audience=effective_audience,
+            dry_run=dry_run,
         )
+        return content, None
 
     if from_tag is not None and to_tag is not None:
         # Range mode: process specific range
-        return handle_boundary_range_mode(
+        # Look up boundaries by identifier
+        from kittylog.tag_operations import get_boundary_by_identifier
+
+        from_boundary = get_boundary_by_identifier(from_tag, grouping_mode)
+        to_boundary = get_boundary_by_identifier(to_tag, grouping_mode)
+        if to_boundary is None:
+            raise ChangelogError(f"To boundary not found: {to_tag}")
+
+        # Note: handle_boundary_range_mode has different signature
+        from kittylog.mode_handlers import handle_boundary_range_mode as range_handler
+
+        _, content = range_handler(
             changelog_file=changelog_file,
-            from_boundary=from_tag,
-            to_boundary=to_tag,
-            model=model,
-            hint=hint,
-            show_prompt=show_prompt,
+            from_boundary=from_boundary,
+            to_boundary=to_boundary,
+            generate_entry_func=generate_entry_func,
             quiet=quiet,
-            special_unreleased_mode=False,
-            no_unreleased=no_unreleased,
-            grouping_mode=grouping_mode,
-            gap_threshold_hours=gap_threshold_hours,
-            date_grouping=date_grouping,
             yes=yes,
-            include_diff=include_diff,
-            language=effective_language,
-            translate_headings=translate_headings,
-            audience=effective_audience,
+            dry_run=dry_run,
         )
+        return content, None
 
     # Single tag mode: process specific tag
     assert to_tag is not None  # for mypy
-    return handle_single_boundary_mode(
+    # Need to get boundary info first
+    from kittylog.tag_operations import get_boundary_by_identifier
+
+    boundary = get_boundary_by_identifier(to_tag, grouping_mode)
+    if boundary is None:
+        raise ChangelogError(f"Boundary not found: {to_tag}")
+
+    _, content = handle_single_boundary_mode(
         changelog_file=changelog_file,
-        to_boundary=to_tag,
-        model=model,
-        hint=hint,
-        show_prompt=show_prompt,
+        boundary=boundary,
+        generate_entry_func=generate_entry_func,
         quiet=quiet,
-        no_unreleased=no_unreleased,
         yes=yes,
-        include_diff=include_diff,
-        language=effective_language,
-        translate_headings=translate_headings,
-        audience=effective_audience,
-        grouping_mode=grouping_mode,
-        gap_threshold_hours=gap_threshold_hours,
-        date_grouping=date_grouping,
+        dry_run=dry_run,
     )
+    return content, None
 
 
 def handle_dry_run_and_confirmation(
@@ -209,7 +233,7 @@ def handle_dry_run_and_confirmation(
     except ChangelogError as e:
         handle_error(e)
         return False, None
-    except Exception as e:
+    except (OSError, UnicodeEncodeError) as e:
         handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
         return False, None
 
@@ -258,7 +282,7 @@ def validate_workflow_prereqs(
     # Validate git repository exists and is valid
     try:
         get_repo()  # This will raise GitError if invalid
-    except Exception as e:
+    except GitError as e:
         raise GitError(f"Invalid git repository: {e}") from e
 
     # Validate gap threshold bounds
@@ -334,7 +358,7 @@ def validate_and_setup_workflow(
     except GitError:
         # Re-raise GitError for no boundaries - it will be caught upstream
         raise
-    except Exception as e:
+    except (ConfigError, ValueError, KeyError) as e:
         handle_error(e)
         raise
 
@@ -389,7 +413,7 @@ def main_business_logic(
             translate_headings,
             effective_audience,
         ) = validate_and_setup_workflow(
-            changelog_file=changelog_opts.file,
+            changelog_file=changelog_opts.changelog_file,
             language=workflow_opts.language,
             audience=workflow_opts.audience,
             grouping_mode=changelog_opts.grouping_mode,
@@ -437,7 +461,7 @@ def main_business_logic(
     except ChangelogError as e:
         handle_error(e)
         return False, None
-    except Exception as e:
+    except (OSError, UnicodeEncodeError) as e:
         handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
         return False, None
 

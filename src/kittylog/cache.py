@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unified cache management for kittylog.
 
 This module provides centralized cache management with the ability
@@ -30,9 +29,9 @@ class CacheManager:
     _caches: list[CachedFunction] = []
 
     @classmethod
-    def register(cls, func):
+    def register(cls, func: Callable) -> Callable:  # Changed return type to match usage
         """Register a cached function with the manager."""
-        cls._caches.append(func)
+        cls._caches.append(func)  # type: ignore[arg-type]
         logger.debug(f"Registered cache function: {func.__name__}")
         return func
 
@@ -94,7 +93,7 @@ def cached(func: F) -> CachedFunction[F]:
     """
     # Use lru_cache with reasonable maxsize for git operations
     wrapped = cast("CachedFunction[F]", lru_cache(maxsize=128)(func))
-    return CacheManager.register(wrapped)
+    return CacheManager.register(wrapped)  # type: ignore[return-value]
 
 
 def cached_maxsize(maxsize: int) -> Callable[[F], CachedFunction[F]]:
@@ -109,7 +108,7 @@ def cached_maxsize(maxsize: int) -> Callable[[F], CachedFunction[F]]:
 
     def decorator(func: F) -> CachedFunction[F]:
         wrapped = cast("CachedFunction[F]", lru_cache(maxsize=maxsize)(func))
-        return CacheManager.register(wrapped)
+        return CacheManager.register(wrapped)  # type: ignore[return-value]
 
     return decorator
 

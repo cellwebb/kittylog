@@ -18,7 +18,6 @@ from kittylog.providers import PROVIDER_REGISTRY
 from kittylog.utils import count_tokens
 
 logger = logging.getLogger(__name__)
-config = load_config()
 
 
 def generate_changelog_entry(
@@ -58,6 +57,9 @@ def generate_changelog_entry(
     Returns:
         Generated changelog content
     """
+    # Load config inside function to avoid module-level loading
+    config = load_config()
+
     if model is None:
         model_value = config["model"]
         if not model_value:

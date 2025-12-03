@@ -42,7 +42,7 @@ def read_changelog(file_path: str) -> str:
     except FileNotFoundError:
         logger.info(f"Changelog file {file_path} not found, will create new one")
         return ""
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         logger.error(f"Error reading changelog file: {e}")
         raise
 
@@ -115,7 +115,7 @@ def backup_changelog(file_path: str) -> str:
         logger.info(f"Created changelog backup at {backup_path}")
         return str(backup_path)
 
-    except Exception as e:
+    except (OSError, shutil.Error) as e:
         logger.error(f"Failed to create changelog backup: {e}")
         raise
 
@@ -187,7 +187,7 @@ def get_changelog_stats(file_path: str) -> dict:
             "section_counts": section_counts,
         }
 
-    except Exception as e:
+    except (OSError, UnicodeDecodeError, ValueError) as e:
         logger.error(f"Failed to get changelog stats: {e}")
         return {"error": str(e)}
 

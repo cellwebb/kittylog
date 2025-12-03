@@ -40,12 +40,11 @@ def init() -> None:
         return
 
     # Configure language and audience using the consolidated workflow
+    # (configure_language_init_workflow internally handles audience configuration too)
     success = configure_language_init_workflow(kittylog_env_path)
 
     if not success:
         click.echo("Language configuration cancelled or failed.")
-    else:
-        click.echo("Language configuration completed.")
 
     click.echo("\nkittylog environment setup complete 🎉")
     click.echo("Configuration saved to:")

@@ -111,8 +111,9 @@ def _run_language_selection_flow(env_path: Path) -> str | None:
         try:
             unset_key(str(env_path), "KITTYLOG_LANGUAGE")
             unset_key(str(env_path), "KITTYLOG_TRANSLATE_HEADINGS")
-        except Exception:
-            pass  # It's okay if unsetting fails
+        except (KeyError, OSError):
+            # It's okay if unsetting fails - file might not exist or key not set
+            pass
         return None
     else:
         if language_selection == "Custom":
@@ -191,7 +192,8 @@ def language() -> None:
             unset_key(str(KITTYLOG_ENV_PATH), "KITTYLOG_TRANSLATE_HEADINGS")
             click.echo("✓ Set language to English (default)")
             click.echo(f"  Removed KITTYLOG_LANGUAGE from {KITTYLOG_ENV_PATH}")
-        except Exception:
+        except (KeyError, OSError):
+            # It's okay if env file operations fail - continue with default
             click.echo("✓ Set language to English (default)")
         return
 

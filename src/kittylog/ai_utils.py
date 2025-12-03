@@ -31,37 +31,13 @@ def generate_with_retries(
     provider, model_name = model.split(":", 1)
 
     # Provider mapping for SecureConfig inject_for_provider context manager
-    provider_mappings = {
-        "anthropic": {"ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY"},
-        "azure-openai": {"AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY"},
-        "cerebras": {"CEREBRAS_API_KEY": "CEREBRAS_API_KEY"},
-        "chutes": {"CHUTES_API_KEY": "CHUTES_API_KEY"},
-        "claude-code": {"CLAUDE_CODE_ACCESS_TOKEN": "CLAUDE_CODE_ACCESS_TOKEN"},
-        "custom-anthropic": {
-            "CUSTOM_ANTHROPIC_API_KEY": "CUSTOM_ANTHROPIC_API_KEY",
-            "CUSTOM_ANTHROPIC_BASE_URL": "CUSTOM_ANTHROPIC_BASE_URL",
-            "CUSTOM_ANTHROPIC_VERSION": "CUSTOM_ANTHROPIC_VERSION",
-        },
-        "custom-openai": {
-            "CUSTOM_OPENAI_API_KEY": "CUSTOM_OPENAI_API_KEY",
-            "CUSTOM_OPENAI_BASE_URL": "CUSTOM_OPENAI_BASE_URL",
-        },
-        "deepseek": {"DEEPSEEK_API_KEY": "DEEPSEEK_API_KEY"},
-        "fireworks": {"FIREWORKS_API_KEY": "FIREWORKS_API_KEY"},
-        "gemini": {"GEMINI_API_KEY": "GEMINI_API_KEY"},
-        "groq": {"GROQ_API_KEY": "GROQ_API_KEY"},
-        "lm-studio": {"LMSTUDIO_API_KEY": "LMSTUDIO_API_KEY"},
-        "minimax": {"MINIMAX_API_KEY": "MINIMAX_API_KEY"},
-        "mistral": {"MISTRAL_API_KEY": "MISTRAL_API_KEY"},
-        "ollama": {"OLLAMA_API_URL": "OLLAMA_API_URL"},
-        "openai": {"OPENAI_API_KEY": "OPENAI_API_KEY"},
-        "openrouter": {"OPENROUTER_API_KEY": "OPENROUTER_API_KEY"},
-        "streamlake": {"STREAMLAKE_API_KEY": "STREAMLAKE_API_KEY"},
-        "synthetic": {"SYNTHETIC_API_KEY": "SYNTHETIC_API_KEY"},
-        "together": {"TOGETHER_API_KEY": "TOGETHER_API_KEY"},
-        "zai": {"ZAI_API_KEY": "ZAI_API_KEY"},
-        "zai-coding": {"ZAI_API_KEY": "ZAI_API_KEY"},
-    }
+    # Use centralized mapping from providers registry
+    from kittylog.providers import PROVIDER_ENV_VARS
+
+    provider_mappings = {provider: {var: var for var in vars_list} for provider, vars_list in PROVIDER_ENV_VARS.items()}
+
+    # Add legacy azure-openai mapping for backward compatibility
+    provider_mappings["azure-openai"] = {"AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY"}
 
     # Validate provider
     if provider not in SUPPORTED_PROVIDERS:

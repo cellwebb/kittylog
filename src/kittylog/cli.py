@@ -5,13 +5,14 @@ Defines the Click-based command-line interface and delegates execution to the ma
 
 import logging
 import sys
+from collections.abc import Callable
 
 import click
 
 from kittylog import __version__
 from kittylog.auth_cli import auth as auth_cli
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
-from kittylog.config_cli import config as config_cli
+from kittylog.config import config as config_cli
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.init_changelog_cli import init_changelog
@@ -31,7 +32,9 @@ logger = logging.getLogger(__name__)
 
 
 # Shared option decorators to reduce CLI duplication
-def workflow_options(f):
+
+
+def workflow_options(f: Callable) -> Callable:
     """Common workflow control options."""
     f = click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")(f)
     f = click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")(f)
@@ -39,7 +42,7 @@ def workflow_options(f):
     return f
 
 
-def changelog_options(f):
+def changelog_options(f: Callable) -> Callable:
     """Common changelog-related options."""
     f = click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")(f)
     f = click.option("--from-tag", "-s", default=None, help="Start from specific tag")(f)
@@ -92,13 +95,13 @@ def changelog_options(f):
     return f
 
 
-def model_options(f):
+def model_options(f: Callable) -> Callable:
     """Common model-related options."""
     f = click.option("--model", "-m", default=None, help="Override default model")(f)
     return f
 
 
-def logging_options(f):
+def logging_options(f: Callable) -> Callable:
     """Common logging and output options."""
     f = click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")(f)
     f = click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")(f)
@@ -110,7 +113,7 @@ def logging_options(f):
     return f
 
 
-def common_options(f):
+def common_options(f: Callable) -> Callable:
     """All common options combined."""
     f = workflow_options(f)
     f = changelog_options(f)
@@ -119,7 +122,7 @@ def common_options(f):
     return f
 
 
-def setup_command_logging(log_level, verbose, quiet):
+def setup_command_logging(log_level: str | None, verbose: bool, quiet: bool) -> None:
     """Set up logging for CLI commands with consistent logic."""
     effective_log_level = log_level or load_config().get("log_level") or EnvDefaults.LOG_LEVEL
     if verbose and effective_log_level not in ("DEBUG", "INFO"):
@@ -208,7 +211,7 @@ def add(
         )
 
         changelog_opts = ChangelogOptions(
-            file=file,
+            changelog_file=file,
             from_tag=from_tag,
             to_tag=to_tag,
             grouping_mode=grouping_mode or EnvDefaults.GROUPING_MODE,

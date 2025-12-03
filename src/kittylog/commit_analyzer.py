@@ -5,6 +5,7 @@ based on commit patterns and time gaps.
 """
 
 import logging
+import subprocess
 from datetime import timedelta
 
 import git
@@ -54,9 +55,6 @@ def get_all_commits_chronological() -> list[dict]:
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get commits: {e!s}")
         raise GitError(f"Failed to get commits: {e!s}") from e
-    except Exception as e:
-        logger.error(f"Unexpected error getting commits: {e!s}")
-        raise GitError(f"Unexpected error getting commits: {e!s}") from e
 
 
 @cached
@@ -82,7 +80,7 @@ def get_all_tags_with_dates() -> list[dict]:
                     "summary": tag.commit.summary,
                 }
                 tags.append(tag_info)
-            except Exception as e:
+            except (AttributeError, ValueError) as e:
                 logger.warning(f"Failed to process tag {tag.name}: {e}")
                 continue
 
@@ -95,9 +93,6 @@ def get_all_tags_with_dates() -> list[dict]:
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get tags with dates: {e!s}")
         raise GitError(f"Failed to get tags with dates: {e!s}") from e
-    except Exception as e:
-        logger.error(f"Unexpected error getting tags: {e!s}")
-        raise GitError(f"Unexpected error getting tags: {e!s}") from e
 
 
 def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
@@ -260,14 +255,14 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
                     "files": changed_files,
                 }
                 commits.append(commit_info)
-            except Exception as e:
+            except (AttributeError, ValueError, IndexError) as e:
                 logger.warning(f"Failed to process commit {commit.hexsha}: {e}")
                 continue
 
         logger.debug(f"Found {len(commits)} commits between {from_tag or 'beginning'} and {to_tag or 'HEAD'}")
         return commits
 
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, ValueError) as e:
         logger.error(f"Failed to get commits between tags: {e!s}")
         raise GitError(f"Failed to get commits between tags: {e!s}") from e
 
@@ -300,7 +295,7 @@ def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict
         else:
             raise ValueError(f"Unsupported mode: {mode}")
 
-    except Exception as e:
+    except (KeyError, ValueError, GitError) as e:
         logger.error(f"Failed to get commits between boundaries: {e!s}")
         raise GitError(f"Failed to get commits between boundaries: {e!s}") from e
 
@@ -349,14 +344,14 @@ def get_commits_between_hashes(from_hash: str | None, to_hash: str | None) -> li
                     "files": changed_files,
                 }
                 commits.append(commit_info)
-            except Exception as e:
+            except (AttributeError, ValueError, IndexError) as e:
                 logger.warning(f"Failed to process commit {commit.hexsha}: {e}")
                 continue
 
         logger.debug(f"Found {len(commits)} commits for hash range")
         return commits
 
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, ValueError) as e:
         logger.error(f"Failed to get commits between hashes: {e!s}")
         raise GitError(f"Failed to get commits between hashes: {e!s}") from e
 
@@ -380,8 +375,8 @@ def get_git_diff(from_hash: str | None = None, to_hash: str | None = "HEAD", max
         try:
             diff_output = run_subprocess(diff_cmd)
             diff_content = diff_output.strip()
-        except Exception:
-            # Fallback to repository object
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            # Fallback to repository object if subprocess fails
             repo = get_repo()
             if from_hash:
                 from_commit = repo.commit(from_hash)
@@ -400,7 +395,7 @@ def get_git_diff(from_hash: str | None = None, to_hash: str | None = "HEAD", max
         logger.debug(f"Generated diff with {len(diff_content or '')} characters")
         return diff_content or ""
 
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, ValueError) as e:
         logger.warning(f"Failed to get git diff: {e}")
         return ""
 

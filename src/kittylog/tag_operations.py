@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import git
 from git import InvalidGitRepositoryError, Repo
 
 from kittylog.cache import cached
@@ -42,19 +43,19 @@ def get_all_tags() -> list[str]:
         tags = list(repo.tags)
 
         # Try to sort by semantic version
-        def version_key(tag):
+        def version_key(tag: git.Tag) -> tuple:
             """Extract version components for sorting."""
             # Remove 'v' prefix if present
             version_str = tag.name.lstrip("v")
             # Split by dots and convert to integers where possible
-            parts = []
+            parts: list[int | str] = []
             for part in version_str.split("."):
                 try:
                     parts.append(int(part))
                 except ValueError:
                     # If conversion fails, use string comparison
                     parts.append(part)
-            return parts
+            return tuple(parts)
 
         try:
             # Sort by semantic version
@@ -67,8 +68,11 @@ def get_all_tags() -> list[str]:
         logger.debug(f"All tags: {tag_names}")
 
         return tag_names
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, AttributeError) as e:
         logger.error(f"Failed to get tags: {e!s}")
+        raise GitError(f"Failed to get tags: {e!s}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error getting tags: {e!s}")
         raise GitError(f"Failed to get tags: {e!s}") from e
 
 
@@ -93,7 +97,7 @@ def get_current_commit_hash() -> str:
     try:
         repo = get_repo()
         return repo.head.commit.hexsha
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, AttributeError) as e:
         logger.error(f"Failed to get current commit hash: {e!s}")
         raise GitError(f"Failed to get current commit hash: {e!s}") from e
 
@@ -110,7 +114,7 @@ def is_current_commit_tagged() -> bool:
 
         # Check if any tag points to the current commit
         return any(tag.commit.hexsha == current_commit for tag in repo.tags)
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, AttributeError) as e:
         logger.error(f"Failed to check if current commit is tagged: {e!s}")
         return False
 
@@ -154,7 +158,7 @@ def determine_new_tags(changelog_file: str = "CHANGELOG.md") -> tuple[str | None
 
         except FileNotFoundError:
             logger.info(f"Changelog file {changelog_file} not found, will consider all tags as new")
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             logger.warning(f"Could not read changelog file: {e}")
 
         # Get all tags
@@ -191,7 +195,7 @@ def determine_new_tags(changelog_file: str = "CHANGELOG.md") -> tuple[str | None
 
         return last_changelog_tag, new_tags
 
-    except Exception as e:
+    except (GitError, ValueError, AttributeError) as e:
         logger.error(f"Failed to determine new tags: {e!s}")
         raise GitError(f"Failed to determine new tags: {e!s}") from e
 
@@ -202,7 +206,7 @@ def get_tag_date(tag_name: str) -> datetime | None:
         repo = get_repo()
         tag = repo.tags[tag_name]
         return tag.commit.committed_datetime
-    except Exception as e:
+    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, KeyError, AttributeError, IndexError) as e:
         logger.warning(f"Failed to get date for tag {tag_name}: {e}")
         return None
 
@@ -306,7 +310,7 @@ def get_previous_boundary(boundary: dict, mode: str, **kwargs) -> dict | None:
             # This is the first boundary, so return None
             return None
 
-    except Exception as e:
+    except (IndexError, KeyError, ValueError) as e:
         logger.debug(
             f"Could not determine previous boundary for {boundary.get('identifier', boundary.get('hash', 'unknown'))}: {e}"
         )
@@ -343,6 +347,24 @@ def get_all_boundaries(mode: str = "tags", **kwargs) -> list[dict]:
         raise ValueError(f"Unsupported mode: {mode}")
 
 
+def get_boundary_by_identifier(identifier: str, mode: str = "tags", **kwargs) -> dict | None:
+    """Get a boundary dictionary by its identifier.
+
+    Args:
+        identifier: The boundary identifier to look for (e.g., 'v1.0.0')
+        mode: Boundary detection mode ('tags', 'dates', or 'gaps')
+        **kwargs: Additional parameters for specific modes
+
+    Returns:
+        Boundary dictionary or None if not found
+    """
+    boundaries = get_all_boundaries(mode=mode, **kwargs)
+    for boundary in boundaries:
+        if boundary.get("identifier") == identifier:
+            return boundary
+    return None
+
+
 def clear_git_cache() -> None:
     """Clear all git operation caches.
 
@@ -359,4 +381,5 @@ def clear_git_cache() -> None:
 
         clear_commit_analyzer_cache()
     except ImportError:
+        # Optional dependency not available - continue without cache clearing
         pass

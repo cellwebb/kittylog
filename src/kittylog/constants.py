@@ -1,6 +1,7 @@
 """Constants for the Changelog Updater project."""
 
 import os
+from collections.abc import Iterator
 from enum import Enum
 
 
@@ -163,7 +164,7 @@ class Languages:
         return language
 
     @classmethod
-    def __iter__(cls):
+    def __iter__(cls) -> Iterator[tuple[str, str]]:
         """Make the class iterable over its language options."""
         return iter(cls.LANGUAGES)
 
@@ -223,6 +224,6 @@ class Audiences:
         return slug.title()
 
     @classmethod
-    def __iter__(cls):
+    def __iter__(cls) -> Iterator[str]:
         """Make the class iterable over its audience options."""
         return iter(cls.slugs())

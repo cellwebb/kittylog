@@ -82,7 +82,7 @@ def release(
             output.info(f"Generating changelog entries for {normalized_version}...")
 
             changelog_opts = ChangelogOptions(
-                file=file,
+                changelog_file=file,
                 from_tag=None,
                 to_tag=None,
             )

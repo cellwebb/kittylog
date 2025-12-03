@@ -60,7 +60,7 @@ def _configure_model(existing_env: dict[str, str]) -> bool:
     ]
     provider_names = [p[0] for p in providers]
     provider = questionary.select(
-        "Select your provider:", 
+        "Select your provider:",
         choices=provider_names,
         use_shortcuts=True,
         use_arrow_keys=True,

@@ -39,7 +39,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
         # Use the actual string value as default, not the variable
         default_grouping = grouping_mode or "tags"
         selected_grouping = questionary.select(
-            "How would you like to group your changelog entries?", 
+            "How would you like to group your changelog entries?",
             choices=grouping_mode_choices,
             use_shortcuts=True,
             use_arrow_keys=True,
@@ -77,7 +77,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             ]
 
             selected_date_grouping = questionary.select(
-                "How would you like to group by date?", 
+                "How would you like to group by date?",
                 choices=date_grouping_choices,
                 use_shortcuts=True,
                 use_arrow_keys=True,
