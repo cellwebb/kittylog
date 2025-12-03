@@ -122,7 +122,7 @@ def generate_changelog_entry(
     system_prompt, user_prompt = build_changelog_prompt(
         commits=commits,
         tag=tag,
-        from_boundary=from_tag,
+        from_boundary=from_boundary,
         hint=hint,
         boundary_mode=boundary_mode,
         language=language,

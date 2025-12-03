@@ -118,10 +118,7 @@ def handle_unreleased_section_update(
 
     # Generate AI content for unreleased section
     try:
-        if include_diff:
-            diff_content = get_git_diff(latest_tag, None, max_lines=500) if latest_tag else ""
-        else:
-            diff_content = ""
+        diff_content = (get_git_diff(latest_tag, None, max_lines=500) if latest_tag else "") if include_diff else ""
 
         new_entry, _token_usage = generate_changelog_entry(
             commits=unreleased_commits,
@@ -180,10 +177,7 @@ def handle_version_update(
         previous_tag = from_boundary
 
         # Generate AI content
-        if include_diff:
-            diff_content = get_git_diff(from_boundary, to_boundary, max_lines=500)
-        else:
-            diff_content = ""
+        diff_content = get_git_diff(from_boundary, to_boundary, max_lines=500) if include_diff else ""
 
         from datetime import datetime
 
@@ -335,7 +329,7 @@ def _update_version_section(
     else:
         # Insert new version section at the appropriate position
         insert_point = find_insertion_point_by_version(existing_content, tag_name)
-        new_lines = [""] + version_section.split("\n")  # Add blank line before
+        new_lines = ["", *version_section.split("\n")]  # Add blank line before
 
         for line in reversed(new_lines):
             lines.insert(insert_point, line)
@@ -361,19 +355,17 @@ def _remove_unreleased_section_if_empty(existing_content: str, unreleased_commit
 
 # Re-export functions from specialized modules for backward compatibility
 __all__ = [
-    # Core functions
     "create_changelog_header",
-    "update_changelog",
-    "handle_unreleased_section_update",
-    "handle_version_update",
-    # Re-exported for backward compatibility
-    "read_changelog",
-    "write_changelog",
-    "find_existing_boundaries",
-    "limit_bullets_in_sections",
     "find_end_of_unreleased_section",
+    "find_existing_boundaries",
     "find_insertion_point",
     "find_insertion_point_by_version",
     "find_unreleased_section",
+    "handle_unreleased_section_update",
+    "handle_version_update",
+    "limit_bullets_in_sections",
+    "read_changelog",
     "remove_unreleased_sections",
+    "update_changelog",
+    "write_changelog",
 ]
