@@ -16,7 +16,7 @@ from kittylog.workflow import main_business_logic
 logger = logging.getLogger(__name__)
 
 # Re-export the main business logic function for backward compatibility
-__all__ = ["main_business_logic", "update_changelog", "read_changelog", "write_changelog"]
+__all__ = ["main_business_logic", "read_changelog", "update_changelog", "write_changelog"]
 
 
 # For backward compatibility, expose the main function at module level

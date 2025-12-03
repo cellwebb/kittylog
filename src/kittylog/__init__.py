@@ -6,7 +6,7 @@ from kittylog.git_operations import get_commits_between_tags, get_tags_since_las
 
 __all__ = [
     "__version__",
-    "get_tags_since_last_changelog",
     "get_commits_between_tags",
+    "get_tags_since_last_changelog",
     "update_changelog",
 ]
