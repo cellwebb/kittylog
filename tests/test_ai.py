@@ -229,7 +229,7 @@ class TestClassifyError:
 
     def test_classify_authentication_error(self):
         """Test classification of authentication errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         errors = [
             Exception("authentication failed"),
@@ -242,7 +242,7 @@ class TestClassifyError:
 
     def test_classify_model_error(self):
         """Test classification of model errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         errors = [
             Exception("model not found"),
@@ -254,7 +254,7 @@ class TestClassifyError:
 
     def test_classify_rate_limit_error(self):
         """Test classification of rate limit errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         errors = [
             Exception("rate limit exceeded"),
@@ -266,14 +266,14 @@ class TestClassifyError:
 
     def test_classify_timeout_error(self):
         """Test classification of timeout errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         error = Exception("request timeout")
         assert classify_error(error) == "timeout"
 
     def test_classify_context_length_error(self):
         """Test classification of context length errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         errors = [
             Exception("context too long"),
@@ -285,7 +285,7 @@ class TestClassifyError:
 
     def test_classify_unknown_error(self):
         """Test classification of unknown errors."""
-        from kittylog.types import classify_error
+        from kittylog.errors import classify_error
 
         error = Exception("some random error")
         assert classify_error(error) == "unknown"

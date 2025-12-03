@@ -82,8 +82,9 @@ OPENAI_API_KEY=sk-test123
 
         assert config["model"] == "openai:gpt-4"
         assert config["temperature"] == 0.3
-        # API key should be available in environment
-        assert os.getenv("OPENAI_API_KEY") == "sk-test123"
+        # API key should be available in config api_keys but not pollute environment
+        assert config["api_keys"]["OPENAI_API_KEY"] == "sk-test123"
+        assert os.getenv("OPENAI_API_KEY") != "sk-test123"  # Should not be polluted
         assert config["language"] == "French"
         assert config["translate_headings"] is True
         assert config["audience"] == "users"
@@ -497,8 +498,9 @@ KITTYLOG_AUDIENCE=stakeholders
         assert config["translate_headings"] is True  # project override
         assert config["audience"] == "stakeholders"  # project override
 
-        # Check API key is available
-        assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
+        # Check API key is available in config api_keys but not polluting environment
+        assert config["api_keys"]["ANTHROPIC_API_KEY"] == "sk-ant-user123"
+        assert os.getenv("ANTHROPIC_API_KEY") != "sk-ant-user123"  # Should not be polluted
 
     def test_config_error_handling(self, isolated_config_test):
         """Test configuration error handling."""
@@ -551,7 +553,9 @@ KITTYLOG_DATE_GROUPING=monthly
         assert config["model"] == "cerebras:zai-glm-4.6"
         assert config["temperature"] == 0.5
         assert config["max_output_tokens"] == 1024
-        assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-test123"
+        # API key should be available in config api_keys but not polluting environment
+        assert config["api_keys"]["ANTHROPIC_API_KEY"] == "sk-ant-test123"
+        assert os.getenv("ANTHROPIC_API_KEY") != "sk-ant-test123"  # Should not be polluted
         assert config["grouping_mode"] == "gaps"
         assert config["gap_threshold_hours"] == 3.5
         assert config["date_grouping"] == "monthly"
