@@ -1,12 +1,18 @@
 """Configuration loading for kittylog.
 
 Handles environment variable and .env file precedence for application settings.
+Configuration precedence (highest to lowest):
+1. Environment variables
+2. Project .kittylog.env
+3. Project .env
+4. User ~/.kittylog.env
+5. Default values
 """
 
 import os
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 from dotenv import dotenv_values
 
@@ -14,6 +20,60 @@ from kittylog.constants import Audiences, EnvDefaults, Logging
 from kittylog.errors import ConfigError
 
 T = TypeVar("T")
+
+
+class KittylogConfig(TypedDict, total=False):
+    """Type definition for kittylog configuration.
+
+    All fields are optional (total=False) since they may be None
+    before defaults are applied.
+    """
+
+    model: str | None
+    temperature: float | None
+    max_output_tokens: int | None
+    max_retries: int | None
+    log_level: str | None
+    warning_limit_tokens: int | None
+    grouping_mode: str | None
+    gap_threshold_hours: float | None
+    date_grouping: str | None
+    language: str | None
+    audience: str | None
+    translate_headings: bool | None
+
+
+# API keys that should be exported to environment
+API_KEYS = [
+    "ANTHROPIC_API_KEY",
+    "CEREBRAS_API_KEY",
+    "CHUTES_API_KEY",
+    "CHUTES_BASE_URL",
+    "CLAUDE_CODE_ACCESS_TOKEN",
+    "CUSTOM_ANTHROPIC_API_KEY",
+    "CUSTOM_ANTHROPIC_BASE_URL",
+    "CUSTOM_ANTHROPIC_VERSION",
+    "CUSTOM_OPENAI_API_KEY",
+    "CUSTOM_OPENAI_BASE_URL",
+    "DEEPSEEK_API_KEY",
+    "FIREWORKS_API_KEY",
+    "GEMINI_API_KEY",
+    "GROQ_API_KEY",
+    "LMSTUDIO_API_KEY",
+    "LMSTUDIO_API_URL",
+    "MINIMAX_API_KEY",
+    "MISTRAL_API_KEY",
+    "OLLAMA_API_URL",
+    "OLLAMA_HOST",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "STREAMLAKE_API_KEY",
+    "SYNTHETIC_API_KEY",
+    "SYN_API_KEY",
+    "TOGETHER_API_KEY",
+    "VC_API_KEY",
+    "ZAI_API_KEY",
+]
 
 
 def _safe_float(value: str | None, default: float) -> float:
@@ -34,6 +94,23 @@ def _safe_int(value: str | None, default: int) -> int:
         return int(value)
     except ValueError:
         return default
+
+
+def _export_api_keys_from_file(file_path: Path) -> None:
+    """Export API keys from a .env file to environment, without overwriting existing values.
+
+    Args:
+        file_path: Path to the .env file to read from
+    """
+    if not file_path.exists():
+        return
+
+    file_vars = dotenv_values(file_path)
+    for key in API_KEYS:
+        if key in file_vars and key not in os.environ:
+            value = file_vars[key]
+            if value is not None:
+                os.environ[key] = value
 
 
 def validate_env_var(
@@ -89,86 +166,42 @@ def validate_config_value(value: Any, validator: Callable[[Any], bool], config_k
         )
 
 
-def load_config() -> dict[str, str | int | float | bool | None]:
-    """Load configuration from $HOME/.kittylog.env, then ./.kittylog.env or ./.env, then environment variables."""
+def load_config() -> KittylogConfig:
+    """Load configuration from environment and .env files.
 
-    # Load config files in order of precedence
-    # Variables in later files will override earlier ones
-    config_vars: dict[str, str | None] = {}
+    Precedence (highest to lowest):
+    1. Environment variables
+    2. Project .kittylog.env
+    3. Project .env
+    4. User ~/.kittylog.env
+    5. Default values
 
-    # Load user config file (lowest precedence)
+    Returns:
+        KittylogConfig dictionary with all configuration values
+    """
+    # Define config file paths
     user_config = Path.home() / ".kittylog.env"
+    project_env = Path(".env")
+    project_config_env = Path(".kittylog.env")
+
+    # Load config files in order of precedence (later files override earlier)
+    config_vars: dict[str, str | None] = {}
     if user_config.exists():
         config_vars.update(dotenv_values(user_config))
-
-    # Load project .env file (medium precedence)
-    project_env = Path(".env")
     if project_env.exists():
         config_vars.update(dotenv_values(project_env))
-
-    # Load project .kittylog.env file (highest precedence)
-    project_config_env = Path(".kittylog.env")
     if project_config_env.exists():
         config_vars.update(dotenv_values(project_config_env))
-    env_keys = [
-        "ANTHROPIC_API_KEY",
-        "CEREBRAS_API_KEY",
-        "CHUTES_API_KEY",
-        "CHUTES_BASE_URL",
-        "CLAUDE_CODE_ACCESS_TOKEN",
-        "CUSTOM_ANTHROPIC_API_KEY",
-        "CUSTOM_ANTHROPIC_BASE_URL",
-        "CUSTOM_ANTHROPIC_VERSION",
-        "CUSTOM_OPENAI_API_KEY",
-        "CUSTOM_OPENAI_BASE_URL",
-        "DEEPSEEK_API_KEY",
-        "FIREWORKS_API_KEY",
-        "GEMINI_API_KEY",
-        "GROQ_API_KEY",
-        "LMSTUDIO_API_KEY",
-        "LMSTUDIO_API_URL",
-        "MINIMAX_API_KEY",
-        "MISTRAL_API_KEY",
-        "OLLAMA_API_URL",
-        "OLLAMA_HOST",
-        "OPENAI_API_KEY",
-        "OPENROUTER_API_KEY",
-        "STREAMLAKE_API_KEY",
-        "SYNTHETIC_API_KEY",
-        "SYN_API_KEY",
-        "TOGETHER_API_KEY",
-        "VC_API_KEY",
-        "ZAI_API_KEY",
-    ]
 
-    if user_config.exists():
-        user_vars = dotenv_values(user_config)
-        for key in env_keys:
-            if key in user_vars and key not in os.environ:
-                value = user_vars[key]
-                if value is not None:
-                    os.environ[key] = value
-
-    if project_env.exists():
-        project_vars = dotenv_values(project_env)
-        for key in env_keys:
-            if key in project_vars and key not in os.environ:
-                value = project_vars[key]
-                if value is not None:
-                    os.environ[key] = value
-
-    if project_config_env.exists():
-        project_config_vars = dotenv_values(project_config_env)
-        for key in env_keys:
-            if key in project_config_vars and key not in os.environ:
-                value = project_config_vars[key]
-                if value is not None:
-                    os.environ[key] = value
+    # Export API keys to environment (respecting existing env vars)
+    _export_api_keys_from_file(user_config)
+    _export_api_keys_from_file(project_env)
+    _export_api_keys_from_file(project_config_env)
 
     # Build config dictionary with proper precedence enforcement
     # Environment variables take precedence over file variables
     # But we must differentiate between invalid environment variables vs. invalid file variables
-    config: dict[str, str | int | float | bool | None] = {}
+    config: KittylogConfig = {}
 
     # Read environment variables (these have highest precedence)
     env_model = os.getenv("KITTYLOG_MODEL")
@@ -342,7 +375,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
     return config
 
 
-def validate_config(config: dict) -> None:
+def validate_config(config: KittylogConfig) -> None:
     """Validate configuration values and raise ConfigError for invalid values.
 
     Args:
@@ -398,7 +431,7 @@ def validate_config(config: dict) -> None:
     )
 
 
-def apply_config_defaults(config: dict) -> dict:
+def apply_config_defaults(config: KittylogConfig) -> KittylogConfig:
     """Apply default values for invalid configuration entries.
 
     Args:
@@ -409,22 +442,49 @@ def apply_config_defaults(config: dict) -> dict:
     """
     validated_config = config.copy()
 
-    def apply_default_if_invalid(key: str, validator: Callable[[Any], bool], default: Any) -> None:
-        """Apply default value if the config value is invalid."""
-        value = config.get(key)
-        if value is not None and not validator(value):
-            validated_config[key] = default
+    # Apply temperature defaults
+    temperature = config.get("temperature")
+    if temperature is not None and not (0 <= temperature <= 2):
+        validated_config["temperature"] = EnvDefaults.TEMPERATURE
 
-    apply_default_if_invalid("temperature", lambda x: 0 <= x <= 2, EnvDefaults.TEMPERATURE)
-    apply_default_if_invalid("max_output_tokens", lambda x: x > 0, EnvDefaults.MAX_OUTPUT_TOKENS)
-    apply_default_if_invalid("max_retries", lambda x: x > 0, EnvDefaults.MAX_RETRIES)
-    apply_default_if_invalid("log_level", lambda x: x in Logging.LEVELS, Logging.DEFAULT_LEVEL)
+    # Apply max_output_tokens defaults
+    max_output_tokens = config.get("max_output_tokens")
+    if max_output_tokens is not None and not (max_output_tokens > 0):
+        validated_config["max_output_tokens"] = EnvDefaults.MAX_OUTPUT_TOKENS
 
-    # Apply defaults for new configuration values
-    apply_default_if_invalid("grouping_mode", lambda x: x in ["tags", "dates", "gaps"], EnvDefaults.GROUPING_MODE)
-    apply_default_if_invalid("gap_threshold_hours", lambda x: x > 0, EnvDefaults.GAP_THRESHOLD_HOURS)
-    apply_default_if_invalid("date_grouping", lambda x: x in ["daily", "weekly", "monthly"], EnvDefaults.DATE_GROUPING)
-    apply_default_if_invalid("translate_headings", lambda x: isinstance(x, bool), EnvDefaults.TRANSLATE_HEADINGS)
-    apply_default_if_invalid("audience", lambda x: x in Audiences.slugs(), Audiences.resolve(EnvDefaults.AUDIENCE))
+    # Apply max_retries defaults
+    max_retries = config.get("max_retries")
+    if max_retries is not None and not (max_retries > 0):
+        validated_config["max_retries"] = EnvDefaults.MAX_RETRIES
+
+    # Apply log_level defaults
+    log_level = config.get("log_level")
+    if log_level is not None and log_level not in Logging.LEVELS:
+        validated_config["log_level"] = Logging.DEFAULT_LEVEL
+
+    # Apply grouping_mode defaults
+    grouping_mode = config.get("grouping_mode")
+    if grouping_mode is not None and grouping_mode not in ["tags", "dates", "gaps"]:
+        validated_config["grouping_mode"] = EnvDefaults.GROUPING_MODE
+
+    # Apply gap_threshold_hours defaults
+    gap_threshold_hours = config.get("gap_threshold_hours")
+    if gap_threshold_hours is not None and not (gap_threshold_hours > 0):
+        validated_config["gap_threshold_hours"] = EnvDefaults.GAP_THRESHOLD_HOURS
+
+    # Apply date_grouping defaults
+    date_grouping = config.get("date_grouping")
+    if date_grouping is not None and date_grouping not in ["daily", "weekly", "monthly"]:
+        validated_config["date_grouping"] = EnvDefaults.DATE_GROUPING
+
+    # Apply translate_headings defaults
+    translate_headings = config.get("translate_headings")
+    if translate_headings is not None and not isinstance(translate_headings, bool):
+        validated_config["translate_headings"] = EnvDefaults.TRANSLATE_HEADINGS
+
+    # Apply audience defaults
+    audience = config.get("audience")
+    if audience is not None and audience not in Audiences.slugs():
+        validated_config["audience"] = Audiences.resolve(EnvDefaults.AUDIENCE)
 
     return validated_config
