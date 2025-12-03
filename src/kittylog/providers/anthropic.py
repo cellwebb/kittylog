@@ -39,4 +39,4 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling Anthropic API: {str(e)}") from e
+        raise AIError.generation_error(f"Error calling Anthropic API: {e!s}") from e

@@ -26,4 +26,4 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Groq API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling Groq API: {str(e)}") from e
+        raise AIError.generation_error(f"Error calling Groq API: {e!s}") from e

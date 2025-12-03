@@ -85,7 +85,7 @@ def call_custom_anthropic_api(model: str, messages: list[dict], temperature: flo
             raise AIError.model_error("Custom Anthropic API returned empty content")
         return content
     except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Custom Anthropic API connection failed: {str(e)}") from e
+        raise AIError.connection_error(f"Custom Anthropic API connection failed: {e!s}") from e
     except httpx.HTTPStatusError as e:
         status_code = e.response.status_code
         error_text = e.response.text
@@ -96,8 +96,8 @@ def call_custom_anthropic_api(model: str, messages: list[dict], temperature: flo
             raise AIError.rate_limit_error(f"Custom Anthropic API rate limit exceeded: {error_text}") from e
         raise AIError.model_error(f"Custom Anthropic API error: {status_code} - {error_text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Custom Anthropic API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Custom Anthropic API request timed out: {e!s}") from e
     except AIError:
         raise
     except Exception as e:
-        raise AIError.model_error(f"Error calling Custom Anthropic API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Custom Anthropic API: {e!s}") from e

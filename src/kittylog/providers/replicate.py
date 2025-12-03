@@ -92,6 +92,6 @@ def call_replicate_api(model: str, messages: list[dict], temperature: float, max
             raise AIError.authentication_error(f"Replicate API authentication failed: {e.response.text}") from e
         raise AIError.model_error(f"Replicate API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Replicate API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Replicate API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Replicate API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Replicate API: {e!s}") from e

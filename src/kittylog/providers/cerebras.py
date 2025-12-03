@@ -26,4 +26,4 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Cerebras API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling Cerebras API: {str(e)}") from e
+        raise AIError.generation_error(f"Error calling Cerebras API: {e!s}") from e

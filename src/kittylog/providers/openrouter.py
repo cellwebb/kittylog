@@ -31,4 +31,4 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"OpenRouter API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling OpenRouter API: {str(e)}") from e
+        raise AIError.generation_error(f"Error calling OpenRouter API: {e!s}") from e

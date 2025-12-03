@@ -33,6 +33,6 @@ def call_deepseek_api(model: str, messages: list[dict], temperature: float, max_
             raise AIError.rate_limit_error(f"DeepSeek API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"DeepSeek API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"DeepSeek API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"DeepSeek API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling DeepSeek API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling DeepSeek API: {e!s}") from e

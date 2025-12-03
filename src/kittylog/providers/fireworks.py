@@ -33,6 +33,6 @@ def call_fireworks_api(model: str, messages: list[dict], temperature: float, max
             raise AIError.rate_limit_error(f"Fireworks AI API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Fireworks AI API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Fireworks AI API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Fireworks AI API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Fireworks AI API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Fireworks AI API: {e!s}") from e

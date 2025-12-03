@@ -46,6 +46,6 @@ def call_streamlake_api(model: str, messages: list[dict], temperature: float, ma
             raise AIError.rate_limit_error(f"StreamLake API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"StreamLake API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"StreamLake API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"StreamLake API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling StreamLake API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling StreamLake API: {e!s}") from e

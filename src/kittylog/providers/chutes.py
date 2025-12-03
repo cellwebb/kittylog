@@ -48,8 +48,8 @@ def call_chutes_api(model: str, messages: list[dict], temperature: float, max_to
             raise AIError.connection_error(f"Chutes.ai API service unavailable: {status_code} - {error_text}") from e
         raise AIError.model_error(f"Chutes.ai API error: {status_code} - {error_text}") from e
     except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Chutes.ai API connection error: {str(e)}") from e
+        raise AIError.connection_error(f"Chutes.ai API connection error: {e!s}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Chutes.ai API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Chutes.ai API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Chutes.ai API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Chutes.ai API: {e!s}") from e

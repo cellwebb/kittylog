@@ -33,6 +33,6 @@ def call_minimax_api(model: str, messages: list[dict], temperature: float, max_t
             raise AIError.rate_limit_error(f"MiniMax API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"MiniMax API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"MiniMax API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"MiniMax API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling MiniMax API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling MiniMax API: {e!s}") from e

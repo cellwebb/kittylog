@@ -28,8 +28,8 @@ def call_ollama_api(model: str, messages: list[dict], temperature: float, max_to
             # Fallback: return the full response as string
             return str(response_data)
     except httpx.ConnectError as e:
-        raise AIError.generation_error(f"Ollama connection failed. Make sure Ollama is running: {str(e)}") from e
+        raise AIError.generation_error(f"Ollama connection failed. Make sure Ollama is running: {e!s}") from e
     except httpx.HTTPStatusError as e:
         raise AIError.generation_error(f"Ollama API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.generation_error(f"Error calling Ollama API: {str(e)}") from e
+        raise AIError.generation_error(f"Error calling Ollama API: {e!s}") from e

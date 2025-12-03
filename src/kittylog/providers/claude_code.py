@@ -134,6 +134,6 @@ def call_claude_code_api(model: str, messages: list[dict], temperature: float, m
             raise AIError.rate_limit_error(f"Claude Code API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Claude Code API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Claude Code API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Claude Code API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Claude Code API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Claude Code API: {e!s}") from e

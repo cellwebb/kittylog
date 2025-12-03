@@ -40,7 +40,7 @@ def _call_zai_api_impl(
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"{api_name} API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling {api_name} API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling {api_name} API: {e!s}") from e
 
 
 def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:

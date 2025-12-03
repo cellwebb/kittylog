@@ -80,6 +80,6 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
             raise AIError.rate_limit_error(f"Gemini API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Gemini API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Gemini API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Gemini API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Gemini API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Gemini API: {e!s}") from e

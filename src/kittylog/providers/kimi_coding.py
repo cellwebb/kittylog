@@ -44,7 +44,7 @@ def call_kimi_coding_api(model: str, messages: list[dict], temperature: float, m
             raise AIError.model_error("Kimi Coding API returned empty content")
         return content
     except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Kimi Coding API connection failed: {str(e)}") from e
+        raise AIError.connection_error(f"Kimi Coding API connection failed: {e!s}") from e
     except httpx.HTTPStatusError as e:
         status_code = e.response.status_code
         error_text = e.response.text
@@ -56,8 +56,8 @@ def call_kimi_coding_api(model: str, messages: list[dict], temperature: float, m
         else:
             raise AIError.model_error(f"Kimi Coding API error: {status_code} - {error_text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Kimi Coding API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Kimi Coding API request timed out: {e!s}") from e
     except AIError:
         raise
     except Exception as e:
-        raise AIError.model_error(f"Error calling Kimi Coding API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Kimi Coding API: {e!s}") from e

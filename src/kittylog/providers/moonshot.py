@@ -33,6 +33,6 @@ def call_moonshot_api(model: str, messages: list[dict], temperature: float, max_
             raise AIError.rate_limit_error(f"Moonshot AI API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Moonshot AI API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Moonshot AI API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"Moonshot AI API request timed out: {e!s}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Moonshot AI API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling Moonshot AI API: {e!s}") from e
