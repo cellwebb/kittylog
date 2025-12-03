@@ -15,6 +15,22 @@ class FileStatus(Enum):
     UNTRACKED = "?"
 
 
+class GroupingMode(str, Enum):
+    """Grouping modes for changelog entries."""
+    
+    TAGS = "tags"
+    DATES = "dates"
+    GAPS = "gaps"
+
+
+class DateGrouping(str, Enum):
+    """Date grouping strategies."""
+    
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+
 class EnvDefaults:
     """Default values for environment variables."""
 
@@ -22,9 +38,9 @@ class EnvDefaults:
     TEMPERATURE: float = 1.0
     MAX_OUTPUT_TOKENS: int = 1024
     WARNING_LIMIT_TOKENS: int = 16384
-    GROUPING_MODE: str = "tags"
+    GROUPING_MODE: str = GroupingMode.TAGS.value
     GAP_THRESHOLD_HOURS: float = 4.0
-    DATE_GROUPING: str = "daily"
+    DATE_GROUPING: str = DateGrouping.DAILY.value
     TRANSLATE_HEADINGS: bool = False
     AUDIENCE: str = "stakeholders"
 
