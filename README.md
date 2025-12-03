@@ -149,9 +149,12 @@ OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=...
 ```
 
-- Set defaults in `$HOME/.kittylog.env`
-- Override per-project in `.kittylog.env`
-- One-off overrides via CLI flags (`--model`, `--language`, `--audience`, etc.)
+Configuration precedence (highest to lowest):
+
+1. **CLI flags** - `--model`, `--language`, `--audience`, etc.
+2. **Environment variables** - `KITTYLOG_MODEL`, `OPENAI_API_KEY`, etc.
+3. **Config files** - Project `.kittylog.env` → User `~/.kittylog.env`
+4. **Defaults** - Built-in default values
 
 **Multilingual changelog?** Run `kittylog language` to choose from 25+ languages and optionally translate section headings.
 
