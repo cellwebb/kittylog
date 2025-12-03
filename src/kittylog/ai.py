@@ -14,33 +14,7 @@ from kittylog.config import load_config
 from kittylog.constants import EnvDefaults
 from kittylog.errors import AIError
 from kittylog.prompt import build_changelog_prompt, clean_changelog_content
-from kittylog.providers import (
-    call_anthropic_api,
-    call_azure_openai_api,
-    call_cerebras_api,
-    call_chutes_api,
-    call_claude_code_api,
-    call_custom_anthropic_api,
-    call_custom_openai_api,
-    call_deepseek_api,
-    call_fireworks_api,
-    call_gemini_api,
-    call_groq_api,
-    call_kimi_coding_api,
-    call_lmstudio_api,
-    call_minimax_api,
-    call_mistral_api,
-    call_moonshot_api,
-    call_ollama_api,
-    call_openai_api,
-    call_openrouter_api,
-    call_replicate_api,
-    call_streamlake_api,
-    call_synthetic_api,
-    call_together_api,
-    call_zai_api,
-    call_zai_coding_api,
-)
+from kittylog.providers import PROVIDER_REGISTRY
 from kittylog.utils import count_tokens
 
 logger = logging.getLogger(__name__)
@@ -135,39 +109,10 @@ def generate_changelog_entry(
     prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
     logger.info(f"Prompt tokens: {prompt_tokens}")
 
-    # Provider functions mapping
-    provider_funcs = {
-        "anthropic": call_anthropic_api,
-        "azure-openai": call_azure_openai_api,
-        "cerebras": call_cerebras_api,
-        "chutes": call_chutes_api,
-        "claude-code": call_claude_code_api,
-        "custom-anthropic": call_custom_anthropic_api,
-        "custom-openai": call_custom_openai_api,
-        "deepseek": call_deepseek_api,
-        "fireworks": call_fireworks_api,
-        "gemini": call_gemini_api,
-        "groq": call_groq_api,
-        "kimi-coding": call_kimi_coding_api,
-        "lm-studio": call_lmstudio_api,
-        "minimax": call_minimax_api,
-        "mistral": call_mistral_api,
-        "moonshot": call_moonshot_api,
-        "ollama": call_ollama_api,
-        "openai": call_openai_api,
-        "openrouter": call_openrouter_api,
-        "replicate": call_replicate_api,
-        "streamlake": call_streamlake_api,
-        "synthetic": call_synthetic_api,
-        "together": call_together_api,
-        "zai": call_zai_api,
-        "zai-coding": call_zai_coding_api,
-    }
-
     # Generate the changelog content
     try:
         content = generate_with_retries(
-            provider_funcs=provider_funcs,
+            provider_funcs=PROVIDER_REGISTRY,
             model=model,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
