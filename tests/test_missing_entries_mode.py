@@ -172,14 +172,14 @@ class TestHandleMissingEntriesMode:
 
             assert success
 
-            # Verify order: v0.3.0 should appear BEFORE v0.2.0 which should appear BEFORE v0.1.0
-            pos_v3 = content.find("## [v0.3.0]")
-            pos_v2 = content.find("## [v0.2.0]")
-            pos_v1 = content.find("## [v0.1.0]")
+            # Verify order: 0.3.0 should appear BEFORE 0.2.0 which should appear BEFORE 0.1.0
+            pos_v3 = content.find("## [0.3.0]")
+            pos_v2 = content.find("## [0.2.0]")
+            pos_v1 = content.find("## [0.1.0]")
 
             assert pos_v3 < pos_v2 < pos_v1, (
-                f"Wrong order! v0.3.0 at {pos_v3}, v0.2.0 at {pos_v2}, v0.1.0 at {pos_v1}. "
-                f"Expected newest first (v0.3.0 < v0.2.0 < v0.1.0)"
+                f"Wrong order! 0.3.0 at {pos_v3}, 0.2.0 at {pos_v2}, 0.1.0 at {pos_v1}. "
+                f"Expected newest first (0.3.0 < 0.2.0 < 0.1.0)"
             )
 
     def test_insertion_uses_semantic_version_ordering(self, temp_dir):
@@ -225,18 +225,18 @@ class TestHandleMissingEntriesMode:
 
             assert success
 
-            # v0.3.0 should be BEFORE v0.2.0 (newer)
-            # v0.1.0 should be AFTER v0.2.0 (older)
-            pos_v3 = content.find("## [v0.3.0]")
+            # 0.3.0 should be BEFORE 0.2.0 (newer)
+            # 0.1.0 should be AFTER 0.2.0 (older)
+            pos_v3 = content.find("## [0.3.0]")
             pos_v2 = content.find("## [0.2.0]")
-            pos_v1 = content.find("## [v0.1.0]")
+            pos_v1 = content.find("## [0.1.0]")
 
-            assert pos_v3 != -1, "v0.3.0 not found in content"
-            assert pos_v2 != -1, "v0.2.0 not found in content"
-            assert pos_v1 != -1, "v0.1.0 not found in content"
+            assert pos_v3 != -1, "0.3.0 not found in content"
+            assert pos_v2 != -1, "0.2.0 not found in content"
+            assert pos_v1 != -1, "0.1.0 not found in content"
 
-            assert pos_v3 < pos_v2, f"v0.3.0 ({pos_v3}) should be before v0.2.0 ({pos_v2})"
-            assert pos_v2 < pos_v1, f"v0.2.0 ({pos_v2}) should be before v0.1.0 ({pos_v1})"
+            assert pos_v3 < pos_v2, f"0.3.0 ({pos_v3}) should be before 0.2.0 ({pos_v2})"
+            assert pos_v2 < pos_v1, f"0.2.0 ({pos_v2}) should be before 0.1.0 ({pos_v1})"
 
     def test_includes_date_in_version_header(self, temp_dir):
         """Test that version headers include the tag date."""
@@ -264,7 +264,7 @@ class TestHandleMissingEntriesMode:
             )
 
             assert success
-            assert "## [v1.0.0] - 2024-06-15" in content
+            assert "## [1.0.0] - 2024-06-15" in content
 
     def test_no_changes_when_no_missing_tags(self, temp_dir):
         """Test that no changes are made when all tags exist in changelog."""
@@ -331,10 +331,10 @@ class TestHandleMissingEntriesMode:
                 )
 
             assert success
-            # v1.1.0 should NOT be in the content (no commits)
-            # But v1.0.0 should be there
-            assert "v1.0.0" in content
-            assert "v1.1.0" not in content
+            # 1.1.0 should NOT be in the content (no commits)
+            # But 1.0.0 should be there
+            assert "1.0.0" in content
+            assert "1.1.0" not in content
 
     def test_handles_empty_ai_response(self, temp_dir):
         """Test that empty AI responses are handled gracefully."""
@@ -422,3 +422,179 @@ class TestTagNormalizationEdgeCases:
             # Actually, lstrip only strips lowercase 'v', so V1.0.0 won't match
             # This documents current behavior
             assert "v1.0.0" in missing or "v2.0.0" in missing
+
+
+class TestVersionStrippingInMissingMode:
+    """Test version prefix stripping in missing entries mode.
+    
+    These tests verify that the missing entries mode correctly strips 'v' prefixes
+    when creating changelog headers for missing tags.
+    """
+
+    def test_missing_mode_strips_v_prefix_from_header(self, temp_dir):
+        """Test that missing mode strips 'v' from version headers.
+        
+        Input tag: v1.0.0
+        Expected header: ## [1.0.0] - YYYY-MM-DD
+        """
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        
+        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file.write_text("""# Changelog
+
+## [Unreleased]
+
+""")
+
+        def mock_generate_entry(commits, tag, from_boundary=None, **kwargs):
+            return "### Added\n\n- Feature for " + tag
+
+        with (
+            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
+            patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
+            patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
+        ):
+            mock_get_tags.return_value = ["v1.0.0"]
+            mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
+            mock_get_date.return_value = datetime(2024, 6, 15, tzinfo=timezone.utc)
+            mock_read.return_value = changelog_file.read_text()
+
+            success, content = handle_missing_entries_mode(
+                changelog_file=str(changelog_file),
+                generate_entry_func=mock_generate_entry,
+                quiet=True,
+            )
+
+            assert success
+            # Verify v prefix is stripped in header
+            assert "## [1.0.0] - 2024-06-15" in content
+            assert "## [v1.0.0]" not in content
+
+    def test_missing_mode_preserves_version_without_v(self, temp_dir):
+        """Test that missing mode preserves versions without 'v' prefix.
+        
+        Input tag: 2.0.0
+        Expected header: ## [2.0.0] - YYYY-MM-DD
+        """
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        
+        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file.write_text("""# Changelog
+
+## [Unreleased]
+
+""")
+
+        def mock_generate_entry(commits, tag, from_boundary=None, **kwargs):
+            return "### Added\n\n- Feature"
+
+        with (
+            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
+            patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
+            patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
+        ):
+            mock_get_tags.return_value = ["2.0.0"]
+            mock_get_commits.return_value = [{"hash": "xyz", "message": "test"}]
+            mock_get_date.return_value = datetime(2024, 7, 20, tzinfo=timezone.utc)
+            mock_read.return_value = changelog_file.read_text()
+
+            success, content = handle_missing_entries_mode(
+                changelog_file=str(changelog_file),
+                generate_entry_func=mock_generate_entry,
+                quiet=True,
+            )
+
+            assert success
+            # Version without v should remain unchanged
+            assert "## [2.0.0] - 2024-07-20" in content
+
+    def test_missing_mode_strips_v_from_multiple_tags(self, temp_dir):
+        """Test that missing mode consistently strips 'v' from all missing tags."""
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        
+        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file.write_text("""# Changelog
+
+## [Unreleased]
+
+""")
+
+        def mock_generate_entry(commits, tag, from_boundary=None, **kwargs):
+            return f"### Added\n\n- Changes for {tag}"
+
+        with (
+            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
+            patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
+            patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
+        ):
+            mock_get_tags.return_value = ["v1.0.0", "v1.1.0", "v1.2.0"]
+            mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
+            mock_get_date.side_effect = [
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 2, 1, tzinfo=timezone.utc),
+                datetime(2024, 3, 1, tzinfo=timezone.utc),
+            ]
+            mock_read.return_value = changelog_file.read_text()
+
+            success, content = handle_missing_entries_mode(
+                changelog_file=str(changelog_file),
+                generate_entry_func=mock_generate_entry,
+                quiet=True,
+            )
+
+            assert success
+            # All v prefixes should be stripped
+            assert "## [1.0.0] - 2024-01-01" in content
+            assert "## [1.1.0] - 2024-02-01" in content
+            assert "## [1.2.0] - 2024-03-01" in content
+            # No v prefixes should appear
+            assert "## [v1.0.0]" not in content
+            assert "## [v1.1.0]" not in content
+            assert "## [v1.2.0]" not in content
+
+    def test_missing_mode_strips_v_from_prerelease_versions(self, temp_dir):
+        """Test that 'v' prefix is stripped from prerelease versions.
+        
+        Input tag: v2.0.0-beta.1
+        Expected header: ## [2.0.0-beta.1] - YYYY-MM-DD
+        """
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        
+        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file.write_text("""# Changelog
+
+## [Unreleased]
+
+""")
+
+        def mock_generate_entry(commits, tag, from_boundary=None, **kwargs):
+            return "### Added\n\n- Beta feature"
+
+        with (
+            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
+            patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
+            patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
+        ):
+            mock_get_tags.return_value = ["v2.0.0-beta.1"]
+            mock_get_commits.return_value = [{"hash": "def", "message": "beta"}]
+            mock_get_date.return_value = datetime(2024, 8, 1, tzinfo=timezone.utc)
+            mock_read.return_value = changelog_file.read_text()
+
+            success, content = handle_missing_entries_mode(
+                changelog_file=str(changelog_file),
+                generate_entry_func=mock_generate_entry,
+                quiet=True,
+            )
+
+            assert success
+            # v should be stripped, prerelease tag preserved
+            assert "## [2.0.0-beta.1] - 2024-08-01" in content
+            assert "## [v2.0.0-beta.1]" not in content

@@ -375,7 +375,7 @@ class TestUpdateChangelog:
         )
 
         # Should process from beginning to the tag
-        assert "## [v0.1.0]" in result  # Tag is preserved as-is
+        assert "## [0.1.0]" in result  # Tag v prefix is stripped
         assert "### Added" in result
         assert "New feature" in result
 
@@ -896,3 +896,310 @@ Some custom content that's not a version.
         # Test inserting beta version (should come after alpha)
         result = find_insertion_point_by_version(content, "1.0.0b1")
         assert result == 4  # Due to current implementation, inserts before final release
+
+
+class TestVersionStripping:
+    """Test version prefix stripping functionality.
+    
+    These tests verify that the 'v' prefix is correctly stripped from version tags
+    when creating changelog headers, ensuring consistent formatting across all modes.
+    """
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_version_with_v_prefix_is_stripped(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test that version with 'v' prefix is stripped in header.
+        
+        Input: v0.1.0
+        Expected: ## [0.1.0] - YYYY-MM-DD
+        """
+        mock_get_commits.return_value = [
+            {"hash": "abc123", "message": "Add feature", "files": ["feature.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Added\n- New feature",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        mock_get_date.return_value = datetime(2024, 1, 20)
+
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+"""
+
+        result, _token_usage = update_changelog(
+            existing_content=existing_content,
+            from_boundary=None,
+            to_boundary="v0.1.0",
+            model="openai:gpt-4o-mini",
+            hint="",
+            show_prompt=False,
+            quiet=True,
+            no_unreleased=False,
+        )
+
+        # Verify the v prefix is stripped
+        assert "## [0.1.0] - 2024-01-20" in result
+        assert "## [v0.1.0]" not in result
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_version_without_v_prefix_unchanged(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test that version without 'v' prefix remains unchanged.
+        
+        Input: 0.1.0
+        Expected: ## [0.1.0] - YYYY-MM-DD
+        """
+        mock_get_commits.return_value = [
+            {"hash": "def456", "message": "Fix bug", "files": ["bug.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Fixed\n- Bug fix",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        mock_get_date.return_value = datetime(2024, 2, 15)
+
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+"""
+
+        result, _token_usage = update_changelog(
+            existing_content=existing_content,
+            from_boundary=None,
+            to_boundary="0.1.0",
+            model="openai:gpt-4o-mini",
+            hint="",
+            show_prompt=False,
+            quiet=True,
+            no_unreleased=False,
+        )
+
+        # Verify version remains unchanged (no v prefix)
+        assert "## [0.1.0] - 2024-02-15" in result
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_version_with_v_prefix_and_prerelease(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test that 'v' prefix is stripped from prerelease versions.
+        
+        Input: v1.0.0-beta
+        Expected: ## [1.0.0-beta] - YYYY-MM-DD
+        """
+        mock_get_commits.return_value = [
+            {"hash": "ghi789", "message": "Beta release", "files": ["beta.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Added\n- Beta features",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        mock_get_date.return_value = datetime(2024, 3, 10)
+
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+"""
+
+        result, _token_usage = update_changelog(
+            existing_content=existing_content,
+            from_boundary=None,
+            to_boundary="v1.0.0-beta",
+            model="openai:gpt-4o-mini",
+            hint="",
+            show_prompt=False,
+            quiet=True,
+            no_unreleased=False,
+        )
+
+        # Verify v prefix is stripped but prerelease tag remains
+        assert "## [1.0.0-beta] - 2024-03-10" in result
+        assert "## [v1.0.0-beta]" not in result
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_version_with_major_minor_patch(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test version stripping with standard semantic version.
+        
+        Input: v1.2.3
+        Expected: ## [1.2.3] - YYYY-MM-DD
+        """
+        mock_get_commits.return_value = [
+            {"hash": "jkl012", "message": "Patch release", "files": ["patch.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Fixed\n- Patch fix",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        mock_get_date.return_value = datetime(2024, 4, 5)
+
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+"""
+
+        result, _token_usage = update_changelog(
+            existing_content=existing_content,
+            from_boundary=None,
+            to_boundary="v1.2.3",
+            model="openai:gpt-4o-mini",
+            hint="",
+            show_prompt=False,
+            quiet=True,
+            no_unreleased=False,
+        )
+
+        # Verify correct format
+        assert "## [1.2.3] - 2024-04-05" in result
+        assert "## [v1.2.3]" not in result
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_multiple_versions_consistent_stripping(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test that multiple version updates maintain consistent stripping.
+        
+        Ensures that when updating a changelog with multiple versions,
+        all 'v' prefixes are consistently stripped.
+        """
+        mock_get_commits.return_value = [
+            {"hash": "abc", "message": "Feature", "files": ["file.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Added\n- Feature",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        
+        # First update with v0.1.0
+        mock_get_date.return_value = datetime(2024, 1, 1)
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+"""
+        
+        result1, _ = update_changelog(
+            existing_content=existing_content,
+            from_boundary=None,
+            to_boundary="v0.1.0",
+            model="openai:gpt-4o-mini",
+            quiet=True,
+            no_unreleased=False,
+        )
+        
+        # Second update with v0.2.0
+        mock_get_date.return_value = datetime(2024, 2, 1)
+        result2, _ = update_changelog(
+            existing_content=result1,
+            from_boundary="v0.1.0",
+            to_boundary="v0.2.0",
+            model="openai:gpt-4o-mini",
+            quiet=True,
+            no_unreleased=False,
+        )
+        
+        # Both versions should have v stripped
+        assert "## [0.1.0] - 2024-01-01" in result2
+        assert "## [0.2.0] - 2024-02-01" in result2
+        assert "## [v0.1.0]" not in result2
+        assert "## [v0.2.0]" not in result2
+
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
+    def test_version_stripping_with_existing_entry(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
+        """Test version stripping when updating an existing version entry.
+        
+        Verifies that when replacing an existing version section,
+        the v prefix is still correctly stripped.
+        """
+        mock_get_commits.return_value = [
+            {"hash": "xyz", "message": "Updated feature", "files": ["feature.py"]},
+        ]
+        mock_generate.return_value = (
+            "### Changed\n- Updated feature",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        )
+        mock_get_date.return_value = datetime(2024, 5, 20)
+
+        # Existing changelog with version (without v)
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+## [1.0.0] - 2024-05-20
+
+### Added
+- Old feature
+
+## [0.9.0] - 2024-01-01
+
+### Added
+- Initial release
+"""
+
+        result, _ = update_changelog(
+            existing_content=existing_content,
+            from_boundary="v0.9.0",
+            to_boundary="v1.0.0",
+            model="openai:gpt-4o-mini",
+            quiet=True,
+            no_unreleased=False,
+        )
+
+        # Verify replacement maintains correct format
+        assert "## [1.0.0] - 2024-05-20" in result
+        assert "## [v1.0.0]" not in result
+        # Old content should be replaced
+        assert "### Changed" in result
+        assert "Updated feature" in result
+
+    def test_edge_case_empty_version(self):
+        """Test handling of edge case with empty version string.
+        
+        While this shouldn't happen in practice, ensure graceful handling.
+        """
+        # lstrip('v') on empty string should return empty string
+        assert "".lstrip('v') == ""
+
+    def test_edge_case_only_v_character(self):
+        """Test handling of version that is only 'v'."""
+        # Just 'v' should strip to empty
+        assert "v".lstrip('v') == ""
+
+    def test_edge_case_multiple_v_prefixes(self):
+        """Test handling of multiple 'v' characters at start.
+        
+        Input: vv1.0.0
+        Expected: 1.0.0 (all leading v's stripped)
+        """
+        # lstrip removes ALL leading 'v' characters
+        assert "vv1.0.0".lstrip('v') == "1.0.0"
+        assert "vvv1.0.0".lstrip('v') == "1.0.0"
+
+    def test_edge_case_v_in_middle_of_version(self):
+        """Test that 'v' in middle of version is not stripped.
+        
+        Input: 1.v0.0
+        Expected: 1.v0.0 (only leading v's are stripped)
+        """
+        # lstrip only removes from the beginning
+        assert "1.v0.0".lstrip('v') == "1.v0.0"
+
+    def test_edge_case_uppercase_v(self):
+        """Test handling of uppercase 'V' prefix.
+        
+        Note: lstrip('v') only strips lowercase 'v', not uppercase 'V'.
+        This documents current behavior - may need enhancement if uppercase is used.
+        """
+        # Current implementation only strips lowercase 'v'
+        assert "V1.0.0".lstrip('v') == "V1.0.0"
+        # Mixed case
+        assert "vV1.0.0".lstrip('v') == "V1.0.0"
