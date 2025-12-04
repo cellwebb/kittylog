@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.3.4] - 2025-12-04
+
+### Added
+
+- Comprehensive version tag normalization support across all changelog modes
+
+### Fixed
+
+- Resolve boundary filtering bug causing incorrect reprocessing of changelog entries
+- Fix tag recognition issues by implementing proper version normalization
+
 ## [2.3.3] - 2025-12-04
 
 ### Added
