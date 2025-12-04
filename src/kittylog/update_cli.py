@@ -6,7 +6,8 @@ from pathlib import Path
 
 import click
 
-from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
+from kittylog.changelog.io import create_changelog_header, read_changelog, write_changelog
+from kittylog.changelog.parser import find_existing_boundaries
 from kittylog.commit_analyzer import get_all_tags_with_dates
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.constants import Audiences, EnvDefaults, Languages, Logging
@@ -75,7 +76,7 @@ def update_version(
     """
     try:
         # Set up logging
-        effective_log_level = log_level or config["log_level"]
+        effective_log_level = log_level or config.log_level
         if verbose and effective_log_level not in ("DEBUG", "INFO"):
             effective_log_level = "INFO"
         if quiet:
@@ -95,11 +96,15 @@ def update_version(
                 click.echo("Changelog creation cancelled.")
                 sys.exit(1)
 
-        # If no version is specified, process all tags (update behavior)
+        # If no version is specified, determine mode based on from/to tags
         if version is None:
             resolved_language = Languages.resolve_code(language) if language else EnvDefaults.LANGUAGE
             resolved_audience = Audiences.resolve(audience)
-            # Run main business logic with update behavior (process all tags)
+
+            # Determine if this is range mode or update all mode
+            update_all_entries = not (from_tag is not None or to_tag is not None)
+
+            # Run main business logic with appropriate mode
             changelog_opts = ChangelogOptions(
                 changelog_file=file,
                 from_tag=from_tag,
@@ -109,7 +114,7 @@ def update_version(
                 quiet=quiet,
                 require_confirmation=not yes,
                 dry_run=dry_run,
-                update_all_entries=True,
+                update_all_entries=update_all_entries,
                 yes=yes,
                 language=resolved_language,
                 audience=resolved_audience,

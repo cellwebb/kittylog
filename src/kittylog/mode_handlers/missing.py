@@ -1,7 +1,8 @@
 """Missing entries mode handler for kittylog."""
 
-from kittylog.changelog_parser import find_existing_boundaries, find_insertion_point_by_version
+from kittylog.changelog.parser import find_existing_boundaries, find_insertion_point_by_version
 from kittylog.commit_analyzer import get_commits_between_tags
+from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_tags, get_tag_date
 
 
@@ -15,7 +16,7 @@ def determine_missing_entries(changelog_file: str) -> list[str]:
         List of tag names that need changelog entries
     """
     try:
-        from kittylog.changelog_io import read_changelog
+        from kittylog.changelog.io import read_changelog
 
         existing_content = read_changelog(changelog_file)
         existing_versions = find_existing_boundaries(existing_content)
@@ -54,7 +55,7 @@ def handle_missing_entries_mode(
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog_io import read_changelog
+    from kittylog.changelog.io import read_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
@@ -124,7 +125,7 @@ def handle_missing_entries_mode(
 
             updated_content = "\n".join(lines)
 
-        except Exception as e:
+        except (GitError, AIError, OSError, TimeoutError, ValueError, KeyError) as e:
             output.warning(f"Failed to process tag {tag}: {e}")
             success = False
             continue

@@ -260,7 +260,7 @@ def exchange_code_for_tokens(auth_code: str, context: OAuthContext) -> dict[str,
                 tokens["expires_at"] = time.time() + tokens["expires_in"]
             return tokens
         logger.error("Token exchange failed: %s - %s", response.status_code, response.text)
-    except Exception as exc:
+    except (httpx.RequestError, ValueError, KeyError, RuntimeError) as exc:
         logger.error("Token exchange error: %s", exc)
     return None
 
@@ -296,7 +296,7 @@ def perform_oauth_flow(quiet: bool = False) -> dict[str, Any] | None:
 
     try:
         webbrowser.open(auth_url)
-    except Exception as exc:
+    except (OSError, RuntimeError) as exc:
         logger.warning("Failed to open browser automatically: %s", exc)
         if not quiet:
             print(f"⚠️  Failed to open browser automatically: {exc}")
@@ -366,7 +366,7 @@ def save_token(access_token: str) -> bool:
     try:
         set_key(str(env_path), "CLAUDE_CODE_ACCESS_TOKEN", access_token)
         return True
-    except Exception as exc:
+    except (OSError, RuntimeError) as exc:
         logger.error("Failed to save token: %s", exc)
         return False
 
@@ -424,6 +424,6 @@ def prompt_for_reauth() -> bool:
     except (KeyboardInterrupt, EOFError):
         print("\n   Re-authentication cancelled.")
         return False
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         logger.error(f"Error during re-authentication prompt: {exc}")
         return False

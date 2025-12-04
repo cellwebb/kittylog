@@ -131,7 +131,7 @@ def common_options(f: Callable) -> Callable:
 
 def setup_command_logging(log_level: str | None, verbose: bool, quiet: bool) -> None:
     """Set up logging for CLI commands with consistent logic."""
-    effective_log_level = log_level or load_config().get("log_level") or EnvDefaults.LOG_LEVEL
+    effective_log_level = log_level or load_config().log_level or EnvDefaults.LOG_LEVEL
     if verbose and effective_log_level not in ("DEBUG", "INFO"):
         effective_log_level = "INFO"
     if quiet:
@@ -140,6 +140,39 @@ def setup_command_logging(log_level: str | None, verbose: bool, quiet: bool) -> 
 
     # Configure output manager mode
     set_output_mode(quiet=quiet, verbose=verbose)
+
+
+def _validate_cli_options(
+    grouping_mode: str | None,
+    from_tag: str | None,
+    to_tag: str | None,
+    gap_threshold: float | None,
+    date_grouping: str | None,
+) -> None:
+    """Validate CLI option combinations and fail fast with clear errors.
+
+    This function converts what were previously warnings into validation errors
+    to prevent execution with conflicting or incompatible options.
+    """
+    # Use defaults if values are None for validation purposes
+    effective_grouping_mode = grouping_mode or EnvDefaults.GROUPING_MODE
+    effective_date_grouping = date_grouping or EnvDefaults.DATE_GROUPING
+    effective_gap_threshold = gap_threshold or EnvDefaults.GAP_THRESHOLD_HOURS
+
+    # Validate: from-tag and to-tag require tags grouping mode
+    if effective_grouping_mode != GroupingMode.TAGS.value and (from_tag or to_tag):
+        raise click.UsageError(f"--from-tag and --to-tag require --grouping-mode tags, got {effective_grouping_mode}")
+
+    # Validate: date-grouping doesn't work with gaps grouping mode
+    if effective_grouping_mode == GroupingMode.GAPS.value and effective_date_grouping != DateGrouping.DAILY.value:
+        raise click.UsageError(f"--date-grouping {effective_date_grouping} is incompatible with --grouping-mode gaps")
+
+    # Validate: gap-threshold doesn't work with dates grouping mode
+    if (
+        effective_grouping_mode == GroupingMode.DATES.value
+        and effective_gap_threshold != EnvDefaults.GAP_THRESHOLD_HOURS
+    ):
+        raise click.UsageError("--gap-threshold is incompatible with --grouping-mode dates")
 
 
 # Interactive configuration is now imported from kittylog.ui.prompts
@@ -194,12 +227,26 @@ def add(
 
         # Interactive mode configuration
         selected_audience = audience  # Initialize with CLI-provided audience
-        if interactive:
+        if interactive and not quiet:
             grouping_mode, gap_threshold, date_grouping, include_diff, yes, selected_audience = (
                 interactive_configuration(
                     grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience
                 )
             )
+        elif quiet:
+            # In quiet mode, apply same defaults as interactive_configuration would
+            from kittylog.config import load_config
+
+            config = load_config()
+            grouping_mode = grouping_mode or "tags"
+            gap_threshold = gap_threshold or 4.0
+            date_grouping = date_grouping or "daily"
+            include_diff = include_diff or False
+            yes = yes or True  # Auto-accept in quiet mode for scripting
+            selected_audience = audience or config.audience or "stakeholders"
+
+        # Early validation of option combinations - fail fast instead of warnings
+        _validate_cli_options(grouping_mode, from_tag, to_tag, gap_threshold, date_grouping)
 
         # Create parameter objects directly - no compatibility layer needed
         workflow_opts = WorkflowOptions(
@@ -229,24 +276,7 @@ def add(
             special_unreleased_mode=False,
         )
 
-        # Modern validation with clean error messages
-        if changelog_opts.grouping_mode != GroupingMode.TAGS.value and (
-            changelog_opts.from_tag or changelog_opts.to_tag
-        ):
-            click.echo(
-                f"Warning: --from-tag and --to-tag only work with --grouping-mode tags. "
-                f"Using {changelog_opts.grouping_mode} mode.",
-                err=True,
-            )
-
-        if (
-            changelog_opts.grouping_mode == GroupingMode.GAPS.value
-            and changelog_opts.date_grouping != DateGrouping.DAILY.value
-        ):
-            click.echo("Warning: --date-grouping ignored with --grouping-mode gaps", err=True)
-
-        if changelog_opts.grouping_mode == GroupingMode.DATES.value:
-            click.echo("Warning: --gap-threshold ignored with --grouping-mode dates", err=True)
+        # Language/audience already set in WorkflowOptions constructor
 
         # Language/audience already set in WorkflowOptions constructor
 

@@ -84,7 +84,7 @@ def configure_language_init_workflow(env_path: Path | str) -> bool:
                 click.echo("Language selection cancelled. Proceeding with init...")
                 return True  # Continue with init, just skip language part
 
-    except Exception as e:
+    except (OSError, ValueError, KeyboardInterrupt) as e:
         click.echo(f"Language configuration error: {e}")
         return False
 

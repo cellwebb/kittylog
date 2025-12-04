@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from kittylog.changelog_io import prepare_release, read_changelog
+from kittylog.changelog.io import prepare_release, read_changelog
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.constants import EnvDefaults, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
@@ -62,7 +62,7 @@ def release(
         config = load_config()
 
         # Set up logging
-        effective_log_level = log_level or config.get("log_level") or EnvDefaults.LOG_LEVEL
+        effective_log_level = log_level or config.log_level or EnvDefaults.LOG_LEVEL
         if verbose and effective_log_level not in ("DEBUG", "INFO"):
             effective_log_level = "INFO"
         if quiet:

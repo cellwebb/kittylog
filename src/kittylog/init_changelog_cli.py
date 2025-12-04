@@ -5,7 +5,8 @@ from pathlib import Path
 
 import click
 
-from kittylog.changelog import create_changelog_header, find_existing_boundaries, read_changelog, write_changelog
+from kittylog.changelog.io import create_changelog_header, read_changelog, write_changelog
+from kittylog.changelog.parser import find_existing_boundaries
 from kittylog.tag_operations import get_all_tags
 
 logger = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ from rich.panel import Panel
 
 from kittylog.ai_utils import generate_with_retries
 from kittylog.config import load_config
-from kittylog.constants import EnvDefaults
+from kittylog.constants import Limits
 from kittylog.errors import AIError
 from kittylog.prompt import build_changelog_prompt, clean_changelog_content
 from kittylog.providers import PROVIDER_REGISTRY
@@ -63,20 +63,17 @@ def generate_changelog_entry(
     config = load_config()
 
     if model is None:
-        model_value = config["model"]
+        model_value = config.model
         if not model_value:
             raise AIError.model_error("No model specified. Please configure a model.")
         model = str(model_value)
 
     if temperature is None:
-        temperature_value = config.get("temperature", EnvDefaults.TEMPERATURE)
-        temperature = float(temperature_value) if temperature_value is not None else EnvDefaults.TEMPERATURE
+        temperature = config.temperature
     if max_tokens is None:
-        max_tokens_value = config.get("max_output_tokens", EnvDefaults.MAX_OUTPUT_TOKENS)
-        max_tokens = int(max_tokens_value) if max_tokens_value is not None else EnvDefaults.MAX_OUTPUT_TOKENS
+        max_tokens = config.max_output_tokens
     if max_retries is None:
-        max_retries_value = config.get("max_retries", EnvDefaults.MAX_RETRIES)
-        max_retries = int(max_retries_value) if max_retries_value is not None else EnvDefaults.MAX_RETRIES
+        max_retries = config.max_retries
 
     # Build the prompt
     system_prompt, user_prompt = build_changelog_prompt(
@@ -93,10 +90,9 @@ def generate_changelog_entry(
 
     # Add diff content to user prompt if available, but limit its size to prevent timeouts
     if diff_content:
-        # Limit diff content to 5000 characters to prevent extremely large prompts
-        max_diff_length = 5000
-        if len(diff_content) > max_diff_length:
-            diff_content = diff_content[:max_diff_length] + "\n\n... (diff content truncated for brevity)"
+        # Limit diff content to prevent extremely large prompts
+        if len(diff_content) > Limits.MAX_DIFF_LENGTH:
+            diff_content = diff_content[: Limits.MAX_DIFF_LENGTH] + "\n\n... (diff content truncated for brevity)"
         user_prompt += f"\n\n## Detailed Changes (Git Diff):\n\n{diff_content}"
 
     if show_prompt:
@@ -146,6 +142,6 @@ def generate_changelog_entry(
         }
         return cleaned_content, token_usage
 
-    except Exception as e:
+    except (AIError, ValueError, TypeError, AttributeError, RuntimeError, Exception) as e:
         logger.error(f"Failed to generate changelog entry: {e}")
         raise AIError.generation_error(f"Failed to generate changelog entry: {e}") from e

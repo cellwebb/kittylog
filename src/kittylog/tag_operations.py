@@ -28,7 +28,11 @@ def get_repo() -> Repo:
     try:
         return Repo(".", search_parent_directories=True)
     except InvalidGitRepositoryError as e:
-        raise GitError("Not in a git repository") from e
+        raise GitError(
+            "Not in a git repository",
+            command="git repo init",
+            stderr=str(e),
+        ) from e
 
 
 @cached
@@ -68,12 +72,20 @@ def get_all_tags() -> list[str]:
         logger.debug(f"All tags: {tag_names}")
 
         return tag_names
-    except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, AttributeError) as e:
-        logger.error(f"Failed to get tags: {e!s}")
-        raise GitError(f"Failed to get tags: {e!s}") from e
     except Exception as e:
+        logger.error(f"Failed to get tags: {e!s}")
+        raise GitError(
+            f"Failed to get tags: {e!s}",
+            command="git tag --list",
+            stderr=str(e),
+        ) from e
+    except (ValueError, TypeError, IndexError, RuntimeError) as e:
         logger.error(f"Unexpected error getting tags: {e!s}")
-        raise GitError(f"Failed to get tags: {e!s}") from e
+        raise GitError(
+            f"Failed to get tags: {e!s}",
+            command="git tag --list",
+            stderr=str(e),
+        ) from e
 
 
 @cached
@@ -99,7 +111,11 @@ def get_current_commit_hash() -> str:
         return repo.head.commit.hexsha
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, AttributeError) as e:
         logger.error(f"Failed to get current commit hash: {e!s}")
-        raise GitError(f"Failed to get current commit hash: {e!s}") from e
+        raise GitError(
+            f"Failed to get current commit hash: {e!s}",
+            command="git rev-parse HEAD",
+            stderr=str(e),
+        ) from e
 
 
 def is_current_commit_tagged() -> bool:
@@ -197,7 +213,11 @@ def determine_new_tags(changelog_file: str = "CHANGELOG.md") -> tuple[str | None
 
     except (GitError, ValueError, AttributeError) as e:
         logger.error(f"Failed to determine new tags: {e!s}")
-        raise GitError(f"Failed to determine new tags: {e!s}") from e
+        raise GitError(
+            f"Failed to determine new tags: {e!s}",
+            command="git tag --list",
+            stderr=str(e),
+        ) from e
 
 
 def get_tag_date(tag_name: str) -> datetime | None:

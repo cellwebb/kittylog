@@ -1,6 +1,7 @@
 """Boundary mode handlers for kittylog."""
 
 from kittylog.commit_analyzer import get_commits_between_boundaries
+from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries
 
 
@@ -27,7 +28,7 @@ def handle_single_boundary_mode(
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog_io import read_changelog
+    from kittylog.changelog.io import read_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
@@ -52,10 +53,12 @@ def handle_single_boundary_mode(
             to_boundary=boundary,
             mode=boundary.get("mode", "tags"),
         )
-    except Exception as e:
-        from kittylog.errors import GitError
-
-        raise GitError(f"Failed to get commits for boundary {boundary_name}: {e}") from e
+    except (GitError, KeyError, ValueError) as e:
+        raise GitError(
+            f"Failed to get commits for boundary {boundary_name}: {e}",
+            command=f"git log {boundary_name}",
+            stderr=str(e),
+        ) from e
 
     if not commits:
         output.info(f"No commits found for boundary {boundary_name}")
@@ -76,7 +79,7 @@ def handle_single_boundary_mode(
 
         return True, updated_content
 
-    except Exception as e:
+    except (AIError, OSError, TimeoutError, ValueError) as e:
         from kittylog.errors import handle_error
 
         handle_error(e)
@@ -108,7 +111,7 @@ def handle_boundary_range_mode(
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog_io import read_changelog
+    from kittylog.changelog.io import read_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
@@ -135,10 +138,12 @@ def handle_boundary_range_mode(
         commits = get_commits_between_boundaries(
             from_boundary=from_boundary, to_boundary=to_boundary, mode=to_boundary.get("mode", "tags")
         )
-    except Exception as e:
-        from kittylog.errors import GitError
-
-        raise GitError(f"Failed to get commits for range {from_name} to {to_name}: {e}") from e
+    except (GitError, KeyError, ValueError) as e:
+        raise GitError(
+            f"Failed to get commits for range {from_name} to {to_name}: {e}",
+            command=f"git log {from_name}..{to_name}",
+            stderr=str(e),
+        ) from e
 
     if not commits:
         output.info(f"No commits found for range {from_name} to {to_name}")
@@ -161,7 +166,7 @@ def handle_boundary_range_mode(
 
         return True, updated_content
 
-    except Exception as e:
+    except (AIError, OSError, TimeoutError, ValueError) as e:
         from kittylog.errors import handle_error
 
         handle_error(e)
@@ -191,7 +196,7 @@ def handle_update_all_mode(
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog_io import read_changelog
+    from kittylog.changelog.io import read_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
@@ -206,10 +211,12 @@ def handle_update_all_mode(
     # Get all boundaries
     try:
         boundaries = get_all_boundaries(mode=mode)
-    except Exception as e:
-        from kittylog.errors import GitError
-
-        raise GitError(f"Failed to get boundaries for mode {mode}: {e}") from e
+    except (GitError, ValueError, KeyError) as e:
+        raise GitError(
+            f"Failed to get boundaries for mode {mode}: {e}",
+            command=f"git log --{mode}",
+            stderr=str(e),
+        ) from e
 
     if not boundaries:
         output.info(f"No boundaries found for mode {mode}")
@@ -234,7 +241,7 @@ def handle_update_all_mode(
                 to_boundary=boundary,
                 mode=mode,
             )
-        except Exception as e:
+        except (GitError, KeyError, ValueError) as e:
             output.warning(f"Failed to get commits for boundary {boundary_name}: {e}")
             success = False
             continue
@@ -252,13 +259,13 @@ def handle_update_all_mode(
                 continue
 
             # Update changelog with this boundary
-            from kittylog.changelog import _update_version_section
+            from kittylog.changelog.updater import _update_version_section
 
             # Create the version section
             version_section = f"## [{boundary_name}] - {boundary_date}\n\n{entry}"
             updated_content = _update_version_section(updated_content, version_section, boundary_name)
 
-        except Exception as e:
+        except (AIError, OSError, TimeoutError, ValueError) as e:
             output.warning(f"Failed to generate entry for boundary {boundary_name}: {e}")
             success = False
             continue

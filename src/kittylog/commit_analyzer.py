@@ -54,7 +54,11 @@ def get_all_commits_chronological() -> list[dict]:
 
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get commits: {e!s}")
-        raise GitError(f"Failed to get commits: {e!s}") from e
+        raise GitError(
+            f"Failed to get commits: {e!s}",
+            command="git log",
+            stderr=str(e),
+        ) from e
 
 
 @cached
@@ -92,7 +96,11 @@ def get_all_tags_with_dates() -> list[dict]:
 
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError) as e:
         logger.error(f"Failed to get tags with dates: {e!s}")
-        raise GitError(f"Failed to get tags with dates: {e!s}") from e
+        raise GitError(
+            f"Failed to get tags with dates: {e!s}",
+            command="git tag --list",
+            stderr=str(e),
+        ) from e
 
 
 def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
@@ -264,7 +272,11 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
 
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, ValueError) as e:
         logger.error(f"Failed to get commits between tags: {e!s}")
-        raise GitError(f"Failed to get commits between tags: {e!s}") from e
+        raise GitError(
+            f"Failed to get commits between tags: {e!s}",
+            command=f"git log {from_tag}..{to_tag}" if from_tag and to_tag else "git log",
+            stderr=str(e),
+        ) from e
 
 
 def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict | None, mode: str) -> list[dict]:
@@ -297,7 +309,11 @@ def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict
 
     except (KeyError, ValueError, GitError) as e:
         logger.error(f"Failed to get commits between boundaries: {e!s}")
-        raise GitError(f"Failed to get commits between boundaries: {e!s}") from e
+        raise GitError(
+            f"Failed to get commits between boundaries: {e!s}",
+            command="git log --boundaries",
+            stderr=str(e),
+        ) from e
 
 
 def get_commits_between_hashes(from_hash: str | None, to_hash: str | None) -> list[dict]:
@@ -353,7 +369,11 @@ def get_commits_between_hashes(from_hash: str | None, to_hash: str | None) -> li
 
     except (InvalidGitRepositoryError, git.GitCommandError, git.GitError, ValueError) as e:
         logger.error(f"Failed to get commits between hashes: {e!s}")
-        raise GitError(f"Failed to get commits between hashes: {e!s}") from e
+        raise GitError(
+            f"Failed to get commits between hashes: {e!s}",
+            command=f"git log {from_hash}..{to_hash}" if from_hash and to_hash else "git log",
+            stderr=str(e),
+        ) from e
 
 
 def get_git_diff(from_hash: str | None = None, to_hash: str | None = "HEAD", max_lines: int = 500) -> str:

@@ -9,7 +9,8 @@ specific workflow logic to specialized modules.
 
 import logging
 
-from kittylog.changelog import read_changelog, update_changelog, write_changelog
+from kittylog.changelog.io import read_changelog, write_changelog
+from kittylog.changelog.updater import update_changelog
 from kittylog.workflow import main_business_logic
 
 logger = logging.getLogger(__name__)

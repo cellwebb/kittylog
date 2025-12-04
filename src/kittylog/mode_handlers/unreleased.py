@@ -2,11 +2,10 @@
 
 from pathlib import Path
 
-from kittylog.changelog_io import read_changelog
-from kittylog.changelog_parser import (
-    limit_bullets_in_sections,
-)
+from kittylog.changelog.io import read_changelog
+from kittylog.changelog.parser import limit_bullets_in_sections
 from kittylog.commit_analyzer import get_commits_between_tags
+from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_latest_tag
 
 
@@ -121,7 +120,7 @@ def handle_unreleased_mode(
 
         return True, updated_content
 
-    except Exception as e:
+    except (AIError, OSError, TimeoutError, ValueError, GitError) as e:
         from kittylog.errors import handle_error
 
         handle_error(e)
