@@ -18,7 +18,7 @@ install-dev: ## Install development dependencies
 
 # Testing
 test: ## Run tests (excluding actual API calls)
-	uv run pytest --ignore=tests/test_actual_provider_integration.py
+	uv run pytest
 
 test-all: ## Run all tests including actual API calls
 	uv run pytest

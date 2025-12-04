@@ -19,6 +19,7 @@ from .moonshot import call_moonshot_api
 from .ollama import call_ollama_api
 from .openai import call_openai_api
 from .openrouter import call_openrouter_api
+from .protocol import ProviderFunction, ProviderProtocol, validate_provider
 from .replicate import call_replicate_api
 from .streamlake import call_streamlake_api
 from .synthetic import call_synthetic_api
@@ -94,6 +95,8 @@ __all__ = [
     "PROVIDER_ENV_VARS",
     "PROVIDER_REGISTRY",
     "SUPPORTED_PROVIDERS",
+    "ProviderFunction",
+    "ProviderProtocol",
     "call_anthropic_api",
     "call_azure_openai_api",
     "call_cerebras_api",
@@ -119,4 +122,5 @@ __all__ = [
     "call_together_api",
     "call_zai_api",
     "call_zai_coding_api",
+    "validate_provider",
 ]
