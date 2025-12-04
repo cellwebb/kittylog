@@ -36,7 +36,7 @@ def _load_existing_env() -> dict[str, str]:
 def _configure_model(existing_env: dict[str, str]) -> bool:
     """Run the provider/model/API key configuration flow."""
     providers = [
-        ("Anthropic", "claude-3-5-haiku-latest"),
+        ("Anthropic", "claude-haiku-4-5"),
         ("Cerebras", "zai-glm-4.6"),
         ("Chutes", "zai-org/GLM-4.6-FP8"),
         ("Claude Code", "claude-sonnet-4-5"),
@@ -46,11 +46,11 @@ def _configure_model(existing_env: dict[str, str]) -> bool:
         ("Fireworks", "accounts/fireworks/models/gpt-oss-20b"),
         ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
-        ("LM Studio", "gemma3"),
+        ("LM Studio", "gpt-oss-20b"),
         ("MiniMax", "MiniMax-M2"),
         ("Mistral", "mistral-small-latest"),
-        ("Ollama", "gemma3"),
-        ("OpenAI", "gpt-4.1-mini"),
+        ("Ollama", "gpt-oss-20b"),
+        ("OpenAI", "gpt-5-mini"),
         ("OpenRouter", "openrouter/auto"),
         ("Streamlake", ""),
         ("Synthetic", "hf:zai-org/GLM-4.6"),
