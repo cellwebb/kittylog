@@ -224,11 +224,13 @@ def handle_update_all_mode(
 
     output.info(f"Found {len(boundaries)} boundaries for mode {mode}")
 
-    # Process each boundary in reverse chronological order
+    # Process each boundary in chronological order (oldest first)
+    # This ensures the AI has historical context from previously generated entries
+    # Note: Insertion point logic handles correct changelog placement regardless of processing order
     updated_content = existing_content
     success = True
 
-    for boundary in reversed(boundaries):
+    for boundary in boundaries:
         boundary_name = boundary.get("identifier", boundary.get("hash", "unknown"))
         boundary_date = boundary.get("date", "")
 

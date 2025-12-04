@@ -212,8 +212,8 @@ class TestHandleMissingEntriesMode:
             mock_find_existing.return_value = {"0.2.0"}  # Only 0.2.0 exists
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.side_effect = [
-                datetime(2024, 3, 1, tzinfo=timezone.utc),  # v0.3.0 (processed first due to reversed)
-                datetime(2024, 1, 1, tzinfo=timezone.utc),  # v0.1.0
+                datetime(2024, 1, 1, tzinfo=timezone.utc),  # v0.1.0 (processed first, oldest)
+                datetime(2024, 3, 1, tzinfo=timezone.utc),  # v0.3.0 (processed second, newest)
             ]
             mock_read.return_value = changelog_file.read_text()
 
@@ -313,11 +313,11 @@ class TestHandleMissingEntriesMode:
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
             mock_get_tags.return_value = ["v1.0.0", "v1.1.0"]
-            # Due to reversed() processing order: v1.1.0 first, then v1.0.0
-            # v1.1.0 has no commits (skipped), v1.0.0 has commits
+            # Chronological processing order: v1.0.0 first, then v1.1.0
+            # v1.0.0 has commits, v1.1.0 has no commits (skipped)
             mock_get_commits.side_effect = [
-                [],  # No commits for v1.1.0 (processed first due to reversed)
-                [{"hash": "abc", "message": "test"}],  # v1.0.0 has commits
+                [{"hash": "abc", "message": "test"}],  # v1.0.0 has commits (processed first)
+                [],  # No commits for v1.1.0 (skipped)
             ]
             mock_read.return_value = changelog_file.read_text()
 

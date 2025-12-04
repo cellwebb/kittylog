@@ -79,12 +79,13 @@ def handle_missing_entries_mode(
     except FileNotFoundError:
         existing_content = ""
 
-    # Process each missing tag in REVERSE order (newest first)
-    # This ensures proper changelog ordering (newest at top)
+    # Process each missing tag in chronological order (oldest first)
+    # This ensures the AI has historical context from previously generated entries
+    # Note: Insertion point logic handles correct changelog placement regardless of processing order
     updated_content = existing_content
     success = True
 
-    for tag in reversed(missing_tags):
+    for tag in missing_tags:
         try:
             # Get commits for this tag
             commits = get_commits_between_tags(
