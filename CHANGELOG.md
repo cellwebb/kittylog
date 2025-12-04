@@ -7,6 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+
+## [v2.3.1] - 2025-12-04
+
+### Changed
+
+- Change processing order to chronological for boundaries and missing tags to provide AI with historical context
+- Update default model configurations to latest versions (gpt-5-mini, claude-haiku-4-5, gpt-oss-20b)
+- Update documentation examples to reflect current supported model versions
+
+### Fixed
+
+- Resolve tag recognition issues by normalizing 'v' prefix when comparing with existing boundaries
+- Fix changelog ordering to process tags in reverse order (newest first) with proper date formatting
+- Implement semantic version ordering for entry insertion with comprehensive test coverage
+
 ## [v2.3.0] - 2025-12-04
 
 ### Added
