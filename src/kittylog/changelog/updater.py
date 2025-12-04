@@ -1,17 +1,15 @@
-"""Changelog operations for updating CHANGELOG.md files.
+"""Changelog update operations for kittylog.
 
 This module handles the core changelog update functionality using the specialized
-changelog_io and changelog_parser modules for file operations and parsing.
+io and parser modules for file operations and parsing.
 """
 
 import logging
 import re
 
 from kittylog.ai import generate_changelog_entry
-from kittylog.changelog_io import create_changelog_header, read_changelog, write_changelog
-from kittylog.changelog_parser import (
+from kittylog.changelog.parser import (
     find_end_of_unreleased_section,
-    find_existing_boundaries,
     find_insertion_point,
     find_insertion_point_by_version,
     find_unreleased_section,
@@ -19,13 +17,9 @@ from kittylog.changelog_parser import (
 )
 from kittylog.commit_analyzer import get_commits_between_tags, get_git_diff
 from kittylog.errors import AIError
-from kittylog.postprocess import remove_unreleased_sections
-from kittylog.tag_operations import get_tag_date, is_current_commit_tagged
+from kittylog.tag_operations import get_latest_tag, get_tag_date, is_current_commit_tagged
 
 logger = logging.getLogger(__name__)
-
-
-# create_changelog_header is imported from changelog_io.py
 
 
 def update_changelog(
@@ -107,8 +101,6 @@ def handle_unreleased_section_update(
     This function consolidates the previous duplication between handle_unreleased_section_update
     and _update_unreleased_section for better maintainability.
     """
-    from kittylog.tag_operations import get_latest_tag
-
     logger.debug("Processing unreleased section with intelligent behavior")
 
     # Check if there are actually unreleased commits
@@ -335,19 +327,11 @@ def _remove_unreleased_section_if_empty(existing_content: str, unreleased_commit
     return existing_content
 
 
-# Re-export functions from specialized modules for backward compatibility
-__all__ = [
-    "create_changelog_header",
-    "find_end_of_unreleased_section",
-    "find_existing_boundaries",
-    "find_insertion_point",
-    "find_insertion_point_by_version",
-    "find_unreleased_section",
-    "handle_unreleased_section_update",
-    "handle_version_update",
-    "limit_bullets_in_sections",
-    "read_changelog",
-    "remove_unreleased_sections",
-    "update_changelog",
-    "write_changelog",
-]
+# Legacy compatibility - re-export for backward compatibility
+def remove_unreleased_sections(content: str) -> str:
+    """Legacy function for backward compatibility. Use postprocess.remove_unreleased_sections instead."""
+    from ..postprocess import remove_unreleased_sections as post_remove_unreleased_sections
+
+    lines = content.split("\n")
+    result_lines = post_remove_unreleased_sections(lines)
+    return "\n".join(result_lines)

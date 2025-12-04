@@ -63,7 +63,10 @@ def write_changelog(file_path: str, content: str) -> None:
         logger.info(f"Successfully wrote changelog to {file_path}")
     except (PermissionError, FileNotFoundError, OSError) as e:
         logger.error(f"Error writing changelog file: {e}")
-        raise ChangelogError(f"Failed to write changelog file: {e}") from e
+        raise ChangelogError(
+            f"Failed to write changelog file: {e}",
+            file_path=file_path,
+        ) from e
 
 
 def ensure_changelog_exists(file_path: str, no_unreleased: bool = False) -> str:
@@ -211,7 +214,10 @@ def prepare_release(file_path: str, version: str) -> str:
 
     content = read_changelog(file_path)
     if not content:
-        raise ChangelogError(f"Changelog file {file_path} is empty or does not exist")
+        raise ChangelogError(
+            f"Changelog file {file_path} is empty or does not exist",
+            file_path=file_path,
+        )
 
     today = datetime.now().strftime("%Y-%m-%d")
 

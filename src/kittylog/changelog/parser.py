@@ -7,6 +7,8 @@ insertion points, and other analysis functions.
 import logging
 import re
 
+from kittylog.constants import Limits
+
 logger = logging.getLogger(__name__)
 
 
@@ -242,7 +244,7 @@ def find_insertion_point_by_version(content: str, new_version: str) -> int:
     return len(lines)
 
 
-def limit_bullets_in_sections(content_lines: list[str], max_bullets: int = 6) -> list[str]:
+def limit_bullets_in_sections(content_lines: list[str], max_bullets: int = Limits.MAX_BULLETS_PER_SECTION) -> list[str]:
     """Limit the number of bullet points in each section to a maximum count.
 
     Args:
