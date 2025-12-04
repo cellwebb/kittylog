@@ -5,6 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v2.2.0] - 2025-12-03
+
+### Added
+
+- Support for project-level configuration files (.kittylog.env) with precedence over user-level configs
+- Robust encoding fallback system for subprocess execution supporting international locales
+- Keyboard shortcuts in interactive prompts for faster navigation and improved user experience
+- Automatic sensitive value hiding in configuration display for enhanced security
+- Support for multiple configuration sources with clear precedence indication
+
+### Changed
+
+- Simplify test suite by removing complex integration tests and focusing on unit tests
+- Refactor init command from 288 to 50 lines using modular components for better maintainability
+- Replace XML configuration with YAML format for improved readability and consistency
+- Extract error classification function to resolve circular imports and improve module organization
+- Consolidate duplicate get_repo() function to prevent cache inconsistency issues
+
+### Fixed
+
+- Resolve memory leak causing application crashes in subprocess handling
+- Correct timezone handling in date calculations across boundary detection
+- Fix parser logic for proper handling of unreleased-only sections and version normalization
+- Resolve circular import by moving remove_unreleased_sections import to correct location
+
+### Security
+
+- Remove environment pollution from OAuth token storage to prevent unintended exposure
+- Implement SecureConfig pattern for API key management without global pollution
+- Add specific exception handling for HTTPStatusError, TimeoutException, and RequestError across providers
+
+
+## [v2.1.0] - 2025-12-03
+
+### Added
+
+- Add standalone model configuration command supporting 20+ providers with interactive setup
+- Add Claude Code OAuth authentication with PKCE flow and automatic token refresh
+- Create standalone authentication command for Claude Code with browser auto-open
+- Support modular CLI commands with 'kittylog auth' and 'kittylog model' standalone operations
+- Add audience configuration workflow for changelog targeting in interactive setup
+
+### Changed
+
+- Refactor CLI architecture into modular components with dedicated auth, model, and language modules
+- Eliminate environment pollution in API key management using SecureConfig context manager
+- Resolve circular imports by consolidating classify_error function in errors module
+- Simplify init command from 288 to 50 lines by delegating to specialized modules
+- Enhance error handling across all AI providers with response validation and specific exception handling
+- Replace parameter explosion in workflow with structured ChangelogOptions and WorkflowOptions objects
+- Modernize configuration system using validated dataclasses and centralized cache management
+- Standardize provider response validation using defensive .get() methods and proper exception chaining
+
+### Removed
+
+- Remove deprecated reauth command from config group
+- Remove types.py module entirely after consolidating functions
+- Remove redundant environment variable pollution from OAuth token storage
+- Eliminate duplicate get_repo() function by consolidating git repository access logic
+
+### Fixed
+
+- Resolve memory leak causing application crashes in provider error handling
+- Correct timezone handling in date-based boundary detection
+- Fix OAuth token storage to stop polluting os.environ after saving
+- Resolve circular import issues between ai.py and ai_utils.py modules
+- Fix boundary filtering bug causing all boundaries to be reprocessed instead of missing ones only
+- Correct token counting fallback to use character-based estimation instead of zero
+
 ## [2.0.0] - 2025-12-02
 
 ### Added
@@ -23,6 +93,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Resolve parameter propagation issues causing test failures
 - Correct config precedence problems to ensure proper environment variable handling
+
+
+## [v1.6.0] - 2025-11-01
+
+### Added
+
+- Support for audience targeting allowing customization of changelog tone for developers, users, or stakeholders
+- Comprehensive multilingual support with 30+ predefined languages and custom language options
+- Intelligent version detection that automatically determines semantic version bumps based on commit analysis
+
+### Changed
+
+- Refactor documentation with comprehensive README rewrite featuring improved structure and visual design
+- Update configuration system to persist language and audience preferences in environment files
+- Extend AI prompt generation throughout pipeline to include audience-specific instructions and context
+
+### Fixed
+
+- Resolve boundary filtering bug causing all boundaries to be reprocessed instead of only missing ones
+- Correct parameter propagation issues that were causing test failures
+- Fix trailing whitespace in provider modules for code cleanliness
+
+
+## [v1.5.0] - 2025-11-01
+
+### Added
+
+- Multilingual support for changelog generation with 30+ predefined languages and interactive language selection CLI
+- Intelligent semantic version detection based on commit analysis for unreleased changes
+- Comprehensive documentation rewrite with modern badge layout, quick start guide, and visual hierarchy
+
+### Changed
+
+- Refactor AI provider architecture into modular system supporting 11 new providers including Chutes, DeepSeek, Fireworks, Gemini, LM Studio, MiniMax, Mistral, StreamLake, Synthetic, and Together AI
+- Implement interactive configuration mode with guided setup using questionary prompts and context-aware defaults for grouping modes
+- Replace openai-specific client with generic httpx.post calls for unified multi-provider interface
+- Update all dependencies to latest stable versions and bump core dependencies for improved stability
+
+### Fixed
+
+- Resolve critical boundary filtering bug causing all boundaries to be reprocessed due to prefix mismatch between tag extraction and identifier generation
+- Fix test isolation issues and git repository context problems causing order-dependent test failures
+- Correct timezone handling in date calculations and ensure consistent timezone usage throughout boundary-aware changelog processing
+
+
+## [v1.4.0] - 2025-10-31
+
+### Added
+
+- Interactive configuration mode with guided setup using questionary prompts and comprehensive explanations for grouping modes
+- Optional git diff inclusion in AI context with clear cost warnings for enhanced changelog generation
+- Intelligent version detection that automatically calculates semantic version bump based on commit analysis
+- Support for 11 new AI providers: Chutes, Custom Anthropic/OpenAI, DeepSeek, Fireworks, Gemini, LM Studio, MiniMax, Mistral, StreamLake, Synthetic, and Together AI
+
+### Changed
+
+- Enhanced boundary detection to handle nested brackets in date headings for improved changelog parsing
+- Updated configuration system with environment variable precedence to preserve API keys over config files
+- Improved boundary filtering logic to prevent reprocessing all boundaries by normalizing identifier prefixes
+- Refactored AI integration to use direct provider SDK implementations instead of external abstraction layer
+
+### Fixed
+
+- Parameter propagation issues causing test failures in AI module and configuration handling
+- Boundary filtering bug where prefix mismatch between "v0.1.0" and "0.1.0" caused all boundaries to be reprocessed
+- Critical changelog boundary detection that was incorrectly processing ALL boundaries instead of only missing ones
+
+### Deprecated
+
+- Legacy XML configuration format (use YAML instead)
+
+### Removed
+
+- Obsolete aisuite mypy configuration and associated dependencies
 
 ## [1.3.0] - 2025-10-31
 
