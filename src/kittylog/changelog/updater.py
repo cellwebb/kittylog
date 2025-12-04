@@ -18,6 +18,7 @@ from kittylog.changelog.parser import (
 from kittylog.commit_analyzer import get_commits_between_tags, get_git_diff
 from kittylog.errors import AIError
 from kittylog.tag_operations import get_latest_tag, get_tag_date, is_current_commit_tagged
+from kittylog.utils.text import normalize_tag
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,7 @@ def handle_version_update(
         limited_new_entry = "\n".join(limited_entry_lines)
 
         # Create the version section
-        version_section = f"## [{to_boundary}] - {version_date}\n\n{limited_new_entry}"
+        version_section = f"## [{normalize_tag(to_boundary)}] - {version_date}\n\n{limited_new_entry}"
 
         # Update the changelog with the new version section
         updated_content = _update_version_section(existing_content, version_section, to_boundary)
