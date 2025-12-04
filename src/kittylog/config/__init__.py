@@ -7,7 +7,7 @@ for API keys and application settings.
 # Data classes
 # CLI commands
 from kittylog.config.cli import KITTYLOG_ENV_PATH, config
-from kittylog.config.data import ChangelogOptions, KittylogConfigData, WorkflowOptions
+from kittylog.config.data import KittylogConfigData
 
 # Loading and validation
 from kittylog.config.loader import (
@@ -17,6 +17,7 @@ from kittylog.config.loader import (
     validate_config_value,
     validate_env_var,
 )
+from kittylog.config.options import ChangelogOptions, WorkflowOptions
 
 # Secure configuration
 from kittylog.config.secure import SecureConfig, get_api_key, inject_provider_keys

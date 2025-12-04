@@ -4,6 +4,7 @@ import os
 from contextlib import contextmanager
 from typing import Any
 
+from kittylog.config.data import KittylogConfigData
 from kittylog.providers import PROVIDER_ENV_VARS
 
 
@@ -58,11 +59,11 @@ class SecureConfig:
     while preventing accidental exposure.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict | KittylogConfigData):
         """Initialize secure configuration.
 
         Args:
-            config: Configuration dictionary
+            config: Configuration dictionary or KittylogConfigData instance
         """
         self._config = config
         self._provider_keys = self._extract_provider_keys()
@@ -71,9 +72,18 @@ class SecureConfig:
         """Extract provider-specific API keys from configuration."""
         provider_keys = {}
 
+        # Handle both dict and KittylogConfigData
+        if isinstance(self._config, dict):
+            config_get = self._config.get
+        else:
+            # For dataclass, we need to convert to dict to check for provider env vars
+            # since they are not explicit attributes
+            config_dict = self._config.to_dict()
+            config_get = config_dict.get
+
         for env_vars in PROVIDER_ENV_VARS.values():
             for env_var in env_vars:
-                value = self._config.get(env_var)
+                value = config_get(env_var)
                 if value:
                     provider_keys[env_var] = value
 
@@ -117,7 +127,11 @@ class SecureConfig:
         Returns:
             Configuration value or default
         """
-        return self._config.get(key, default)
+        if isinstance(self._config, dict):
+            return self._config.get(key, default)
+        else:
+            # For dataclass, use getattr with fallback
+            return getattr(self._config, key, default)
 
     def has_api_keys(self) -> bool:
         """Check if any API keys are configured.

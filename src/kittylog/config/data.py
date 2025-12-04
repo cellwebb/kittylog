@@ -1,83 +1,145 @@
-"""Configuration data classes for kittylog.
+"""Configuration dataclass for kittylog.
 
-Contains dataclasses and related structures for configuration management.
+Provides type-safe configuration with proper defaults and validation.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from kittylog.constants import DateGrouping, EnvDefaults, GroupingMode
+from kittylog.constants import EnvDefaults
 
 
 @dataclass
 class KittylogConfigData:
-    """Centralized configuration with validation.
+    """Type-safe configuration dataclass for kittylog.
 
-    This dataclass replaces TypedDict with proper validation
-    and default values.
+    All configuration values with proper defaults and type hints.
+    Replaces dict-based configuration for better IDE support and type safety.
     """
 
-    model: str = field(default_factory=lambda: EnvDefaults.MODEL)
-    temperature: float = field(default_factory=lambda: EnvDefaults.TEMPERATURE)
-    max_output_tokens: int = field(default_factory=lambda: EnvDefaults.MAX_OUTPUT_TOKENS)
-    max_retries: int = field(default_factory=lambda: EnvDefaults.MAX_RETRIES)
-    log_level: str = field(default_factory=lambda: EnvDefaults.LOG_LEVEL)
-    warning_limit_tokens: int = field(default_factory=lambda: EnvDefaults.WARNING_LIMIT_TOKENS)
-    grouping_mode: str = field(default_factory=lambda: EnvDefaults.GROUPING_MODE)
-    gap_threshold_hours: float = field(default_factory=lambda: EnvDefaults.GAP_THRESHOLD_HOURS)
-    date_grouping: str = field(default_factory=lambda: EnvDefaults.DATE_GROUPING)
-    language: str = field(default_factory=lambda: EnvDefaults.LANGUAGE)
-    audience: str = field(default_factory=lambda: EnvDefaults.AUDIENCE)
-    translate_headings: bool = field(default_factory=lambda: EnvDefaults.TRANSLATE_HEADINGS)
+    # AI Model configuration
+    model: str | None = None  # None when not set, will use EnvDefaults.MODEL in apply_defaults
+    temperature: float = EnvDefaults.TEMPERATURE
+    max_output_tokens: int = EnvDefaults.MAX_OUTPUT_TOKENS
+    max_retries: int = EnvDefaults.MAX_RETRIES
 
-    def __post_init__(self) -> None:
-        """Validate configuration after initialization."""
+    # Logging configuration
+    log_level: str = EnvDefaults.LOG_LEVEL
+    warning_limit_tokens: int = EnvDefaults.WARNING_LIMIT_TOKENS
+
+    # Changelog grouping configuration
+    grouping_mode: str = EnvDefaults.GROUPING_MODE
+    gap_threshold_hours: float = EnvDefaults.GAP_THRESHOLD_HOURS
+    date_grouping: str = EnvDefaults.DATE_GROUPING
+
+    # Content configuration
+    language: str | None = None  # None when not set, will use EnvDefaults.LANGUAGE in apply_defaults
+    audience: str = EnvDefaults.AUDIENCE
+    translate_headings: bool = EnvDefaults.TRANSLATE_HEADINGS
+
+    # Advanced configuration
+    context_entries: int = EnvDefaults.CONTEXT_ENTRIES
+
+    def apply_defaults(self) -> "KittylogConfigData":
+        """Apply default values for None fields.
+
+        Returns:
+            New KittylogConfigData instance with defaults applied
+        """
+        return KittylogConfigData(
+            model=self.model if self.model is not None else EnvDefaults.MODEL,
+            temperature=self.temperature,
+            max_output_tokens=self.max_output_tokens,
+            max_retries=self.max_retries,
+            log_level=self.log_level,
+            warning_limit_tokens=self.warning_limit_tokens,
+            grouping_mode=self.grouping_mode,
+            gap_threshold_hours=self.gap_threshold_hours,
+            date_grouping=self.date_grouping,
+            language=self.language if self.language is not None else EnvDefaults.LANGUAGE,
+            audience=self.audience,
+            translate_headings=self.translate_headings,
+            context_entries=self.context_entries,
+        )
+
+    def validate(self) -> None:
+        """Validate configuration values.
+
+        Raises:
+            ValueError: If any configuration value is invalid
+        """
+        # Temperature validation
         if not 0.0 <= self.temperature <= 2.0:
-            raise ValueError(f"Temperature must be between 0.0 and 2.0, got {self.temperature}")
+            raise ValueError(f"Invalid temperature: must be between 0.0 and 2.0, got {self.temperature}")
+
+        # Token validation
         if self.max_output_tokens < 1:
-            raise ValueError(f"Max output tokens must be positive, got {self.max_output_tokens}")
-        if self.max_retries < 0:
-            raise ValueError(f"Max retries must be non-negative, got {self.max_retries}")
-        if self.gap_threshold_hours <= 0 or self.gap_threshold_hours > 168:
-            raise ValueError(f"Gap threshold hours must be between 0 and 168, got {self.gap_threshold_hours}")
-        if self.grouping_mode not in [mode.value for mode in GroupingMode]:
-            raise ValueError(f"Invalid grouping mode: {self.grouping_mode}")
-        if self.date_grouping not in [mode.value for mode in DateGrouping]:
-            raise ValueError(f"Invalid date grouping: {self.date_grouping}")
+            raise ValueError(f"Invalid max_output_tokens: must be positive, got {self.max_output_tokens}")
 
+        # Retry validation (must be >= 1)
+        if self.max_retries < 1:
+            raise ValueError(f"Invalid max_retries: must be at least 1, got {self.max_retries}")
 
-@dataclass
-class WorkflowOptions:
-    """Options for workflow control."""
+        # Gap threshold validation
+        if self.gap_threshold_hours <= 0:
+            raise ValueError(f"Invalid gap_threshold_hours: must be positive, got {self.gap_threshold_hours}")
 
-    dry_run: bool = False
-    yes: bool = False
-    all: bool = False
-    no_unreleased: bool = False
-    interactive: bool = True
-    include_diff: bool = False
-    quiet: bool = False
-    require_confirmation: bool = True
-    update_all_entries: bool = False
-    language: str | None = None
-    audience: str | None = None
-    show_prompt: bool = False
-    hint: str = ""
-    verbose: bool = False
-    context_entries_count: int = field(default_factory=lambda: EnvDefaults.CONTEXT_ENTRIES)
+        # Log level validation
+        from kittylog.constants.logging import Logging
 
+        if self.log_level not in Logging.LEVELS:
+            raise ValueError(f"Invalid log_level: {self.log_level}. Valid: {Logging.LEVELS}")
 
-@dataclass
-class ChangelogOptions:
-    """Options for changelog generation and output."""
+        # Validate enum-like values using the dict-based validation
+        # This keeps compatibility with existing validation logic
+        config_dict = self.to_dict()
+        from kittylog.config.loader import validate_config_dict
 
-    changelog_file: str = "CHANGELOG.md"
-    from_tag: str | None = None
-    to_tag: str | None = None
-    show_prompt: bool = False
-    hint: str = ""
-    language: str | None = None
-    audience: str | None = None
-    grouping_mode: str = field(default_factory=lambda: EnvDefaults.GROUPING_MODE)
-    gap_threshold_hours: float = field(default_factory=lambda: EnvDefaults.GAP_THRESHOLD_HOURS)
-    date_grouping: str = field(default_factory=lambda: EnvDefaults.DATE_GROUPING)
-    special_unreleased_mode: bool = False
+        validate_config_dict(config_dict)
+
+    def to_dict(self) -> dict:
+        """Convert dataclass to dictionary for backward compatibility.
+
+        Returns:
+            Dictionary representation of configuration
+        """
+        return {
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_output_tokens,
+            "max_retries": self.max_retries,
+            "log_level": self.log_level,
+            "warning_limit_tokens": self.warning_limit_tokens,
+            "grouping_mode": self.grouping_mode,
+            "gap_threshold_hours": self.gap_threshold_hours,
+            "date_grouping": self.date_grouping,
+            "language": self.language,
+            "audience": self.audience,
+            "translate_headings": self.translate_headings,
+            "context_entries": self.context_entries,
+        }
+
+    @classmethod
+    def from_dict(cls, config_dict: dict) -> "KittylogConfigData":
+        """Create dataclass from dictionary.
+
+        Args:
+            config_dict: Dictionary containing configuration values
+
+        Returns:
+            KittylogConfigData instance
+        """
+        return cls(
+            model=config_dict.get("model"),
+            temperature=config_dict.get("temperature", EnvDefaults.TEMPERATURE),
+            max_output_tokens=config_dict.get("max_output_tokens", EnvDefaults.MAX_OUTPUT_TOKENS),
+            max_retries=config_dict.get("max_retries", EnvDefaults.MAX_RETRIES),
+            log_level=config_dict.get("log_level", EnvDefaults.LOG_LEVEL),
+            warning_limit_tokens=config_dict.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS),
+            grouping_mode=config_dict.get("grouping_mode", EnvDefaults.GROUPING_MODE),
+            gap_threshold_hours=config_dict.get("gap_threshold_hours", EnvDefaults.GAP_THRESHOLD_HOURS),
+            date_grouping=config_dict.get("date_grouping", EnvDefaults.DATE_GROUPING),
+            language=config_dict.get("language"),
+            audience=config_dict.get("audience", EnvDefaults.AUDIENCE),
+            translate_headings=config_dict.get("translate_headings", EnvDefaults.TRANSLATE_HEADINGS),
+            context_entries=config_dict.get("context_entries", EnvDefaults.CONTEXT_ENTRIES),
+        )
