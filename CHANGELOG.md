@@ -14,11 +14,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Implement proper unreleased section insertion logic for automated changelog updates
 
+## [2.3.2] - 2025-12-04
+
+### Added
+
+- Enable unreleased mode for changelog generation with special_unreleased_mode flag to process commits since last tag
+- Add --context-entries CLI option to control preceding entries count for style reference during AI generation
+- Add support for extracting preceding changelog entries with extract_preceding_entries() function
+
 ### Changed
 
-- Clean up changelog formatting by removing redundant entries and normalizing spacing
+- Update default model configurations to latest versions (gpt-5-mini, claude-haiku-4-5, gpt-oss-20b)
+- Change processing order to chronological for boundaries and missing tags to provide AI with historical context
+- Fix tag recognition issues by normalizing 'v' prefix when comparing with existing boundaries
+- Refactor configuration system to use KittylogConfigData dataclass with improved validation and error handling
+- Centralize provider implementations using standardized base classes with consistent error handling
+- Split monolithic modules into focused packages (constants, changelog, config, prompt, providers, utils, workflow)
 
-## [v2.3.1] - 2025-12-04
+### Fixed
+
+- Resolve tag recognition and changelog ordering issues with proper version normalization and semantic ordering
+- Fix token counting fallback estimation to use character-based approximation instead of zero fallback
+- Correct boundary filtering bug causing all boundaries to be reprocessed instead of only missing ones
+- Fix configuration precedence and API key loading to prevent environment pollution
+
+## [2.3.1] - 2025-12-04
 
 ### Changed
 
@@ -32,7 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix changelog ordering to process tags in reverse order (newest first) with proper date formatting
 - Implement semantic version ordering for entry insertion with comprehensive test coverage
 
-## [v2.3.0] - 2025-12-04
+## [2.3.0] - 2025-12-04
 
 ### Added
 
@@ -64,7 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix response validation and specific exception handling across all AI providers
 - Resolve environment pollution in OAuth token storage and configuration loading
 
-## [v2.2.0] - 2025-12-03
+## [2.2.0] - 2025-12-03
 
 ### Added
 
@@ -96,7 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add specific exception handling for HTTPStatusError, TimeoutException, and RequestError across providers
 
 
-## [v2.1.0] - 2025-12-03
+## [2.1.0] - 2025-12-03
 
 ### Added
 
@@ -153,7 +173,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct config precedence problems to ensure proper environment variable handling
 
 
-## [v1.6.0] - 2025-11-01
+## [1.6.0] - 2025-11-01
 
 ### Added
 
@@ -174,7 +194,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix trailing whitespace in provider modules for code cleanliness
 
 
-## [v1.5.0] - 2025-11-01
+## [1.5.0] - 2025-11-01
 
 ### Added
 
@@ -196,7 +216,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Correct timezone handling in date calculations and ensure consistent timezone usage throughout boundary-aware changelog processing
 
 
-## [v1.4.0] - 2025-10-31
+## [1.4.0] - 2025-10-31
 
 ### Added
 
@@ -736,61 +756,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove unused preview functionality from main business logic
 - Ensure proper directory handling and cleanup in integration tests for better isolation
 
-## [0.1.0] - 2025-09-20
-
-### Added
-
-- Add AI-powered changelog generation capability with support for multiple providers (Anthropic, Cerebras, Groq, OpenAI, Ollama)
-- Add automatic detection and processing of git tags to structure changelog entries
-- Add "Unreleased" section tracking for commits that occur between official releases
-- Add interactive CLI configuration using questionary for easy setup
-- Add dry-run preview mode to show changelog updates without writing to file
-- Add command-line options for flexible usage including `-f`, `-s`, `-t`, `-p`, `-m`, and `--replace-unreleased`
-
-### Changed
-
-- Implement structured prompt system for more consistent and accurate changelog formatting
-- Improve error handling with user-friendly messages and retry logic
-- Enhance console output with rich formatting for better readability
-- Refactor project structure to support modular AI provider integration via aisuite
-- Update development workflow with comprehensive tooling (black, isort, ruff, pytest)
-- Isolate tests from global configuration files to prevent side effects during execution
-
-### Fixed
-
-- Fix version tracking logic to correctly identify new tags since last changelog update
-- Fix token counting and logging utilities to provide accurate usage feedback
-- Fix git operations module to handle edge cases in tag detection and commit analysis
-- Fix configuration loading to respect environment variables and local settings
-
-### Security
-
-- Add secure handling of API keys and configuration through environment variable isolation
-- Implement proper logging level controls to prevent accidental exposure of sensitive data
-
-## [0.1.0] - 2025-09-20
-
-### Added
-
-- Introduce AI-powered changelog generation with support for multiple providers (Anthropic, Cerebras, Groq, OpenAI, Ollama)
-- Add `kittylog init-changelog` command to automatically create and structure missing changelog files
-- Add `kittylog update` command to generate changelog entries for specific versions or tags
-- Implement automatic detection of new git tags since the last changelog update
-- Add interactive CLI configuration using questionary for streamlined setup
-- Include post-processing utilities to ensure Keep a Changelog compliance and clean formatting
-
-### Changed
-
-- Refactor CLI logic to properly handle tag processing and command invocation
-- Improve AI prompt structure with stricter formatting rules and bullet point limits
-- Enhance changelog content deduplication and section management to prevent duplicates
-- Update core logic to seamlessly process both tagged releases and unreleased changes
-- Change default behavior to replace Unreleased section content instead of appending
-- Optimize handling of large AI prompts and git history for more stable generation
-
-### Fixed
-
-- Resolve issues with None values in tag processing and content merging
-- Remove empty sections, excessive newlines, and malformed headers from output
-- Ensure correct spacing around section headers for consistent markdown formatting
-- Fix directory and file path handling for more robust changelog file updates
