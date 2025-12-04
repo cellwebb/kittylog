@@ -2,11 +2,13 @@
 
 import os
 from abc import ABC
+from collections.abc import Callable
 from typing import Any
 
 import httpx
 
 from kittylog.errors import AIError
+from kittylog.providers.registry import register_provider
 
 
 class BaseAPIProvider(ABC):
@@ -24,6 +26,20 @@ class BaseAPIProvider(ABC):
     API_KEY_ENV: str
     TIMEOUT: int = 120
     PROVIDER_NAME: str
+
+    @classmethod
+    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
+        """Register this class as a provider.
+
+        Args:
+            provider_name: Name to register the provider under
+            env_vars: List of required environment variables
+            api_function: The API call function for the provider
+
+        Returns:
+            Decorated class ready for auto-registration
+        """
+        return register_provider(provider_name, env_vars, api_function)(cls)
 
     def __init__(self):
         self._api_key = None  # Lazy load

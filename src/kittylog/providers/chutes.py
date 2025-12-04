@@ -2,57 +2,72 @@
 
 import os
 
-import httpx
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
-from kittylog.errors import AIError
 
+class ChutesProvider(OpenAICompatibleProvider):
+    """Chutes.ai API provider with configurable base URL."""
 
-def call_chutes_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call the Chutes.ai API using an OpenAI-compatible endpoint."""
-    api_key = os.getenv("CHUTES_API_KEY")
-    if not api_key:
-        raise AIError.authentication_error("CHUTES_API_KEY environment variable not set")
+    def __init__(self, config: ProviderConfig):
+        super().__init__(config)
+        # Allow configurable base URL via environment
+        self.custom_base_url = os.getenv("CHUTES_BASE_URL", "https://llm.chutes.ai").rstrip("/")
 
-    base_url = os.getenv("CHUTES_BASE_URL", "https://llm.chutes.ai").rstrip("/")
-    url = f"{base_url}/v1/chat/completions"
+    def _get_api_url(self, model: str | None = None) -> str:
+        """Get custom Chutes API URL."""
+        return f"{self.custom_base_url}/v1/chat/completions"
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    }
+    def _parse_response(self, response: dict) -> str:
+        """Parse Chutes response with validation."""
+        content = super()._parse_response(response)
 
-    data = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
         if content is None:
+            from kittylog.errors import AIError
+
             raise AIError.model_error("Chutes.ai API returned null content")
         if content == "":
-            raise AIError.model_error("Chutes.ai API returned empty content")
-        return content
-    except httpx.HTTPStatusError as e:
-        status_code = e.response.status_code
-        error_text = e.response.text
+            from kittylog.errors import AIError
 
-        if status_code == 429:
-            raise AIError.rate_limit_error(f"Chutes.ai API rate limit exceeded: {error_text}") from e
-        if status_code in (502, 503):
-            raise AIError.connection_error(f"Chutes.ai API service unavailable: {status_code} - {error_text}") from e
-        raise AIError.model_error(f"Chutes.ai API error: {status_code} - {error_text}") from e
-    except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Chutes.ai API connection error: {e!s}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Chutes.ai API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Chutes.ai API: {e!s}") from e
+            raise AIError.model_error("Chutes.ai API returned empty content")
+
+        return content
+
+
+# Create provider configuration - base_url is placeholder
+_chutes_config = ProviderConfig(
+    name="Chutes",
+    api_key_env="CHUTES_API_KEY",
+    base_url="https://llm.chutes.ai/v1/chat/completions",  # Can be overridden via CHUTES_BASE_URL
+)
+
+# Create provider instance
+chutes_provider = ChutesProvider(_chutes_config)
+
+
+@handle_provider_errors("Chutes")
+def call_chutes_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+    """Call the Chutes.ai API using an OpenAI-compatible endpoint.
+
+    Environment variables:
+        CHUTES_API_KEY: Chutes.ai API key (required)
+        CHUTES_BASE_URL: Custom base URL (optional, defaults to https://llm.chutes.ai)
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return chutes_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

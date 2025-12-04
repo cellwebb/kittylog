@@ -1,54 +1,22 @@
 """Anthropic AI provider implementation."""
 
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import AnthropicCompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class AnthropicProvider(BaseAPIProvider):
-    """Anthropic API provider."""
-
-    API_URL = "https://api.anthropic.com/v1/messages"
-    API_KEY_ENV = "ANTHROPIC_API_KEY"
-    PROVIDER_NAME = "Anthropic"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["x-api-key"] = self.api_key
-        headers["anthropic-version"] = "2023-06-01"
-        return headers
-
-    def _prepare_request_data(self, model, messages, temperature, max_tokens, **kwargs):
-        """Prepare Anthropic-specific request data."""
-        # Convert messages to Anthropic format
-        anthropic_messages = []
-        system_message = ""
-
-        for msg in messages:
-            if msg["role"] == "system":
-                system_message = msg["content"]
-            else:
-                anthropic_messages.append({"role": msg["role"], "content": msg["content"]})
-
-        data = {
-            "model": model,
-            "messages": anthropic_messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-
-        if system_message:
-            data["system"] = system_message
-
-        return data
-
-    def _process_response_data(self, response_data):
-        """Process Anthropic-specific response format."""
-        return response_data["content"][0]["text"]
+class AnthropicProvider(AnthropicCompatibleProvider):
+    config = ProviderConfig(
+        name="Anthropic",
+        api_key_env="ANTHROPIC_API_KEY",
+        base_url="https://api.anthropic.com/v1/messages",
+    )
 
 
-# Create provider instance
-_anthropic_provider = AnthropicProvider()
+# Create provider instance for backward compatibility
+anthropic_provider = AnthropicProvider(AnthropicProvider.config)
 
 
+@handle_provider_errors("Anthropic")
 def call_anthropic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Anthropic API directly.
 
@@ -64,7 +32,7 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
     Raises:
         AIError: For any API-related errors
     """
-    return _anthropic_provider.call(
+    return anthropic_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,

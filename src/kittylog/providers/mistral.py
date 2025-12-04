@@ -1,25 +1,22 @@
 """Mistral provider implementation for kittylog."""
 
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class MistralProvider(BaseAPIProvider):
-    """Mistral API provider."""
-
-    API_URL = "https://api.mistral.ai/v1/chat/completions"
-    API_KEY_ENV = "MISTRAL_API_KEY"
-    PROVIDER_NAME = "Mistral"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+class MistralProvider(OpenAICompatibleProvider):
+    config = ProviderConfig(
+        name="Mistral",
+        api_key_env="MISTRAL_API_KEY",
+        base_url="https://api.mistral.ai/v1/chat/completions",
+    )
 
 
-# Create provider instance
-_mistral_provider = MistralProvider()
+# Create provider instance for backward compatibility
+mistral_provider = MistralProvider(MistralProvider.config)
 
 
+@handle_provider_errors("Mistral")
 def call_mistral_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Mistral API.
 
@@ -35,7 +32,7 @@ def call_mistral_api(model: str, messages: list[dict], temperature: float, max_t
     Raises:
         AIError: For any API-related errors
     """
-    return _mistral_provider.call(
+    return mistral_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,

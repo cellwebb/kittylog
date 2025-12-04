@@ -1,23 +1,21 @@
 """OpenAI provider implementation."""
 
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class OpenAIProvider(BaseAPIProvider):
-    """OpenAI API provider."""
+class OpenAIProvider(OpenAICompatibleProvider):
+    """OpenAI API provider with model-specific adjustments."""
 
-    API_URL = "https://api.openai.com/v1/chat/completions"
-    API_KEY_ENV = "OPENAI_API_KEY"
-    PROVIDER_NAME = "OpenAI"
+    config = ProviderConfig(
+        name="OpenAI", api_key_env="OPENAI_API_KEY", base_url="https://api.openai.com/v1/chat/completions"
+    )
 
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
-
-    def _prepare_request_data(self, model, messages, temperature, max_tokens, **kwargs):
-        """Prepare OpenAI-specific request data."""
-        data = super()._prepare_request_data(model, messages, temperature, max_tokens, **kwargs)
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict:
+        """Build OpenAI-specific request body."""
+        data = super()._build_request_body(messages, temperature, max_tokens, model, **kwargs)
 
         # OpenAI-specific adjustments
         if model.startswith("gpt-5") or model.startswith("o"):
@@ -35,10 +33,11 @@ class OpenAIProvider(BaseAPIProvider):
         return data
 
 
-# Create provider instance
-_openai_provider = OpenAIProvider()
+# Create provider instance for backward compatibility
+openai_provider = OpenAIProvider(OpenAIProvider.config)
 
 
+@handle_provider_errors("OpenAI")
 def call_openai_api(
     model: str,
     messages: list[dict],
@@ -65,7 +64,7 @@ def call_openai_api(
     Raises:
         AIError: For any API-related errors
     """
-    return _openai_provider.call(
+    return openai_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,

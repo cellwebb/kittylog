@@ -1,25 +1,22 @@
 """Groq AI provider implementation."""
 
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class GroqProvider(BaseAPIProvider):
-    """Groq API provider."""
-
-    API_URL = "https://api.groq.com/openai/v1/chat/completions"
-    API_KEY_ENV = "GROQ_API_KEY"
-    PROVIDER_NAME = "Groq"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+class GroqProvider(OpenAICompatibleProvider):
+    config = ProviderConfig(
+        name="Groq",
+        api_key_env="GROQ_API_KEY",
+        base_url="https://api.groq.com/openai/v1/chat/completions",
+    )
 
 
-# Create provider instance
-_groq_provider = GroqProvider()
+# Create provider instance for backward compatibility
+groq_provider = GroqProvider(GroqProvider.config)
 
 
+@handle_provider_errors("Groq")
 def call_groq_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Groq API directly.
 
@@ -35,7 +32,7 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
     Raises:
         AIError: For any API-related errors
     """
-    return _groq_provider.call(
+    return groq_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,

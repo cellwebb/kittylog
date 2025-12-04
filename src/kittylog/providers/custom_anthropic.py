@@ -4,55 +4,66 @@ import json
 import logging
 import os
 
-import httpx
-
-from kittylog.errors import AIError
+from kittylog.providers.base_configured import AnthropicCompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
 
 
-def call_custom_anthropic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call a custom Anthropic-compatible endpoint."""
-    api_key = os.getenv("CUSTOM_ANTHROPIC_API_KEY")
-    if not api_key:
-        raise AIError.authentication_error("CUSTOM_ANTHROPIC_API_KEY environment variable not set")
+class CustomAnthropicProvider(AnthropicCompatibleProvider):
+    """Custom Anthropic-compatible API provider with configurable endpoint."""
 
-    base_url = os.getenv("CUSTOM_ANTHROPIC_BASE_URL")
-    if not base_url:
-        raise AIError.model_error("CUSTOM_ANTHROPIC_BASE_URL environment variable not set")
+    def __init__(self, config: ProviderConfig):
+        super().__init__(config)
+        # Defer validation until API call
+        self.custom_base_url: str | None = None
+        self.api_version: str | None = None
 
-    api_version = os.getenv("CUSTOM_ANTHROPIC_VERSION", "2023-06-01")
+    def _validate_config(self):
+        """Validate and initialize configuration."""
+        # Always check environment variable to ensure validation works in tests
+        base_url = os.getenv("CUSTOM_ANTHROPIC_BASE_URL")
+        if not base_url:
+            from kittylog.errors import AIError
 
-    if "/v1/messages" not in base_url:
-        base_url = base_url.rstrip("/")
-        url = f"{base_url}/v1/messages"
-    else:
-        url = base_url
+            raise AIError.model_error("CUSTOM_ANTHROPIC_BASE_URL environment variable not set")
 
-    headers = {"x-api-key": api_key, "anthropic-version": api_version, "content-type": "application/json"}
+        # Check API key as well
+        api_key = os.getenv("CUSTOM_ANTHROPIC_API_KEY")
+        if not api_key:
+            from kittylog.errors import AIError
 
-    anthropic_messages = []
-    system_message = ""
+            raise AIError.model_error("CUSTOM_ANTHROPIC_API_KEY environment variable not set")
 
-    for msg in messages:
-        if msg["role"] == "system":
-            system_message = msg["content"]
+        # Get custom API version
+        self.api_version = os.getenv("CUSTOM_ANTHROPIC_VERSION", "2023-06-01")
+
+        # Ensure proper URL format
+        if "/v1/messages" not in base_url:
+            base_url = base_url.rstrip("/")
+            self.custom_base_url = f"{base_url}/v1/messages"
         else:
-            anthropic_messages.append({"role": msg["role"], "content": msg["content"]})
+            self.custom_base_url = base_url
 
-    data = {"model": model, "messages": anthropic_messages, "temperature": temperature, "max_tokens": max_tokens}
+    def _get_api_url(self, model: str | None = None) -> str:
+        """Get custom Anthropic API URL."""
+        self._validate_config()
+        return self.custom_base_url or ""
 
-    if system_message:
-        data["system"] = system_message
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers with custom Anthropic version."""
+        self._validate_config()
+        headers = super()._build_headers()
+        headers["anthropic-version"] = self.api_version or "2023-06-01"
+        return headers
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-
+    def _parse_response(self, response: dict) -> str:
+        """Parse custom Anthropic response with enhanced validation and logging."""
         try:
-            content_list = response_data.get("content", [])
+            content_list = response.get("content", [])
             if not content_list:
+                from kittylog.errors import AIError
+
                 raise AIError.model_error("Custom Anthropic API returned empty content array")
 
             if "text" in content_list[0]:
@@ -64,40 +75,73 @@ def call_custom_anthropic_api(model: str, messages: list[dict], temperature: flo
                 else:
                     logger.error(
                         "Unexpected response format from Custom Anthropic API. Response: %s",
-                        json.dumps(response_data),
+                        json.dumps(response),
                     )
+                    from kittylog.errors import AIError
+
                     raise AIError.model_error(
                         "Custom Anthropic API returned unexpected format. Expected content items with 'text'."
                     )
-        except AIError:
-            raise
+
+            if content is None:
+                from kittylog.errors import AIError
+
+                raise AIError.model_error("Custom Anthropic API returned null content")
+            if content == "":
+                from kittylog.errors import AIError
+
+                raise AIError.model_error("Custom Anthropic API returned empty content")
+
+            return content
         except (KeyError, IndexError, TypeError, StopIteration) as e:
-            logger.error(
-                "Unexpected response format from Custom Anthropic API. Response: %s", json.dumps(response_data)
-            )
+            logger.error("Unexpected response format from Custom Anthropic API. Response: %s", json.dumps(response))
+            from kittylog.errors import AIError
+
             raise AIError.model_error(
                 "Custom Anthropic API returned unexpected format. Expected Anthropic-compatible response."
             ) from e
 
-        if content is None:
-            raise AIError.model_error("Custom Anthropic API returned null content")
-        if content == "":
-            raise AIError.model_error("Custom Anthropic API returned empty content")
-        return content
-    except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Custom Anthropic API connection failed: {e!s}") from e
-    except httpx.HTTPStatusError as e:
-        status_code = e.response.status_code
-        error_text = e.response.text
 
-        if status_code == 401:
-            raise AIError.authentication_error(f"Custom Anthropic API authentication failed: {error_text}") from e
-        if status_code == 429:
-            raise AIError.rate_limit_error(f"Custom Anthropic API rate limit exceeded: {error_text}") from e
-        raise AIError.model_error(f"Custom Anthropic API error: {status_code} - {error_text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Custom Anthropic API request timed out: {e!s}") from e
-    except AIError:
-        raise
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Custom Anthropic API: {e!s}") from e
+# Create provider configuration - these will be overridden/validated during API call
+_custom_anthropic_config = ProviderConfig(
+    name="Custom Anthropic",
+    api_key_env="CUSTOM_ANTHROPIC_API_KEY",
+    base_url="https://custom-endpoint.com/v1/messages",  # Will be overridden by CUSTOM_ANTHROPIC_BASE_URL
+)
+
+# Create provider instance
+custom_anthropic_provider = CustomAnthropicProvider(_custom_anthropic_config)
+
+
+@handle_provider_errors("Custom Anthropic")
+def call_custom_anthropic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+    """Call a custom Anthropic-compatible endpoint.
+
+    Environment variables:
+        CUSTOM_ANTHROPIC_API_KEY: Custom endpoint API key (required)
+        CUSTOM_ANTHROPIC_BASE_URL: Custom endpoint base URL (required)
+            Example: https://your-endpoint.com
+            Example: https://your-endpoint.com/v1/messages
+        CUSTOM_ANTHROPIC_VERSION: Anthropic API version (optional, defaults to "2023-06-01")
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    # Explicitly validate configuration before attempting API call
+    custom_anthropic_provider._validate_config()
+
+    return custom_anthropic_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

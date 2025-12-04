@@ -4,66 +4,125 @@ import json
 import logging
 import os
 
-import httpx
-
-from kittylog.errors import AIError
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
 
 
+class CustomOpenAIProvider(OpenAICompatibleProvider):
+    """Custom OpenAI-compatible API provider with configurable endpoint."""
+
+    def __init__(self, config: ProviderConfig):
+        super().__init__(config)
+        # Defer validation until API call
+        self.custom_base_url = None
+
+    def _validate_config(self):
+        """Validate and initialize configuration."""
+        # Always check environment variable to ensure validation works in tests
+        base_url = os.getenv("CUSTOM_OPENAI_BASE_URL")
+        if not base_url:
+            from kittylog.errors import AIError
+
+            raise AIError.model_error("CUSTOM_OPENAI_BASE_URL environment variable not set")
+
+        # Check API key as well
+        api_key = os.getenv("CUSTOM_OPENAI_API_KEY")
+        if not api_key:
+            from kittylog.errors import AIError
+
+            raise AIError.model_error("CUSTOM_OPENAI_API_KEY environment variable not set")
+
+        # Ensure proper URL format
+        if "/chat/completions" not in base_url:
+            base_url = base_url.rstrip("/")
+            self.custom_base_url = f"{base_url}/chat/completions"
+        else:
+            self.custom_base_url = base_url
+
+    def _get_api_url(self, model: str | None = None) -> str:
+        """Get custom OpenAI API URL."""
+        self._validate_config()
+        return self.custom_base_url or ""
+
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict:
+        """Build custom OpenAI request body with max_completion_tokens."""
+        data = super()._build_request_body(messages, temperature, max_tokens, model, **kwargs)
+
+        # Use max_completion_tokens instead of max_tokens
+        if "max_tokens" in data:
+            data["max_completion_tokens"] = data.pop("max_tokens")
+
+        return data
+
+    def _parse_response(self, response: dict) -> str:
+        """Parse custom OpenAI response with validation and logging."""
+        try:
+            content = super()._parse_response(response)
+
+            if content is None:
+                from kittylog.errors import AIError
+
+                raise AIError.generation_error("Invalid response: missing content")
+            if content == "":
+                from kittylog.errors import AIError
+
+                raise AIError.model_error("Custom OpenAI API returned empty content")
+
+            return content
+        except Exception as e:
+            logger.error("Unexpected response format from Custom OpenAI API. Response: %s", json.dumps(response))
+            if "Unexpected response format" not in str(e):
+                from kittylog.errors import AIError
+
+                raise AIError.model_error(
+                    "Custom OpenAI API returned unexpected format. Expected OpenAI-compatible response."
+                ) from e
+            raise
+
+
+# Create provider configuration - these will be overridden/validated during API call
+_custom_openai_config = ProviderConfig(
+    name="Custom OpenAI",
+    api_key_env="CUSTOM_OPENAI_API_KEY",
+    base_url="https://custom-endpoint.com/chat/completions",  # Will be overridden by CUSTOM_OPENAI_BASE_URL
+)
+
+# Create provider instance
+custom_openai_provider = CustomOpenAIProvider(_custom_openai_config)
+
+
+@handle_provider_errors("Custom OpenAI")
 def call_custom_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call a custom OpenAI-compatible endpoint."""
-    api_key = os.getenv("CUSTOM_OPENAI_API_KEY")
-    if not api_key:
-        raise AIError.authentication_error("CUSTOM_OPENAI_API_KEY environment variable not set")
+    """Call a custom OpenAI-compatible endpoint.
 
-    base_url = os.getenv("CUSTOM_OPENAI_BASE_URL")
-    if not base_url:
-        raise AIError.model_error("CUSTOM_OPENAI_BASE_URL environment variable not set")
+    Environment variables:
+        CUSTOM_OPENAI_API_KEY: Custom endpoint API key (required)
+        CUSTOM_OPENAI_BASE_URL: Custom endpoint base URL (required)
+            Example: https://your-endpoint.com
+            Example: https://your-endpoint.com/v1/chat/completions
 
-    if "/chat/completions" not in base_url:
-        base_url = base_url.rstrip("/")
-        url = f"{base_url}/chat/completions"
-    else:
-        url = base_url
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
 
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    Returns:
+        Generated text content
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_completion_tokens": max_tokens}
+    Raises:
+        AIError: For any API-related errors
+    """
+    # Explicitly validate configuration before attempting API call
+    custom_openai_provider._validate_config()
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
-        if content is None:
-            raise AIError.generation_error("Invalid response: missing content")
-        if content == "":
-            raise AIError.model_error("Custom OpenAI API returned empty content")
-        return content
-    except (KeyError, IndexError, TypeError) as e:
-        logger.error("Unexpected response format from Custom OpenAI API. Response: %s", json.dumps(response_data))
-        raise AIError.model_error(
-            "Custom OpenAI API returned unexpected format. Expected OpenAI-compatible response."
-        ) from e
-    except httpx.ConnectError as e:
-        raise AIError.connection_error(f"Custom OpenAI API connection failed: {e!s}") from e
-    except httpx.HTTPStatusError as e:
-        status_code = e.response.status_code
-        error_text = e.response.text
-
-        if status_code == 401:
-            raise AIError.authentication_error(f"Custom OpenAI API authentication failed: {error_text}") from e
-        if status_code == 429:
-            raise AIError.rate_limit_error(f"Custom OpenAI API rate limit exceeded: {error_text}") from e
-        raise AIError.model_error(f"Custom OpenAI API error: {status_code} - {error_text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Custom OpenAI API request timed out: {e!s}") from e
-    except AIError:
-        raise
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Custom OpenAI API: {e!s}") from e
+    return custom_openai_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

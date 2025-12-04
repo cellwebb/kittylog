@@ -4,38 +4,35 @@ This provider provides native support for Azure OpenAI Service with proper
 endpoint construction and API version handling.
 """
 
-import logging
 import os
 
-import httpx
-
-from kittylog.errors import AIError
-from kittylog.providers.base import BaseAPIProvider
-
-logger = logging.getLogger(__name__)
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class AzureOpenAIProvider(BaseAPIProvider):
-    """Azure OpenAI API provider."""
+class AzureOpenAIProvider(OpenAICompatibleProvider):
+    """Azure OpenAI API provider with custom URL handling."""
 
-    API_KEY_ENV = "AZURE_OPENAI_API_KEY"
-    PROVIDER_NAME = "Azure OpenAI"
-    TIMEOUT = 120
-
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config: ProviderConfig):
+        super().__init__(config)
         # Azure OpenAI requires additional env vars for endpoint and version
-        self.api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.api_endpoint: str | None = os.getenv("AZURE_OPENAI_ENDPOINT")
         self.api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
 
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["api-key"] = self.api_key
+    def _build_headers(self):
+        """Build headers with Azure OpenAI api-key format."""
+        headers = super()._build_headers()
+        if self.api_key:
+            headers["api-key"] = self.api_key
+            # Remove the Authorization header that OpenAICompatibleProvider adds
+            headers.pop("Authorization", None)
         return headers
 
-    def _prepare_request_data(self, model, messages, temperature, max_tokens, **kwargs):
-        """Prepare Azure OpenAI-specific request data."""
-        data = super()._prepare_request_data(model, messages, temperature, max_tokens, **kwargs)
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict:
+        """Build Azure OpenAI-specific request body."""
+        data = super()._build_request_body(messages, temperature, max_tokens, model, **kwargs)
 
         # Azure OpenAI uses max_tokens instead of max_completion_tokens
         if "max_completion_tokens" in data:
@@ -43,43 +40,35 @@ class AzureOpenAIProvider(BaseAPIProvider):
 
         return data
 
-    def get_api_url(self, model: str) -> str:
+    def _get_api_url(self, model: str | None = None) -> str:
         """Construct full API URL with version.
 
         Args:
             model: The deployment name to use in the URL
+
+        Returns:
+            Full Azure OpenAI API URL
         """
-        return f"{self.api_endpoint.rstrip('/')}/openai/deployments/{model}/chat/completions?api-version={self.api_version}"
+        if not model:
+            raise ValueError("Model is required for Azure OpenAI")
+        endpoint = self.api_endpoint
+        if not endpoint:
+            raise ValueError("AZURE_OPENAI_ENDPOINT is required")
+        return f"{endpoint.rstrip('/')}/openai/deployments/{model}/chat/completions?api-version={self.api_version}"
 
-    def call(self, model, messages, temperature, max_tokens, **kwargs):
-        """Override to use custom Azure OpenAI URL."""
-        headers = self._get_headers()
-        data = self._prepare_request_data(model, messages, temperature, max_tokens, **kwargs)
 
-        try:
-            response = httpx.post(self.get_api_url(model), headers=headers, json=data, timeout=self.TIMEOUT)
-            response.raise_for_status()
-            response_data = response.json()
-            return self._process_response_data(response_data)
-
-        except httpx.HTTPStatusError as e:
-            raise AIError.generation_error(
-                f"Azure OpenAI API error: {e.response.status_code} - {e.response.text}"
-            ) from e
-        except httpx.TimeoutException as e:
-            raise AIError.generation_error("Azure OpenAI API request timed out") from e
-        except httpx.RequestError as e:
-            raise AIError.generation_error(f"Azure OpenAI API network error: {e}") from e
-        except (KeyError, IndexError, TypeError) as e:
-            raise AIError.generation_error(f"Azure OpenAI API invalid response format: {e}") from e
-        except Exception as e:
-            raise AIError.generation_error(f"Error calling Azure OpenAI API: {e!s}") from e
-
+# Create provider configuration - base_url is placeholder since we override _get_api_url
+_azure_openai_config = ProviderConfig(
+    name="Azure OpenAI",
+    api_key_env="AZURE_OPENAI_API_KEY",
+    base_url="https://placeholder.openai.azure.com",  # Overridden in _get_api_url
+)
 
 # Create provider instance
-_azure_openai_provider = AzureOpenAIProvider()
+azure_openai_provider = AzureOpenAIProvider(_azure_openai_config)
 
 
+@handle_provider_errors("Azure OpenAI")
 def call_azure_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Azure OpenAI Service API.
 
@@ -103,9 +92,13 @@ def call_azure_openai_api(model: str, messages: list[dict], temperature: float, 
     Raises:
         AIError: For any API-related errors
     """
-    return _azure_openai_provider.call(
+    return azure_openai_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
     )
+
+
+# Backward compatibility alias for tests
+_azure_openai_provider = azure_openai_provider

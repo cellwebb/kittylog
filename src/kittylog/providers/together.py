@@ -1,25 +1,22 @@
 """Together AI provider for kittylog."""
 
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class TogetherProvider(BaseAPIProvider):
-    """Together AI API provider."""
-
-    API_URL = "https://api.together.xyz/v1/chat/completions"
-    API_KEY_ENV = "TOGETHER_API_KEY"
-    PROVIDER_NAME = "Together AI"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+class TogetherProvider(OpenAICompatibleProvider):
+    config = ProviderConfig(
+        name="Together AI",
+        api_key_env="TOGETHER_API_KEY",
+        base_url="https://api.together.xyz/v1/chat/completions",
+    )
 
 
-# Create provider instance
-_together_provider = TogetherProvider()
+# Create provider instance for backward compatibility
+together_provider = TogetherProvider(TogetherProvider.config)
 
 
+@handle_provider_errors("Together AI")
 def call_together_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Together AI API directly.
 
@@ -35,7 +32,7 @@ def call_together_api(model: str, messages: list[dict], temperature: float, max_
     Raises:
         AIError: For any API-related errors
     """
-    return _together_provider.call(
+    return together_provider.generate(
         model=model,
         messages=messages,
         temperature=temperature,

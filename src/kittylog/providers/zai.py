@@ -1,59 +1,84 @@
 """Z.AI API provider for kittylog."""
 
-import os
-
-import httpx
-
-from kittylog.errors import AIError
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-def _call_zai_api_impl(
-    url: str, api_name: str, model: str, messages: list[dict], temperature: float, max_tokens: int
-) -> str:
-    """Internal implementation for Z.AI API calls."""
-    api_key = os.getenv("ZAI_API_KEY")
-    if not api_key:
-        raise AIError.generation_error("ZAI_API_KEY not found in environment variables")
+class ZAIProvider(OpenAICompatibleProvider):
+    """Z.AI API provider with content validation."""
 
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    def _parse_response(self, response: dict) -> str:
+        """Parse Z.AI response with validation."""
+        content = super()._parse_response(response)
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
+        if content is None:
+            from kittylog.errors import AIError
 
-        # Handle different possible response structures
-        if "choices" in response_data and len(response_data["choices"]) > 0:
-            choice = response_data["choices"][0]
-            if "message" in choice and "content" in choice["message"]:
-                content = choice["message"]["content"]
-                if content is None:
-                    raise AIError.generation_error(f"{api_name} API returned null content")
-                if content == "":
-                    raise AIError.generation_error(f"{api_name} API returned empty content")
-                return content
-            else:
-                raise AIError.generation_error(f"{api_name} API response missing content: {response_data}")
-        else:
-            raise AIError.generation_error(f"{api_name} API unexpected response structure: {response_data}")
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 429:
-            raise AIError.generation_error(f"{api_name} API rate limit exceeded: {e.response.text}") from e
-        raise AIError.generation_error(f"{api_name} API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.generation_error(f"{api_name} API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling {api_name} API: {e!s}") from e
+            raise AIError.generation_error("Z.AI API returned null content")
+        if content == "":
+            from kittylog.errors import AIError
+
+            raise AIError.generation_error("Z.AI API returned empty content")
+
+        return content
 
 
+# Create provider configurations
+_zai_config = ProviderConfig(
+    name="Z.AI", api_key_env="ZAI_API_KEY", base_url="https://api.z.ai/api/paas/v4/chat/completions"
+)
+
+_zai_coding_config = ProviderConfig(
+    name="Z.AI Coding", api_key_env="ZAI_API_KEY", base_url="https://api.z.ai/api/coding/paas/v4/chat/completions"
+)
+
+# Create provider instances
+zai_provider = ZAIProvider(_zai_config)
+zai_coding_provider = ZAIProvider(_zai_coding_config)
+
+
+@handle_provider_errors("Z.AI")
 def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI regular API directly."""
-    url = "https://api.z.ai/api/paas/v4/chat/completions"
-    return _call_zai_api_impl(url, "Z.AI", model, messages, temperature, max_tokens)
+    """Call Z.AI regular API directly.
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return zai_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
 
 
 def call_zai_coding_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI coding API directly."""
-    url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
-    return _call_zai_api_impl(url, "Z.AI coding", model, messages, temperature, max_tokens)
+    """Call Z.AI coding API directly.
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return zai_coding_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

@@ -2,34 +2,14 @@
 
 import os
 
-import httpx
-
-from kittylog.errors import AIError
-from kittylog.providers.base import BaseAPIProvider
+from kittylog.providers.base_configured import NoAuthProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-class OllamaProvider(BaseAPIProvider):
-    """Ollama AI API provider."""
+class OllamaProvider(NoAuthProvider):
+    """Ollama AI API provider with dynamic URL support."""
 
-    API_URL = "http://localhost:11434/api/chat"
-    API_KEY_ENV = "OLLAMA_API_URL"  # Ollama doesn't use API key, uses URL
-    PROVIDER_NAME = "Ollama"
-
-    def __init__(self):
-        # Ollama doesn't need API key, just URL
-        self._api_key = None
-
-    @property
-    def api_key(self) -> str:
-        """Ollama doesn't use API keys."""
-        return "no-key-needed"
-
-    def _get_headers(self):
-        headers = super()._get_headers()
-        # Ollama doesn't need auth headers
-        return headers
-
-    def get_api_url(self):
+    def _get_api_url(self, model: str | None = None) -> str:
         """Get Ollama API URL from env or default."""
         base_url = os.getenv("OLLAMA_API_URL") or os.getenv("OLLAMA_HOST") or "http://localhost:11434"
         # Ensure the URL ends with /api/chat
@@ -38,11 +18,35 @@ class OllamaProvider(BaseAPIProvider):
             base_url = f"{base_url}/api/chat"
         return base_url
 
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict:
+        """Build Ollama-specific request body."""
+        return {
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": False,  # Disable streaming for now
+            **kwargs,
+        }
+
+    def _parse_response(self, response: dict) -> str:
+        """Parse Ollama response format."""
+        return response.get("message", {}).get("content", "")
+
+
+# Create provider configuration
+_ollama_config = ProviderConfig(
+    name="Ollama",
+    api_key_env="",  # No API key needed
+    base_url="http://localhost:11434/api/chat",  # Will be overridden by _get_api_url
+)
 
 # Create provider instance
-_ollama_provider = OllamaProvider()
+ollama_provider = OllamaProvider(_ollama_config)
 
 
+@handle_provider_errors("Ollama")
 def call_ollama_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Ollama API directly.
 
@@ -58,30 +62,9 @@ def call_ollama_api(model: str, messages: list[dict], temperature: float, max_to
     Raises:
         AIError: For any API-related errors
     """
-    # Use dynamic URL for Ollama
-    url = _ollama_provider.get_api_url()
-    headers = _ollama_provider._get_headers()
-    data = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stream": False,  # Disable streaming for now
-    }
-
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        return response_data.get("message", {}).get("content", "")
-
-    except httpx.HTTPStatusError as e:
-        raise AIError.generation_error(f"Ollama API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.generation_error("Ollama API request timed out") from e
-    except httpx.RequestError as e:
-        raise AIError.generation_error(f"Ollama API network error: {e}") from e
-    except (KeyError, IndexError, TypeError) as e:
-        raise AIError.generation_error(f"Ollama API invalid response format: {e}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling Ollama API: {e!s}") from e
+    return ollama_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

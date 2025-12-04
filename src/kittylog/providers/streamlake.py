@@ -1,51 +1,75 @@
 """StreamLake (Vanchin) API provider for kittylog."""
 
-import os
-
-import httpx
-
-from kittylog.errors import AIError
+from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
 
-def call_streamlake_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call StreamLake (Vanchin) chat completions API."""
-    api_key = os.getenv("STREAMLAKE_API_KEY") or os.getenv("VC_API_KEY")
-    if not api_key:
-        raise AIError.generation_error(
-            "STREAMLAKE_API_KEY not found in environment variables (VC_API_KEY alias also not set)"
-        )
+class StreamLakeProvider(OpenAICompatibleProvider):
+    """StreamLake API provider with dual API key support."""
 
-    url = "https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    def _get_api_key(self) -> str:
+        """Get API key from environment with alias support."""
+        import os
 
-    data = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
+        from kittylog.errors import AIError
 
-    try:
-        response = httpx.post(url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        choices = response_data.get("choices")
-        if not choices:
-            raise AIError.generation_error("StreamLake API returned no choices")
+        api_key = os.getenv("STREAMLAKE_API_KEY") or os.getenv("VC_API_KEY")
+        if not api_key:
+            raise AIError.generation_error(
+                "STREAMLAKE_API_KEY not found in environment variables (VC_API_KEY alias also not set)"
+            )
+        return api_key
 
-        message = choices[0].get("message", {})
-        content = message.get("content")
+    def _parse_response(self, response: dict) -> str:
+        """Parse StreamLake response with validation."""
+        content = super()._parse_response(response)
+
         if content is None:
+            from kittylog.errors import AIError
+
             raise AIError.generation_error("StreamLake API returned null content")
         if content == "":
+            from kittylog.errors import AIError
+
             raise AIError.generation_error("StreamLake API returned empty content")
 
         return content
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 429:
-            raise AIError.generation_error(f"StreamLake API rate limit exceeded: {e.response.text}") from e
-        raise AIError.generation_error(f"StreamLake API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.generation_error(f"StreamLake API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.generation_error(f"Error calling StreamLake API: {e!s}") from e
+
+
+# Create provider configuration
+_streamlake_config = ProviderConfig(
+    name="StreamLake",
+    api_key_env="STREAMLAKE_API_KEY",  # Will be overridden by _get_api_key to support VC_API_KEY alias
+    base_url="https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions",
+)
+
+# Create provider instance
+streamlake_provider = StreamLakeProvider(_streamlake_config)
+
+
+@handle_provider_errors("StreamLake")
+def call_streamlake_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
+    """Call StreamLake (Vanchin) chat completions API.
+
+    Environment variables:
+        STREAMLAKE_API_KEY: StreamLake API key (required)
+        VC_API_KEY: Alternative API key variable name (alias for STREAMLAKE_API_KEY)
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return streamlake_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )

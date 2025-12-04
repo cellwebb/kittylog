@@ -1,59 +1,66 @@
 """Gemini provider implementation for kittylog."""
 
-import os
 from typing import Any
 
-import httpx
+from kittylog.providers.base_configured import GenericHTTPProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
-from kittylog.errors import AIError
 
+class GeminiProvider(GenericHTTPProvider):
+    """Gemini API provider with custom request/response handling."""
 
-def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int) -> str:
-    """Call the Gemini API."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise AIError.authentication_error("GEMINI_API_KEY not found in environment variables")
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers with Google API key format."""
+        headers = super()._build_headers()
+        if self.api_key:
+            headers["x-goog-api-key"] = self.api_key
+            # Remove standard Authorization that might be added
+            headers.pop("Authorization", None)
+        return headers
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict[str, Any]:
+        """Build Gemini-specific request body."""
+        contents: list[dict[str, Any]] = []
+        system_instruction_parts: list[dict[str, str]] = []
 
-    contents: list[dict[str, Any]] = []
-    system_instruction_parts: list[dict[str, str]] = []
+        for msg in messages:
+            role = msg.get("role")
+            content_value = msg.get("content")
+            content = "" if content_value is None else str(content_value)
 
-    for msg in messages:
-        role = msg.get("role")
-        content_value = msg.get("content")
-        content = "" if content_value is None else str(content_value)
+            if role == "system":
+                if content.strip():
+                    system_instruction_parts.append({"text": content})
+                continue
 
-        if role == "system":
-            if content.strip():
-                system_instruction_parts.append({"text": content})
-            continue
+            if role == "assistant":
+                gemini_role = "model"
+            elif role == "user":
+                gemini_role = "user"
+            else:
+                from kittylog.errors import AIError
 
-        if role == "assistant":
-            gemini_role = "model"
-        elif role == "user":
-            gemini_role = "user"
-        else:
-            raise AIError.model_error(f"Unsupported message role for Gemini API: {role}")
+                raise AIError.model_error(f"Unsupported message role for Gemini API: {role}")
 
-        contents.append({"role": gemini_role, "parts": [{"text": content}]})
+            contents.append({"role": gemini_role, "parts": [{"text": content}]})
 
-    payload: dict[str, Any] = {
-        "contents": contents,
-        "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
-    }
+        payload: dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+        }
 
-    if system_instruction_parts:
-        payload["systemInstruction"] = {"role": "system", "parts": system_instruction_parts}
+        if system_instruction_parts:
+            payload["systemInstruction"] = {"role": "system", "parts": system_instruction_parts}
 
-    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+        return payload
 
-    try:
-        response = httpx.post(url, headers=headers, json=payload, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
+    def _parse_response(self, response: dict[str, Any]) -> str:
+        """Parse Gemini-specific response."""
+        from kittylog.errors import AIError
 
-        candidates = response_data.get("candidates")
+        candidates = response.get("candidates")
         if not candidates:
             raise AIError.model_error("Gemini API response missing candidates")
 
@@ -73,13 +80,44 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
                     return part_text
 
         raise AIError.model_error("Gemini API response missing text content")
-    except AIError:
-        raise
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 429:
-            raise AIError.rate_limit_error(f"Gemini API rate limit exceeded: {e.response.text}") from e
-        raise AIError.model_error(f"Gemini API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Gemini API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Gemini API: {e!s}") from e
+
+    def _get_api_url(self, model: str | None = None) -> str:
+        """Get Gemini API URL with model."""
+        if not model:
+            raise ValueError("Model is required for Gemini")
+        return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+# Create provider configuration - base_url is placeholder since we override _get_api_url
+_gemini_config = ProviderConfig(
+    name="Gemini",
+    api_key_env="GEMINI_API_KEY",
+    base_url="https://generativelanguage.googleapis.com",  # Overridden in _get_api_url
+)
+
+# Create provider instance
+gemini_provider = GeminiProvider(_gemini_config)
+
+
+@handle_provider_errors("Gemini")
+def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int) -> str:
+    """Call the Gemini API.
+
+    Args:
+        model: Model name
+        messages: List of message dictionaries
+        temperature: Temperature parameter
+        max_tokens: Maximum tokens in response
+
+    Returns:
+        Generated text content
+
+    Raises:
+        AIError: For any API-related errors
+    """
+    return gemini_provider.generate(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
