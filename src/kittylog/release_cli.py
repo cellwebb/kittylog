@@ -85,6 +85,7 @@ def release(
                 changelog_file=file,
                 from_tag=None,
                 to_tag=None,
+                special_unreleased_mode=True,  # Process commits since last tag for the release
             )
             workflow_opts = WorkflowOptions(
                 quiet=quiet,
