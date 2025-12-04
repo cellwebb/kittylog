@@ -4,6 +4,7 @@ from pathlib import Path
 
 from kittylog.changelog.io import read_changelog
 from kittylog.changelog.parser import limit_bullets_in_sections
+from kittylog.changelog.updater import _insert_unreleased_entry
 from kittylog.commit_analyzer import get_commits_between_tags
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_latest_tag
@@ -114,9 +115,8 @@ def handle_unreleased_mode(
 
         output.debug(f"Generated unreleased entry: {entry}")
 
-        # For now, just return existing content + entry (simplified)
-        # This would normally use changelog_parser functions
-        updated_content = existing_content + "\n\n" + entry
+        # Insert entry into the [Unreleased] section (or create one if needed)
+        updated_content = _insert_unreleased_entry(existing_content, entry)
 
         return True, updated_content
 
