@@ -4,25 +4,25 @@
 
 **ALWAYS use `uv run` prefix for ALL Python-related commands. NEVER use vanilla commands.**
 
-### ✅ CORRECT (Always use these):
+### CORRECT (Always use these):
 ```bash
-uv run python script.py          # NEVER: python script.py
-uv run pytest                    # NEVER: pytest
-uv run python -m pytest tests/   # NEVER: python -m pytest tests/
-uv run python -c "print('test')" # NEVER: python -c "print('test')"
-uv run ruff check .              # NEVER: ruff check .
-uv run ruff format .             # NEVER: ruff format .
-uv run mypy src/                 # NEVER: mypy src/
-uv run pip install package      # NEVER: pip install package
+✅ uv run python script.py          # NEVER: python script.py
+✅ uv run pytest                    # NEVER: pytest
+✅ uv run python -m pytest tests/   # NEVER: python -m pytest tests/
+✅ uv run python -c "print('test')" # NEVER: python -c "print('test')"
+✅ uv run ruff check .              # NEVER: ruff check .
+✅ uv run ruff format .             # NEVER: ruff format .
+✅ uv run mypy src/                 # NEVER: mypy src/
+✅ uv run pip install package      # NEVER: pip install package
 ```
 
-### ❌ FORBIDDEN (Never use these):
-- `python` (any form)
-- `pytest` (any form) 
-- `pip` (any form)
-- `ruff` (any form)
-- `mypy` (any form)
-- `black`, `isort`, `flake8`, or any other Python tools
+### FORBIDDEN (Never use these):
+❌ `python` (any form)
+❌ `pytest` (any form) 
+❌ `pip` (any form)
+❌ `ruff` (any form)
+❌ `mypy` (any form)
+❌ `black`, `isort`, `flake8`, or any other Python tools
 
 **Why?** All development tools must go through `uv run` to ensure:
 - Proper environment isolation
