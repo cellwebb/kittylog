@@ -325,5 +325,5 @@ class TestErrorUsagePatterns:
             assert str(e) == "Rate limit"
         except KittylogError:
             pytest.fail("Should have caught AIError specifically")
-        except Exception:
+        except (BaseException, RuntimeError, ValueError, TypeError):
             pytest.fail("Should have caught KittylogError family")

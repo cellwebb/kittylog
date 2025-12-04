@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.minimax.io/v1/chat/completions"
 class TestMinimaxProvider:
     """Test Minimax provider functionality."""
 
-    @patch("kittylog.providers.minimax.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MINIMAX_API_KEY": API_KEY})
     def test_call_minimax_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Minimax API call."""
@@ -54,7 +54,7 @@ class TestMinimaxProvider:
 
         assert "MINIMAX_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.minimax.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MINIMAX_API_KEY": API_KEY})
     def test_call_minimax_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Minimax API call handles HTTP errors."""
@@ -72,7 +72,7 @@ class TestMinimaxProvider:
 
         assert "MiniMax API error" in str(exc_info.value) or "Error calling MiniMax API" in str(exc_info.value)
 
-    @patch("kittylog.providers.minimax.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MINIMAX_API_KEY": API_KEY})
     def test_call_minimax_api_general_error(self, mock_post, dummy_messages):
         """Test Minimax API call handles general errors."""
@@ -88,7 +88,7 @@ class TestMinimaxProvider:
 
         assert "Error calling MiniMax API" in str(exc_info.value)
 
-    @patch("kittylog.providers.minimax.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MINIMAX_API_KEY": API_KEY})
     def test_call_minimax_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestMinimaxProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.minimax.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MINIMAX_API_KEY": API_KEY})
     def test_call_minimax_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

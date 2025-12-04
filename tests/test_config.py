@@ -16,19 +16,19 @@ class TestLoadConfig:
         config = load_config()
 
         # Check defaults
-        assert config["model"] is None  # Should be None if not set
-        assert config["temperature"] == 1.0
-        assert config["max_output_tokens"] == 1024
-        assert config["max_retries"] == 3
-        assert config["log_level"] == "WARNING"
-        assert config["warning_limit_tokens"] == 16384
+        assert config.model is None  # Should be None if not set
+        assert config.temperature == 1.0
+        assert config.max_output_tokens == 1024
+        assert config.max_retries == 3
+        assert config.log_level == "WARNING"
+        assert config.warning_limit_tokens == 16384
         # Check new defaults
-        assert config["grouping_mode"] == "tags"
-        assert config["gap_threshold_hours"] == 4.0
-        assert config["date_grouping"] == "daily"
-        assert config["language"] is None
-        assert config["translate_headings"] is False
-        assert config["audience"] == "stakeholders"
+        assert config.grouping_mode == "tags"
+        assert config.gap_threshold_hours == 4.0
+        assert config.date_grouping == "daily"
+        assert config.language is None
+        assert config.translate_headings is False
+        assert config.audience == "stakeholders"
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -49,19 +49,19 @@ class TestLoadConfig:
 
         config = load_config()
 
-        assert config["model"] == "cerebras:zai-glm-4.6"
-        assert config["temperature"] == 0.5
-        assert config["max_output_tokens"] == 2048
-        assert config["max_retries"] == 5
-        assert config["log_level"] == "DEBUG"
-        assert config["warning_limit_tokens"] == 8192
+        assert config.model == "cerebras:zai-glm-4.6"
+        assert config.temperature == 0.5
+        assert config.max_output_tokens == 2048
+        assert config.max_retries == 5
+        assert config.log_level == "DEBUG"
+        assert config.warning_limit_tokens == 8192
         # Check new environment variables
-        assert config["grouping_mode"] == "dates"
-        assert config["gap_threshold_hours"] == 2.5
-        assert config["date_grouping"] == "weekly"
-        assert config["language"] == "es"
-        assert config["translate_headings"] is True
-        assert config["audience"] == "stakeholders"
+        assert config.grouping_mode == "dates"
+        assert config.gap_threshold_hours == 2.5
+        assert config.date_grouping == "weekly"
+        assert config.language == "es"
+        assert config.translate_headings is True
+        assert config.audience == "stakeholders"
 
     def test_load_config_from_user_env_file(self, isolated_config_test):
         """Test loading config from user-level .env file."""
@@ -80,13 +80,13 @@ OPENAI_API_KEY=sk-test123
 
         config = load_config()
 
-        assert config["model"] == "openai:gpt-4"
-        assert config["temperature"] == 0.3
+        assert config.model == "openai:gpt-4"
+        assert config.temperature == 0.3
         # API key is loaded into os.environ via load_dotenv
         assert os.getenv("OPENAI_API_KEY") == "sk-test123"
-        assert config["language"] == "French"
-        assert config["translate_headings"] is True
-        assert config["audience"] == "users"
+        assert config.language == "French"
+        assert config.translate_headings is True
+        assert config.audience == "users"
 
     def test_load_config_from_project_env_file(self, isolated_config_test):
         """Test loading config from project-level .env file."""
@@ -107,15 +107,15 @@ KITTYLOG_AUDIENCE=developers
 
         config = load_config()
 
-        assert config["model"] == "groq:llama-4"
-        assert config["max_output_tokens"] == 512
+        assert config.model == "groq:llama-4"
+        assert config.max_output_tokens == 512
         # Check new project-level environment variables
-        assert config["grouping_mode"] == "gaps"
-        assert config["gap_threshold_hours"] == 6.0
-        assert config["date_grouping"] == "monthly"
-        assert config["language"] == "ja"
-        assert config["translate_headings"] is False
-        assert config["audience"] == "developers"
+        assert config.grouping_mode == "gaps"
+        assert config.gap_threshold_hours == 6.0
+        assert config.date_grouping == "monthly"
+        assert config.language == "ja"
+        assert config.translate_headings is False
+        assert config.audience == "developers"
 
     def test_load_config_precedence(self, isolated_config_test):
         """Test configuration precedence: project .kittylog.env > project .env > user .env > defaults.
@@ -158,16 +158,16 @@ KITTYLOG_AUDIENCE=stakeholders
         config = load_config()
 
         # Project file wins over user file
-        assert config["model"] == "openai:gpt-4"
-        assert config["temperature"] == 0.5
-        assert config["grouping_mode"] == "gaps"
-        assert config["gap_threshold_hours"] == 2.0
-        assert config["language"] == "French"
-        assert config["translate_headings"] is False
-        assert config["audience"] == "stakeholders"
+        assert config.model == "openai:gpt-4"
+        assert config.temperature == 0.5
+        assert config.grouping_mode == "gaps"
+        assert config.gap_threshold_hours == 2.0
+        assert config.language == "French"
+        assert config.translate_headings is False
+        assert config.audience == "stakeholders"
         # User file provides value not in project config
-        assert config["max_output_tokens"] == 1024
-        assert config["date_grouping"] == "daily"
+        assert config.max_output_tokens == 1024
+        assert config.date_grouping == "daily"
 
     def test_load_config_preserves_exported_api_key(self, isolated_config_test, monkeypatch):
         """Environment secrets should not be clobbered by project config files."""
@@ -187,7 +187,7 @@ KITTYLOG_AUDIENCE=stakeholders
 
         config = load_config()
 
-        assert config["temperature"] == 0.0
+        assert config.temperature == 0.0
 
     def test_load_config_invalid_values(self, isolated_config_test, monkeypatch):
         """Test handling of invalid configuration values."""
@@ -205,15 +205,15 @@ KITTYLOG_AUDIENCE=stakeholders
         config = load_config()
 
         # Should fall back to defaults for invalid values
-        assert config["temperature"] == 1.0  # default
-        assert config["max_output_tokens"] == 1024  # default
-        assert config["max_retries"] == 3  # default
+        assert config.temperature == 1.0  # default
+        assert config.max_output_tokens == 1024  # default
+        assert config.max_retries == 3  # default
         # Should fall back to defaults for invalid new values
-        assert config["grouping_mode"] == "tags"  # default
-        assert config["gap_threshold_hours"] == 4.0  # default
-        assert config["date_grouping"] == "daily"  # default
-        assert config["translate_headings"] is False
-        assert config["audience"] == "stakeholders"
+        assert config.grouping_mode == "tags"  # default
+        assert config.gap_threshold_hours == 4.0  # default
+        assert config.date_grouping == "daily"  # default
+        assert config.translate_headings is False
+        assert config.audience == "stakeholders"
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
@@ -221,12 +221,12 @@ KITTYLOG_AUDIENCE=stakeholders
         config = load_config()
 
         # Should get defaults
-        assert config["temperature"] == 1.0
-        assert config["max_output_tokens"] == 1024
+        assert config.temperature == 1.0
+        assert config.max_output_tokens == 1024
         # Should get new defaults
-        assert config["grouping_mode"] == "tags"
-        assert config["gap_threshold_hours"] == 4.0
-        assert config["date_grouping"] == "daily"
+        assert config.grouping_mode == "tags"
+        assert config.gap_threshold_hours == 4.0
+        assert config.date_grouping == "daily"
 
 
 class TestValidateConfig:
@@ -486,15 +486,15 @@ KITTYLOG_AUDIENCE=stakeholders
         validate_config(config)
 
         # Check final values
-        assert config["model"] == "cerebras:zai-glm-4.6"  # from user
-        assert config["temperature"] == 0.7  # from project (overrides user)
-        assert config["max_output_tokens"] == 2048  # from project
-        assert config["max_retries"] == 3  # default
-        assert config["grouping_mode"] == "dates"  # from project
-        assert config["date_grouping"] == "weekly"  # from project
-        assert config["language"] == "Italian"  # from user
-        assert config["translate_headings"] is True  # project override
-        assert config["audience"] == "stakeholders"  # project override
+        assert config.model == "cerebras:zai-glm-4.6"  # from user
+        assert config.temperature == 0.7  # from project (overrides user)
+        assert config.max_output_tokens == 2048  # from project
+        assert config.max_retries == 3  # default
+        assert config.grouping_mode == "dates"  # from project
+        assert config.date_grouping == "weekly"  # from project
+        assert config.language == "Italian"  # from user
+        assert config.translate_headings is True  # project override
+        assert config.audience == "stakeholders"  # project override
 
         # API key is loaded into os.environ via load_dotenv
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-user123"
@@ -547,16 +547,16 @@ KITTYLOG_DATE_GROUPING=monthly
 
         config = load_config()
 
-        assert config["model"] == "cerebras:zai-glm-4.6"
-        assert config["temperature"] == 0.5
-        assert config["max_output_tokens"] == 1024
+        assert config.model == "cerebras:zai-glm-4.6"
+        assert config.temperature == 0.5
+        assert config.max_output_tokens == 1024
         # API key is loaded into os.environ via load_dotenv
         assert os.getenv("ANTHROPIC_API_KEY") == "sk-ant-test123"
-        assert config["grouping_mode"] == "gaps"
-        assert config["gap_threshold_hours"] == 3.5
-        assert config["date_grouping"] == "monthly"
-        assert config["language"] is None
-        assert config["translate_headings"] is False
+        assert config.grouping_mode == "gaps"
+        assert config.gap_threshold_hours == 3.5
+        assert config.date_grouping == "monthly"
+        assert config.language is None
+        assert config.translate_headings is False
 
 
 class TestConfigUtils:
@@ -588,17 +588,17 @@ class TestConfigUtils:
         config = load_config()
 
         # Check types
-        assert isinstance(config["temperature"], float)
-        assert isinstance(config["max_output_tokens"], int)
-        assert isinstance(config["max_retries"], int)
-        assert isinstance(config["warning_limit_tokens"], int)
+        assert isinstance(config.temperature, float)
+        assert isinstance(config.max_output_tokens, int)
+        assert isinstance(config.max_retries, int)
+        assert isinstance(config.warning_limit_tokens, int)
         # Check new types
-        assert isinstance(config["gap_threshold_hours"], float)
+        assert isinstance(config.gap_threshold_hours, float)
 
         # Check values
-        assert config["temperature"] == 0.8
-        assert config["max_output_tokens"] == 2048
-        assert config["max_retries"] == 5
-        assert config["warning_limit_tokens"] == 32768
+        assert config.temperature == 0.8
+        assert config.max_output_tokens == 2048
+        assert config.max_retries == 5
+        assert config.warning_limit_tokens == 32768
         # Check new values
-        assert config["gap_threshold_hours"] == 3.2
+        assert config.gap_threshold_hours == 3.2

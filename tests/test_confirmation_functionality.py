@@ -14,7 +14,6 @@ from kittylog.cli import cli
 class TestConfirmationFunctionality:
     """Test confirmation prompts in CLI workflow."""
 
-    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     @patch("httpx.post")
     @patch("os.getenv")
     def test_yes_flag_bypasses_confirmation(self, mock_getenv, mock_post, temp_dir):
@@ -83,7 +82,6 @@ class TestConfirmationFunctionality:
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     def test_confirmation_shows_when_yes_not_used(self, temp_dir):
         """Test that confirmation prompt appears when --yes flag is not used."""
         # Create git repo with tags
@@ -149,7 +147,6 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.workflow.config", {"model": "openai:gpt-4o-mini"})
     def test_cancellation_no_save_prompt(self, temp_dir):
         """Test that canceling confirmation doesn't trigger save confirmation."""
         # Create git repo with tags
@@ -216,14 +213,12 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.workflow.config", {"model": "anthropic:claude-3-haiku"})
-    @patch("os.getenv")
+    @patch("os.getenv", return_value="")
     @patch("httpx.post")
     @patch(
         "kittylog.ai.load_config",
-        return_value={"model": "anthropic:claude-3-haiku", "temperature": 0.7, "max_output_tokens": 1024, "retries": 3},
     )
-    def test_quiet_mode_bypasses_confirmation(self, mock_load_config, mock_post, mock_getenv, temp_dir):
+    def test_quiet_mode_bypasses_confirmation(self, mock_ai_load_config, mock_post, mock_getenv, temp_dir):
         """Test that quiet mode bypasses confirmation prompts."""
         original_cwd = str(Path.cwd())
         try:
@@ -255,12 +250,41 @@ All notable changes will be documented in this file.
             commit3 = repo.index.commit("Third commit")
             repo.create_tag("v0.3.0", commit3)
 
-            # Mock API key and response
-            mock_getenv.return_value = "sk-ant-test123"
+            # Configure mock_getenv using proper side_effect
+            def mock_getenv_side_effect(key, default=""):
+                env_vars = {
+                    "ANTHROPIC_API_KEY": "sk-ant-test123",
+                    "KITTYLOG_MODEL": "anthropic:claude-3-haiku",
+                    "KITTYLOG_TEMPERATURE": "0.7",
+                    "KITTYLOG_MAX_OUTPUT_TOKENS": "1024",
+                    "KITTYLOG_RETRIES": "3",
+                    "KITTYLOG_GAP_THRESHOLD_HOURS": "4.0",
+                    "KITTYLOG_GROUPING_MODE": "tags",
+                    "KITTYLOG_DATE_GROUPING": "daily",
+                    "KITTYLOG_TRANSLATE_HEADINGS": "false",
+                    "KITTYLOG_LANGUAGE": "en",
+                    "KITTYLOG_AUDIENCE": "stakeholders",
+                    "KITTYLOG_LOG_LEVEL": "INFO",
+                    "KITTYLOG_WARNING_LIMIT_TOKENS": "8192",
+                }
+                return env_vars.get(key, default or "")
+
+            mock_getenv.side_effect = mock_getenv_side_effect
+
             mock_response = Mock()
             mock_response.raise_for_status.return_value = None
             mock_response.json.return_value = {"content": [{"text": "### Added\n- Quiet feature"}]}
             mock_post.return_value = mock_response
+
+            # Mock config to return proper KittylogConfigData object
+            from kittylog.config.data import KittylogConfigData
+
+            mock_ai_load_config.return_value = KittylogConfigData(
+                model="anthropic:claude-3-haiku",
+                temperature=0.7,
+                max_output_tokens=1024,
+                max_retries=3,
+            )
 
             # Create config
             config_file = temp_dir / ".kittylog.env"
@@ -297,7 +321,6 @@ All notable changes will be documented in this file.
         finally:
             os.chdir(original_cwd)
 
-    @patch("kittylog.workflow.config", {"model": "groq:llama-3.3-70b-versatile"})
     @patch("kittylog.providers.base.os.getenv", return_value="gsk_test123")
     def test_auto_mode_shows_entry_count(self, mock_getenv, temp_dir):
         """Test that auto mode shows correct entry count in confirmation."""

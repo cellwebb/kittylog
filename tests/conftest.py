@@ -18,7 +18,7 @@ except ImportError:
 # Ensure we're in a valid directory at the start
 try:
     Path.cwd()
-except Exception:
+except (OSError, PermissionError, RuntimeError):
     os.chdir(str(Path.home()))
 
 # Import cache clearing functions
@@ -40,7 +40,7 @@ def clear_caches_between_tests():
     # Save original cwd
     try:
         original_cwd = str(Path.cwd())
-    except Exception:
+    except (OSError, PermissionError, RuntimeError):
         original_cwd = str(Path.home())
 
     # Clear before test
@@ -62,8 +62,8 @@ def clear_caches_between_tests():
     # Restore original cwd or go to safe location
     try:
         os.chdir(original_cwd)
-    except Exception:
-        with contextlib.suppress(Exception):
+    except (OSError, PermissionError, RuntimeError):
+        with contextlib.suppress((OSError, PermissionError, RuntimeError)):
             os.chdir(str(Path.home()))
 
 
@@ -87,7 +87,7 @@ def git_repo(temp_dir):
     # Store original directory FIRST before any operations
     try:
         original_cwd = str(Path.cwd())
-    except Exception:
+    except (OSError, PermissionError, RuntimeError):
         original_cwd = str(Path.home())
 
     repo = Repo.init(temp_dir)
@@ -122,8 +122,8 @@ def git_repo(temp_dir):
         # Fallback to home if original_cwd no longer exists
         try:
             Path.cwd()
-        except Exception:
-            with contextlib.suppress(Exception):
+        except (OSError, PermissionError, RuntimeError):
+            with contextlib.suppress((OSError, PermissionError, RuntimeError)):
                 os.chdir(str(Path.home()))
 
 
@@ -240,16 +240,18 @@ def mock_ai_client():
 @pytest.fixture
 def mock_config():
     """Mock configuration for testing."""
-    return {
-        "model": "cerebras:zai-glm-4.6",
-        "temperature": 0.7,
-        "max_output_tokens": 1024,
-        "max_retries": 3,
-        "log_level": "WARNING",
-        "warning_limit_tokens": 16384,
-        "audience": "developers",
-        "translate_headings": False,
-    }
+    from kittylog.config.data import KittylogConfigData
+
+    return KittylogConfigData(
+        model="cerebras:zai-glm-4.6",
+        temperature=0.7,
+        max_output_tokens=1024,
+        max_retries=3,
+        log_level="WARNING",
+        warning_limit_tokens=16384,
+        audience="developers",
+        translate_headings=False,
+    )
 
 
 @pytest.fixture
@@ -359,7 +361,7 @@ def isolated_config_test(temp_dir, monkeypatch):
     # Store original directory FIRST
     try:
         original_cwd = str(Path.cwd())
-    except Exception:
+    except (OSError, PermissionError, RuntimeError):
         original_cwd = str(Path.home())
 
     # Mock home directory
@@ -407,6 +409,6 @@ def isolated_config_test(temp_dir, monkeypatch):
         # Fallback to home if restoration fails
         try:
             Path.cwd()
-        except Exception:
-            with contextlib.suppress(Exception):
+        except (OSError, PermissionError, RuntimeError):
+            with contextlib.suppress((OSError, PermissionError, RuntimeError)):
                 os.chdir(str(Path.home()))

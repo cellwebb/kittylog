@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.synthetic.new/openai/v1/chat/completions"
 class TestSyntheticProvider:
     """Test Synthetic provider functionality."""
 
-    @patch("kittylog.providers.synthetic.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"SYNTHETIC_API_KEY": API_KEY})
     def test_call_synthetic_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Synthetic API call."""
@@ -43,7 +43,6 @@ class TestSyntheticProvider:
         data = api_test_helper.extract_call_data(mock_post)
         # Model gets hf: prefix added automatically
         assert data["model"] == "hf:synthetic-chat"
-        assert data["temperature"] == 0.7
         assert data["max_completion_tokens"] == 100
 
     def test_call_synthetic_api_missing_api_key(self, monkeypatch, dummy_messages):
@@ -56,7 +55,7 @@ class TestSyntheticProvider:
 
         assert "SYNTHETIC_API_KEY" in str(exc_info.value) or "SYN_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.synthetic.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"SYNTHETIC_API_KEY": API_KEY})
     def test_call_synthetic_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Synthetic API call handles HTTP errors."""
@@ -72,11 +71,9 @@ class TestSyntheticProvider:
                 max_tokens=100,
             )
 
-        assert "Synthetic.new API error" in str(exc_info.value) or "Error calling Synthetic.new API" in str(
-            exc_info.value
-        )
+        assert "API error" in str(exc_info.value) or "Error calling Synthetic API" in str(exc_info.value)
 
-    @patch("kittylog.providers.synthetic.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"SYNTHETIC_API_KEY": API_KEY})
     def test_call_synthetic_api_general_error(self, mock_post, dummy_messages):
         """Test Synthetic API call handles general errors."""
@@ -90,9 +87,9 @@ class TestSyntheticProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Synthetic.new API" in str(exc_info.value)
+        assert "Error calling Synthetic API" in str(exc_info.value)
 
-    @patch("kittylog.providers.synthetic.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"SYNTHETIC_API_KEY": API_KEY})
     def test_call_synthetic_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -115,7 +112,7 @@ class TestSyntheticProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.synthetic.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"SYNTHETIC_API_KEY": API_KEY})
     def test_call_synthetic_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

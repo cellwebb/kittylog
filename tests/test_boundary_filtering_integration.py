@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from kittylog.changelog import find_existing_boundaries
+from kittylog.changelog.parser import find_existing_boundaries
 from kittylog.tag_operations import generate_boundary_identifier
 
 

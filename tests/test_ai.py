@@ -66,14 +66,19 @@ class TestGenerateChangelogEntry:
         # Should use config defaults
         mock_generate.assert_called_once()
         call_kwargs = mock_generate.call_args[1]
-        assert call_kwargs["model"] == mock_config["model"]
-        assert call_kwargs["temperature"] == mock_config["temperature"]
-        assert call_kwargs["max_tokens"] == mock_config["max_output_tokens"]
-        assert call_kwargs["max_retries"] == mock_config["max_retries"]
+        assert call_kwargs["model"] == mock_config.model
+        assert call_kwargs["temperature"] == mock_config.temperature
+        assert call_kwargs["max_tokens"] == mock_config.max_output_tokens
+        assert call_kwargs["max_retries"] == mock_config.max_retries
 
     def test_generate_changelog_entry_no_model(self, sample_commits):
         """Test error when no model is specified."""
-        with patch("kittylog.ai.load_config", return_value={"model": None}):
+        from kittylog.config.data import KittylogConfigData
+
+        # Create a mock config with no model set (None)
+        mock_config = KittylogConfigData(model=None)
+
+        with patch("kittylog.ai.load_config", return_value=mock_config):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,
@@ -112,7 +117,7 @@ class TestGenerateWithRetries:
         from kittylog.providers import call_openai_api
 
         # Mock API key
-        mock_getenv.return_value = "test-api-key"
+        mock_getenv.return_value = "anthropic:claude-3-haiku-20240307"
 
         # Setup mock response
         mock_response = Mock()
@@ -364,7 +369,12 @@ class TestAIIntegration:
 
     def test_ai_error_propagation(self, sample_commits):
         """Test that AI errors are properly propagated."""
-        with patch("kittylog.ai.load_config", return_value={"model": None}):
+        from kittylog.config.data import KittylogConfigData
+
+        # Create a mock config with no model set (None)
+        mock_config = KittylogConfigData(model=None)
+
+        with patch("kittylog.ai.load_config", return_value=mock_config):
             with pytest.raises(AIError) as exc_info:
                 generate_changelog_entry(
                     commits=sample_commits,

@@ -13,13 +13,13 @@ from kittylog.main import main_business_logic
 class TestMainBusinessLogic:
     """Test main business logic with proper mocks."""
 
-    @patch("kittylog.workflow.get_output_manager")
+    @patch("kittylog.workflow_validation.get_output_manager")
     @patch("kittylog.tag_operations.get_repo")
-    @patch("kittylog.changelog.write_changelog")
-    @patch("kittylog.changelog.read_changelog")
-    @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.workflow.get_all_boundaries")
-    @patch("kittylog.changelog_parser.find_existing_boundaries")
+    @patch("kittylog.changelog.io.write_changelog")
+    @patch("kittylog.changelog.io.read_changelog")
+    @patch("kittylog.changelog.updater.update_changelog")
+    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -101,7 +101,7 @@ class TestMainBusinessLogic:
         }
 
         with (
-            patch("kittylog.workflow.config", config_with_model),
+            patch("kittylog.workflow.load_config", return_value=config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             changelog_opts = ChangelogOptions(
@@ -123,8 +123,8 @@ class TestMainBusinessLogic:
         # For special unreleased mode, the function may return early if no changes are needed
         # Just verify the function completed successfully
 
-    @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.workflow.get_all_boundaries")
+    @patch("kittylog.workflow_validation.get_output_manager")
+    @patch("kittylog.workflow_validation.get_all_boundaries")
     @patch("kittylog.tag_operations.get_repo")
     def test_main_logic_no_boundaries_warning(
         self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir
@@ -152,7 +152,7 @@ class TestMainBusinessLogic:
         }
 
         with (
-            patch("kittylog.workflow.config", config_with_model),
+            patch("kittylog.workflow.load_config", return_value=config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             changelog_opts = ChangelogOptions(
@@ -174,13 +174,13 @@ class TestMainBusinessLogic:
         # The error handler will have logged the error
         mock_output.warning.assert_called()
 
-    @patch("kittylog.workflow.get_output_manager")
+    @patch("kittylog.workflow_validation.get_output_manager")
     @patch("kittylog.tag_operations.get_repo")
-    @patch("kittylog.changelog.write_changelog")
-    @patch("kittylog.changelog.read_changelog")
-    @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.workflow.get_all_boundaries")
-    @patch("kittylog.changelog_parser.find_existing_boundaries")
+    @patch("kittylog.changelog.io.write_changelog")
+    @patch("kittylog.changelog.io.read_changelog")
+    @patch("kittylog.changelog.updater.update_changelog")
+    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -245,7 +245,7 @@ class TestMainBusinessLogic:
         }
 
         with (
-            patch("kittylog.workflow.config", config_with_model),
+            patch("kittylog.workflow.load_config", return_value=config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             changelog_opts = ChangelogOptions(
@@ -266,16 +266,18 @@ class TestMainBusinessLogic:
         # For dates mode, the function may return early if no changes are needed
         # Just verify the function completed successfully
 
-    @patch("kittylog.workflow.get_all_boundaries")
+    @patch("kittylog.workflow_validation.get_all_boundaries")
     def test_main_logic_no_model_error(self, mock_get_all_boundaries, temp_dir):
         """Test error handling when no model is specified."""
-        config_without_model = {
-            "model": None,
-            "temperature": 0.7,
-            "log_level": "INFO",
-            "max_output_tokens": 1024,
-            "max_retries": 3,
-        }
+        from kittylog.config.data import KittylogConfigData
+
+        config_without_model = KittylogConfigData(
+            model=None,
+            temperature=0.7,
+            log_level="INFO",
+            max_output_tokens=1024,
+            max_retries=3,
+        )
 
         # Mock boundaries to force code past the early return
         mock_boundaries = [
@@ -292,7 +294,7 @@ class TestMainBusinessLogic:
         ]
         mock_get_all_boundaries.return_value = mock_boundaries
 
-        with patch("kittylog.workflow.config", config_without_model):
+        with patch("kittylog.workflow.load_config", return_value=config_without_model):
             changelog_opts = ChangelogOptions(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
             )
@@ -308,13 +310,13 @@ class TestMainBusinessLogic:
         assert success is False
         assert _token_usage is None
 
-    @patch("kittylog.workflow.get_output_manager")
+    @patch("kittylog.workflow_validation.get_output_manager")
     @patch("kittylog.tag_operations.get_repo")
-    @patch("kittylog.changelog.write_changelog")
-    @patch("kittylog.changelog.read_changelog")
-    @patch("kittylog.changelog.update_changelog")
-    @patch("kittylog.workflow.get_all_boundaries")
-    @patch("kittylog.changelog_parser.find_existing_boundaries")
+    @patch("kittylog.changelog.io.write_changelog")
+    @patch("kittylog.changelog.io.read_changelog")
+    @patch("kittylog.changelog.updater.update_changelog")
+    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -379,7 +381,7 @@ class TestMainBusinessLogic:
         }
 
         with (
-            patch("kittylog.workflow.config", config_with_model),
+            patch("kittylog.workflow.load_config", return_value=config_with_model),
             patch("kittylog.utils.find_changelog_file", return_value=str(temp_dir / "CHANGELOG.md")),
         ):
             changelog_opts = ChangelogOptions(
@@ -407,7 +409,8 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     """Ensure date/gap configuration is forwarded to update_changelog."""
     from datetime import datetime, timezone
 
-    from kittylog import changelog_parser, mode_handlers
+    from kittylog import mode_handlers
+    from kittylog.changelog import parser as changelog_parser
 
     boundary = {
         "hash": "abc123",
@@ -444,7 +447,7 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
         return "updated", None
 
     monkeypatch.setattr(mode_handlers, "handle_single_boundary_mode", fake_single_boundary_handler)
-    monkeypatch.setattr("kittylog.changelog_io.read_changelog", lambda _: "# Changelog\n")
+    monkeypatch.setattr("kittylog.changelog.io.read_changelog", lambda _: "# Changelog\n")
     monkeypatch.setattr(changelog_parser, "find_existing_boundaries", lambda _: set())
     monkeypatch.setattr(
         "kittylog.tag_operations.get_all_boundaries",
@@ -513,21 +516,23 @@ def test_main_logic_passes_language_preferences(monkeypatch):
     mock_output.processing = Mock()
     mock_output.print = Mock()
 
-    config_with_language = {
-        "model": "openai:gpt-4o-mini",
-        "language": "Spanish",
-        "translate_headings": True,
-        "audience": "stakeholders",
-    }
+    from kittylog.config.data import KittylogConfigData
 
-    monkeypatch.setattr("kittylog.workflow.config", config_with_language)
+    config_with_language = KittylogConfigData(
+        model="openai:gpt-4o-mini",
+        language="Spanish",
+        translate_headings=True,
+        audience="stakeholders",
+    )
+
+    monkeypatch.setattr("kittylog.workflow.load_config", lambda: config_with_language)
     # Patch at the mode_handlers level where it's actually imported and used
     monkeypatch.setattr("kittylog.mode_handlers.update_changelog", fake_update_changelog)
     monkeypatch.setattr("kittylog.mode_handlers.read_changelog", lambda _: "# Changelog\n")
     monkeypatch.setattr("kittylog.mode_handlers.find_existing_boundaries", lambda _: {"1.1.0"})
     monkeypatch.setattr("kittylog.workflow.write_changelog", lambda *args, **kwargs: None)
     monkeypatch.setattr(
-        "kittylog.workflow.get_all_boundaries",
+        "kittylog.workflow_validation.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
     )
     monkeypatch.setattr(
@@ -538,7 +543,7 @@ def test_main_logic_passes_language_preferences(monkeypatch):
     monkeypatch.setattr("kittylog.tag_operations.generate_boundary_identifier", lambda b, mode: b["identifier"])
     monkeypatch.setattr("kittylog.tag_operations.get_latest_boundary", lambda *args, **kwargs: boundary)
     monkeypatch.setattr("kittylog.tag_operations.is_current_commit_tagged", lambda: False)
-    monkeypatch.setattr("kittylog.workflow.get_output_manager", lambda: mock_output)
+    monkeypatch.setattr("kittylog.workflow_validation.get_output_manager", lambda: mock_output)
 
     changelog_opts = ChangelogOptions(
         changelog_file="CHANGELOG.md",

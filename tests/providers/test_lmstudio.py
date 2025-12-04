@@ -15,7 +15,7 @@ API_ENDPOINT = "http://localhost:1234/v1/chat/completions"
 class TestLmstudioProvider:
     """Test Lmstudio provider functionality."""
 
-    @patch("kittylog.providers.lmstudio.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})
     def test_call_lmstudio_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Lmstudio API call."""
@@ -59,7 +59,7 @@ class TestLmstudioProvider:
                 "connection failed" in str(exc_info.value).lower() or "connection error" in str(exc_info.value).lower()
             )
 
-    @patch("kittylog.providers.lmstudio.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})
     def test_call_lmstudio_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Lmstudio API call handles HTTP errors."""
@@ -77,7 +77,7 @@ class TestLmstudioProvider:
 
         assert "LM Studio API error" in str(exc_info.value) or "Error calling LM Studio API" in str(exc_info.value)
 
-    @patch("kittylog.providers.lmstudio.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})
     def test_call_lmstudio_api_general_error(self, mock_post, dummy_messages):
         """Test Lmstudio API call handles general errors."""
@@ -93,7 +93,7 @@ class TestLmstudioProvider:
 
         assert "Error calling LM Studio API" in str(exc_info.value)
 
-    @patch("kittylog.providers.lmstudio.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})
     def test_call_lmstudio_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -116,7 +116,7 @@ class TestLmstudioProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.lmstudio.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})
     def test_call_lmstudio_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

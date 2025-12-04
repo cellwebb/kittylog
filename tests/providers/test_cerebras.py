@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.cerebras.ai/v1/chat/completions"
 class TestCerebrasProvider:
     """Test Cerebras provider functionality."""
 
-    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
     def test_call_cerebras_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Cerebras API call."""
@@ -49,6 +49,11 @@ class TestCerebrasProvider:
         """Test Cerebras API call fails without API key."""
         monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
 
+        # Reset the cached provider to ensure it rechecks environment
+        from kittylog.providers.cerebras import cerebras_provider
+
+        cerebras_provider._api_key = None
+
         with pytest.raises(AIError) as exc_info:
             call_cerebras_api(
                 model="llama3.1-8b",
@@ -59,7 +64,7 @@ class TestCerebrasProvider:
 
         assert "CEREBRAS_API_KEY not found" in str(exc_info.value)
 
-    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
     def test_call_cerebras_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Cerebras API call handles HTTP errors."""
@@ -77,7 +82,7 @@ class TestCerebrasProvider:
 
         assert "Cerebras API error" in str(exc_info.value) or "Error calling Cerebras API" in str(exc_info.value)
 
-    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
     def test_call_cerebras_api_general_error(self, mock_post, dummy_messages):
         """Test Cerebras API call handles general errors."""
@@ -93,7 +98,7 @@ class TestCerebrasProvider:
 
         assert "Error calling Cerebras API" in str(exc_info.value)
 
-    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
     def test_call_cerebras_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -116,7 +121,7 @@ class TestCerebrasProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.cerebras.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
     def test_call_cerebras_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

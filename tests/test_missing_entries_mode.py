@@ -12,7 +12,7 @@ from kittylog.mode_handlers.missing import determine_missing_entries, handle_mis
 
 # Common mock path prefixes
 MISSING_MODULE = "kittylog.mode_handlers.missing"
-CHANGELOG_IO_MODULE = "kittylog.changelog_io"
+CHANGELOG_IO_MODULE = "kittylog.changelog.io"
 
 
 class TestDetermineMissingEntries:

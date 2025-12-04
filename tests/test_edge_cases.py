@@ -12,8 +12,8 @@ from kittylog.workflow import main_business_logic
 class TestEdgeCases:
     """Test edge cases for boundary detection."""
 
-    @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
+    @patch("kittylog.workflow_validation.get_output_manager")
+    @patch("kittylog.workflow_validation.get_all_boundaries")  # Patch where it's used
     @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_tags_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no tags."""
@@ -38,7 +38,7 @@ class TestEdgeCases:
             "max_retries": 3,
         }
 
-        with patch("kittylog.workflow.config", config_with_model):
+        with patch("kittylog.workflow.load_config", return_value=config_with_model):
             changelog_opts = ChangelogOptions(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="tags",
@@ -62,8 +62,8 @@ class TestEdgeCases:
             "💡 Tip: Try 'git tag v1.0.0' to create your first tag, or use --grouping-mode dates/gaps for tagless workflows"
         )
 
-    @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
+    @patch("kittylog.workflow_validation.get_output_manager")
+    @patch("kittylog.workflow_validation.get_all_boundaries")  # Patch where it's used
     @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_dates_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no date boundaries."""
@@ -88,7 +88,7 @@ class TestEdgeCases:
             "max_retries": 3,
         }
 
-        with patch("kittylog.workflow.config", config_with_model):
+        with patch("kittylog.workflow.load_config", return_value=config_with_model):
             changelog_opts = ChangelogOptions(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="dates",
@@ -112,8 +112,8 @@ class TestEdgeCases:
             "💡 Tip: Try --date-grouping weekly/monthly for longer periods, or --grouping-mode gaps for activity-based grouping"
         )
 
-    @patch("kittylog.workflow.get_output_manager")
-    @patch("kittylog.workflow.get_all_boundaries")  # Patch where it's used
+    @patch("kittylog.workflow_validation.get_output_manager")
+    @patch("kittylog.workflow_validation.get_all_boundaries")  # Patch where it's used
     @patch("kittylog.tag_operations.get_repo")
     def test_no_boundaries_gaps_mode(self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir):
         """Test handling of repositories with no gap boundaries."""
@@ -138,7 +138,7 @@ class TestEdgeCases:
             "max_retries": 3,
         }
 
-        with patch("kittylog.workflow.config", config_with_model):
+        with patch("kittylog.workflow.load_config", return_value=config_with_model):
             changelog_opts = ChangelogOptions(
                 changelog_file=str(temp_dir / "CHANGELOG.md"),
                 grouping_mode="gaps",

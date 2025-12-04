@@ -7,19 +7,19 @@ from unittest.mock import patch
 
 import pytest
 
-from kittylog.changelog import (
-    update_changelog,
-)
-from kittylog.changelog_io import (
+from kittylog.changelog.io import (
     create_changelog_header,
     read_changelog,
     write_changelog,
 )
-from kittylog.changelog_parser import (
+from kittylog.changelog.parser import (
     find_end_of_unreleased_section,
     find_existing_boundaries,
     find_insertion_point,
     find_insertion_point_by_version,
+)
+from kittylog.changelog.updater import (
+    update_changelog,
 )
 from kittylog.errors import ChangelogError
 from kittylog.postprocess import (
@@ -277,9 +277,9 @@ class TestRemoveUnreleasedSections:
 class TestUpdateChangelog:
     """Test update_changelog function."""
 
-    @patch("kittylog.changelog.get_commits_between_tags")
-    @patch("kittylog.changelog.generate_changelog_entry")
-    @patch("kittylog.changelog.get_tag_date")
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_tag_date")
     def test_update_changelog_success(self, mock_get_date, mock_generate, mock_get_commits, temp_dir, sample_commits):
         """Test successful changelog update."""
         # Setup mocks
@@ -323,7 +323,7 @@ class TestUpdateChangelog:
         assert "### Fixed" in result
         assert "Bug fix" in result
 
-    @patch("kittylog.changelog.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
     def test_update_changelog_no_commits(self, mock_get_commits, temp_dir):
         """Test update when no commits found."""
         mock_get_commits.return_value = []
@@ -342,8 +342,8 @@ class TestUpdateChangelog:
         assert result == existing_content  # Content should be unchanged
         assert _token_usage is None
 
-    @patch("kittylog.changelog.get_commits_between_tags")
-    @patch("kittylog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
     def test_update_changelog_tagged_version(self, mock_generate, mock_get_commits, temp_dir):
         """Test updating changelog when current commit is tagged."""
         mock_get_commits.return_value = [
@@ -379,8 +379,8 @@ class TestUpdateChangelog:
         assert "### Added" in result
         assert "New feature" in result
 
-    @patch("kittylog.changelog.get_commits_between_tags")
-    @patch("kittylog.changelog.generate_changelog_entry")
+    @patch("kittylog.changelog.updater.get_commits_between_tags")
+    @patch("kittylog.changelog.updater.generate_changelog_entry")
     def test_update_changelog_intelligent_unreleased(self, mock_generate, mock_get_commits, temp_dir):
         """Test intelligent unreleased content replacement."""
         mock_get_commits.return_value = [

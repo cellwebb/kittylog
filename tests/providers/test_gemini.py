@@ -15,7 +15,7 @@ API_ENDPOINT_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models
 class TestGeminiProvider:
     """Test Gemini provider functionality."""
 
-    @patch("kittylog.providers.gemini.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"GEMINI_API_KEY": API_KEY})
     def test_call_gemini_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Gemini API call."""
@@ -57,7 +57,7 @@ class TestGeminiProvider:
 
         assert "GEMINI_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.gemini.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"GEMINI_API_KEY": API_KEY})
     def test_call_gemini_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Gemini API call handles HTTP errors."""
@@ -75,7 +75,7 @@ class TestGeminiProvider:
 
         assert "Gemini API error" in str(exc_info.value) or "Error calling Gemini API" in str(exc_info.value)
 
-    @patch("kittylog.providers.gemini.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"GEMINI_API_KEY": API_KEY})
     def test_call_gemini_api_general_error(self, mock_post, dummy_messages):
         """Test Gemini API call handles general errors."""
@@ -91,7 +91,7 @@ class TestGeminiProvider:
 
         assert "Error calling Gemini API" in str(exc_info.value)
 
-    @patch("kittylog.providers.gemini.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"GEMINI_API_KEY": API_KEY})
     def test_call_gemini_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -113,7 +113,7 @@ class TestGeminiProvider:
         # Gemini should handle system message differently
         assert len(data["contents"]) == 1  # System message should be integrated
 
-    @patch("kittylog.providers.gemini.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"GEMINI_API_KEY": API_KEY})
     def test_call_gemini_api_message_conversion(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

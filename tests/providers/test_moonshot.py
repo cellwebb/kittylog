@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.moonshot.ai/v1/chat/completions"
 class TestMoonshotProvider:
     """Test Moonshot provider functionality."""
 
-    @patch("kittylog.providers.moonshot.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MOONSHOT_API_KEY": API_KEY})
     def test_call_moonshot_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Moonshot API call."""
@@ -54,7 +54,7 @@ class TestMoonshotProvider:
 
         assert "MOONSHOT_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.moonshot.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MOONSHOT_API_KEY": API_KEY})
     def test_call_moonshot_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Moonshot API call handles HTTP errors."""
@@ -72,7 +72,7 @@ class TestMoonshotProvider:
 
         assert "Moonshot AI API error" in str(exc_info.value) or "Error calling Moonshot AI API" in str(exc_info.value)
 
-    @patch("kittylog.providers.moonshot.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MOONSHOT_API_KEY": API_KEY})
     def test_call_moonshot_api_general_error(self, mock_post, dummy_messages):
         """Test Moonshot API call handles general errors."""
@@ -88,7 +88,7 @@ class TestMoonshotProvider:
 
         assert "Error calling Moonshot AI API" in str(exc_info.value)
 
-    @patch("kittylog.providers.moonshot.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MOONSHOT_API_KEY": API_KEY})
     def test_call_moonshot_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestMoonshotProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.moonshot.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"MOONSHOT_API_KEY": API_KEY})
     def test_call_moonshot_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

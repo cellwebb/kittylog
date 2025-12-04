@@ -16,7 +16,7 @@ API_CODING_ENDPOINT = "https://api.z.ai/api/coding/paas/v4/chat/completions"
 class TestZAIProvider:
     """Test Z.AI provider functionality."""
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_api_regular_endpoint(
         self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper
@@ -39,7 +39,7 @@ class TestZAIProvider:
         url = api_test_helper.extract_call_url(mock_post)
         assert url == API_ENDPOINT
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_coding_api_endpoint(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test Z.AI coding API call."""
@@ -78,7 +78,7 @@ class TestZAIProvider:
 
         assert "ZAI_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Z.AI API call handles HTTP errors."""
@@ -96,7 +96,7 @@ class TestZAIProvider:
 
         assert "Z.AI API error" in str(exc_info.value) or "Error calling Z.AI API" in str(exc_info.value)
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_api_general_error(self, mock_post, dummy_messages):
         """Test Z.AI API call handles general errors."""
@@ -112,7 +112,7 @@ class TestZAIProvider:
 
         assert "Error calling Z.AI API" in str(exc_info.value)
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -135,7 +135,7 @@ class TestZAIProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.zai.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"ZAI_API_KEY": API_KEY})
     def test_call_zai_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

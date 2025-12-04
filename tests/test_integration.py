@@ -14,8 +14,8 @@ from kittylog.cli import cli
 class TestEndToEndWorkflow:
     """End-to-end integration tests."""
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_complete_workflow_new_changelog(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test complete workflow creating a new changelog."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -70,8 +70,8 @@ All notable changes to this project will be documented in this file.
         assert "### Added" in content or "### Fixed" in content
         assert "Test feature" in content or "Test bug fix" in content
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_complete_workflow_update_existing(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test complete workflow updating existing changelog."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -123,8 +123,8 @@ All notable changes to this project will be documented in this file.
         assert "Test feature" in updated_content or "Test bug fix" in updated_content
         assert "## [v0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_dry_run_workflow(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -327,8 +327,8 @@ class TestErrorHandlingIntegration:
 class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_multiple_tags_auto_detection(self, mock_getenv, temp_dir):
         """Test auto-detection and processing of multiple new tags."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -336,7 +336,7 @@ class TestMultiTagIntegration:
 
         try:
             original_cwd = str(Path.cwd())
-        except Exception:
+        except (OSError, PermissionError, RuntimeError):
             original_cwd = str(Path.home())
 
         result = None
@@ -389,7 +389,7 @@ class TestMultiTagIntegration:
         finally:
             try:
                 os.chdir(original_cwd)
-            except Exception:
+            except (OSError, PermissionError, RuntimeError):
                 os.chdir(str(Path.home()))
 
         assert result is not None
@@ -407,8 +407,8 @@ class TestMultiTagIntegration:
 class TestCLIOptionsIntegration:
     """Integration tests for various CLI options."""
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_hint_option_integration(self, mock_getenv, git_repo_with_tags, temp_dir, mock_api_calls):
         """Test that hint option is properly passed through."""
         # Note: mock_api_calls is the autouse fixture from conftest.py
@@ -470,8 +470,8 @@ All notable changes to this project will be documented in this file.
                 break
         assert hint_found, "hint should be passed to the AI prompt"
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_model_override_integration(self, mock_getenv, git_repo_with_tags, temp_dir, mock_api_calls):
         """Test that model override works properly."""
         # Note: mock_api_calls is the autouse fixture from conftest.py
@@ -530,8 +530,8 @@ All notable changes to this project will be documented in this file.
 class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_custom_changelog_path(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -593,8 +593,8 @@ All notable changes to this project will be documented in this file.
         # Autouse fixture returns "Test feature" or "Test bug fix"
         assert "Test feature" in content or "Test bug fix" in content
 
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
-    @patch("kittylog.providers.base.os.getenv", return_value="test-api-key")
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_relative_path_handling(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
@@ -650,7 +650,7 @@ class TestUnreleasedBulletLimitingIntegration:
     """
 
     @pytest.mark.skip(reason="Functionality broken during refactoring - add command doesn't handle unreleased content")
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
     @patch("kittylog.providers.base.os.getenv")
     def test_unreleased_section_bullet_limiting_append_mode(self, mock_getenv, git_repo_with_tags, temp_dir):
         """Test that bullet limiting works correctly when appending to existing unreleased section."""
@@ -742,7 +742,7 @@ All notable changes to this project will be documented in this file.
         assert bullet_count <= 6, f"Found {bullet_count} bullets in Added section, should be <= 6"
 
     @pytest.mark.skip(reason="Functionality broken during refactoring - add command doesn't handle unreleased content")
-    @patch("kittylog.workflow.config", {"model": "cerebras:zai-glm-4.6"})
+    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
     @patch("kittylog.providers.base.os.getenv")
     def test_unreleased_section_bullet_limiting_replace_mode(
         self, mock_getenv, mock_post, git_repo_with_tags, temp_dir

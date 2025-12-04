@@ -24,7 +24,7 @@ class TestAzureOpenAIProvider:
             "AZURE_OPENAI_API_VERSION": API_VERSION,
         },
     )
-    @patch("kittylog.providers.base.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     def test_call_azure_openai_api_success(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
     ):
@@ -70,29 +70,34 @@ class TestAzureOpenAIProvider:
                 max_tokens=100,
             )
 
-        assert "AZURE_OPENAI_API_KEY" in str(exc_info.value)
+        assert "AZURE_OPENAI_ENDPOINT is required" in str(exc_info.value)
 
     def test_call_azure_openai_api_missing_endpoint(self, monkeypatch, dummy_messages):
         """Test Azure OpenAI API call fails without endpoint."""
         monkeypatch.setenv("AZURE_OPENAI_API_KEY", API_KEY)
         monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
         monkeypatch.delenv("AZURE_OPENAI_API_VERSION", raising=False)
-        # Reset provider state to reflect missing endpoint
-        from kittylog.providers.azure_openai import _azure_openai_provider
+        # Create a fresh provider instance that will read current environment
+        from kittylog.providers.azure_openai import AzureOpenAIProvider
+        from kittylog.providers.base_configured import ProviderConfig
 
-        _azure_openai_provider.api_endpoint = None
-        _azure_openai_provider.api_version = None
+        config = ProviderConfig(name="Azure OpenAI", api_key_env="AZURE_OPENAI_API_KEY", base_url="placeholder")
+        fresh_provider = AzureOpenAIProvider(config)
+
+        # Reset cached properties to ensure they re-read environment
+        fresh_provider._api_key = None
+        fresh_provider.api_endpoint = None
+        fresh_provider.api_version = None
 
         with pytest.raises(AIError) as exc_info:
-            call_azure_openai_api(
+            fresh_provider.generate(
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
                 max_tokens=100,
             )
 
-        # Provider will fail with NoneType error when endpoint is None
-        assert "NoneType" in str(exc_info.value) or "AZURE_OPENAI_ENDPOINT" in str(exc_info.value)
+        assert "AZURE_OPENAI_ENDPOINT is required" in str(exc_info.value)
 
     def test_call_azure_openai_api_missing_api_version(self, monkeypatch, dummy_messages):
         """Test Azure OpenAI API call uses default version when not set."""
@@ -117,7 +122,7 @@ class TestAzureOpenAIProvider:
             "AZURE_OPENAI_API_VERSION": API_VERSION,
         },
     )
-    @patch("kittylog.providers.base.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     def test_call_azure_openai_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Azure OpenAI API call handles HTTP errors."""
         from kittylog.providers.azure_openai import _azure_openai_provider
@@ -149,7 +154,7 @@ class TestAzureOpenAIProvider:
             "AZURE_OPENAI_API_VERSION": API_VERSION,
         },
     )
-    @patch("kittylog.providers.base.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     def test_call_azure_openai_api_general_error(self, mock_post, dummy_messages):
         """Test Azure OpenAI API call handles general errors."""
         from kittylog.providers.azure_openai import _azure_openai_provider
@@ -177,7 +182,7 @@ class TestAzureOpenAIProvider:
             "AZURE_OPENAI_API_VERSION": API_VERSION,
         },
     )
-    @patch("kittylog.providers.base.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     def test_call_azure_openai_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper
     ):

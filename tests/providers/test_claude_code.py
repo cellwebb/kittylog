@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.anthropic.com/v1/messages"
 class TestClaudeCodeProvider:
     """Test Claude Code provider functionality."""
 
-    @patch("kittylog.providers.claude_code.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": API_KEY})
     def test_call_claude_code_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Claude Code API call."""
@@ -55,7 +55,7 @@ class TestClaudeCodeProvider:
 
         assert "CLAUDE_CODE_ACCESS_TOKEN" in str(exc_info.value)
 
-    @patch("kittylog.providers.claude_code.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": API_KEY})
     def test_call_claude_code_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Claude Code API call handles HTTP errors."""
@@ -73,7 +73,7 @@ class TestClaudeCodeProvider:
 
         assert "Claude Code API error" in str(exc_info.value) or "Error calling Claude Code API" in str(exc_info.value)
 
-    @patch("kittylog.providers.claude_code.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": API_KEY})
     def test_call_claude_code_api_general_error(self, mock_post, dummy_messages):
         """Test Claude Code API call handles general errors."""
@@ -89,7 +89,7 @@ class TestClaudeCodeProvider:
 
         assert "Error calling Claude Code API" in str(exc_info.value)
 
-    @patch("kittylog.providers.claude_code.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": API_KEY})
     def test_call_claude_code_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -113,7 +113,7 @@ class TestClaudeCodeProvider:
         assert "You are a helpful assistant." in data["messages"][0]["content"]
         assert "Test message" in data["messages"][0]["content"]
 
-    @patch("kittylog.providers.claude_code.httpx.post")
+    @patch("kittylog.providers.base_configured.httpx.post")
     @patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": API_KEY})
     def test_call_claude_code_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper
