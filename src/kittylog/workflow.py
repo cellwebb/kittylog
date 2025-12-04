@@ -5,26 +5,20 @@ workflow including mode selection, boundary processing, and coordination.
 """
 
 import logging
-from pathlib import Path
-
-import click
 
 from kittylog.ai import generate_changelog_entry
-from kittylog.changelog import read_changelog, write_changelog
-from kittylog.changelog_parser import extract_preceding_entries
+from kittylog.changelog.io import read_changelog
+from kittylog.changelog.parser import extract_preceding_entries
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
-from kittylog.constants import Audiences, GroupingMode, Languages
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.mode_handlers import (
     handle_single_boundary_mode,
     handle_unreleased_mode,
 )
-from kittylog.output import get_output_manager
-from kittylog.tag_operations import get_all_boundaries
-from kittylog.utils import find_changelog_file
+from kittylog.workflow_ui import handle_dry_run_and_confirmation
+from kittylog.workflow_validation import validate_and_setup_workflow
 
 logger = logging.getLogger(__name__)
-config = load_config()
 
 
 def _create_entry_generator(
@@ -75,28 +69,31 @@ def _create_entry_generator(
 
 
 def process_workflow_modes(
-    changelog_file: str,
-    from_tag: str | None,
-    to_tag: str | None,
+    changelog_opts: ChangelogOptions,
+    workflow_opts: WorkflowOptions,
     model: str,
     hint: str,
-    show_prompt: bool,
-    quiet: bool,
-    dry_run: bool,
-    special_unreleased_mode: bool,
-    update_all_entries: bool,
-    no_unreleased: bool,
-    grouping_mode: str,
-    gap_threshold_hours: float,
-    date_grouping: str,
-    yes: bool,
-    include_diff: bool,
     effective_language: str | None,
     translate_headings: bool,
     effective_audience: str | None,
-    context_entries_count: int = 0,
 ) -> tuple[str, dict[str, int] | None]:
     """Process changelog workflow based on mode selection."""
+    # Extract values from dataclasses
+    changelog_file = changelog_opts.changelog_file
+    from_tag = changelog_opts.from_tag
+    to_tag = changelog_opts.to_tag
+    special_unreleased_mode = changelog_opts.special_unreleased_mode
+    grouping_mode = changelog_opts.grouping_mode
+
+    show_prompt = workflow_opts.show_prompt
+    quiet = workflow_opts.quiet
+    dry_run = workflow_opts.dry_run
+    update_all_entries = workflow_opts.update_all_entries
+    no_unreleased = workflow_opts.no_unreleased
+    yes = workflow_opts.yes
+    include_diff = workflow_opts.include_diff
+    context_entries_count = workflow_opts.context_entries_count
+
     # Create the entry generator function for mode handlers
     generate_entry_func = _create_entry_generator(
         model=model,
@@ -124,42 +121,18 @@ def process_workflow_modes(
         return content, None
 
     # Handle different processing modes
-    if from_tag is None and to_tag is None and not update_all_entries:
-        # Normal mode: find missing entries
-        from kittylog.mode_handlers import handle_missing_entries_mode
-
-        _, content = handle_missing_entries_mode(
-            changelog_file=changelog_file,
-            generate_entry_func=generate_entry_func,
-            quiet=quiet,
-            yes=yes,
-            dry_run=dry_run,
-        )
-        return content, None
-
-    if update_all_entries:
-        # Update all existing entries
-        from kittylog.mode_handlers import handle_update_all_mode
-
-        _, content = handle_update_all_mode(
-            changelog_file=changelog_file,
-            generate_entry_func=generate_entry_func,
-            mode=grouping_mode,
-            quiet=quiet,
-            yes=yes,
-            dry_run=dry_run,
-        )
-        return content, None
-
     if from_tag is not None and to_tag is not None:
-        # Range mode: process specific range
+        # Range mode: process specific range (highest priority)
         # Look up boundaries by identifier
         from kittylog.tag_operations import get_boundary_by_identifier
 
         from_boundary = get_boundary_by_identifier(from_tag, grouping_mode)
         to_boundary = get_boundary_by_identifier(to_tag, grouping_mode)
         if to_boundary is None:
-            raise ChangelogError(f"To boundary not found: {to_tag}")
+            raise ChangelogError(
+                f"To boundary not found: {to_tag}",
+                file_path=changelog_file,
+            )
 
         # Note: handle_boundary_range_mode has different signature
         from kittylog.mode_handlers import handle_boundary_range_mode as range_handler
@@ -175,6 +148,33 @@ def process_workflow_modes(
         )
         return content, None
 
+    if update_all_entries:
+        # Update all existing entries (only when no from/to tags specified)
+        from kittylog.mode_handlers import handle_update_all_mode
+
+        _, content = handle_update_all_mode(
+            changelog_file=changelog_file,
+            generate_entry_func=generate_entry_func,
+            mode=grouping_mode,
+            quiet=quiet,
+            yes=yes,
+            dry_run=dry_run,
+        )
+        return content, None
+
+    if from_tag is None and to_tag is None and not update_all_entries:
+        # Normal mode: find missing entries
+        from kittylog.mode_handlers import handle_missing_entries_mode
+
+        _, content = handle_missing_entries_mode(
+            changelog_file=changelog_file,
+            generate_entry_func=generate_entry_func,
+            quiet=quiet,
+            yes=yes,
+            dry_run=dry_run,
+        )
+        return content, None
+
     # Single tag mode: process specific tag
     assert to_tag is not None  # for mypy
     # Need to get boundary info first
@@ -182,7 +182,10 @@ def process_workflow_modes(
 
     boundary = get_boundary_by_identifier(to_tag, grouping_mode)
     if boundary is None:
-        raise ChangelogError(f"Boundary not found: {to_tag}")
+        raise ChangelogError(
+            f"Boundary not found: {to_tag}",
+            file_path=changelog_file,
+        )
 
     _, content = handle_single_boundary_mode(
         changelog_file=changelog_file,
@@ -193,194 +196,6 @@ def process_workflow_modes(
         dry_run=dry_run,
     )
     return content, None
-
-
-def handle_dry_run_and_confirmation(
-    changelog_file: str,
-    existing_content: str,
-    original_content: str,
-    token_usage: dict[str, int] | None,
-    dry_run: bool,
-    require_confirmation: bool,
-    quiet: bool,
-    yes: bool,
-) -> tuple[bool, dict[str, int] | None]:
-    """Handle dry run preview and confirmation logic."""
-    # Show preview and get confirmation
-    if dry_run:
-        output = get_output_manager()
-        output.warning("Dry run: Changelog content generated but not saved")
-        output.echo("\nPreview of updated changelog:")
-        output.panel(existing_content, title="Updated Changelog", style="cyan")
-        return True, token_usage
-
-    # Check if content actually changed (user might have cancelled)
-    if existing_content == original_content:
-        # No changes were made, skip save confirmation
-        if not quiet:
-            output = get_output_manager()
-            output.info("No changes made to changelog.")
-        return True, token_usage
-
-    if require_confirmation and not quiet and not yes:
-        output = get_output_manager()
-        output.print("\n[bold green]Updated changelog preview:[/bold green]")
-        # Show just the new parts for confirmation
-        preview_lines = existing_content.split("\n")[:50]  # First 50 lines
-        preview_text = "\n".join(preview_lines)
-        if len(existing_content.split("\n")) > 50:
-            preview_text += "\n\n... (content truncated for preview)"
-
-        output.panel(preview_text, title="Changelog Preview", style="cyan")
-
-        # Display token usage if available
-        if token_usage:
-            output.info(
-                f"Token usage: {token_usage['prompt_tokens']} input + {token_usage['completion_tokens']} output = {token_usage['total_tokens']} total"
-            )
-
-        proceed = click.confirm("\nSave the updated changelog?", default=True)
-        if not proceed:
-            output = get_output_manager()
-            output.warning("Changelog update cancelled.")
-            return True, token_usage
-
-    # Write the updated changelog
-    try:
-        write_changelog(changelog_file, existing_content)
-    except ChangelogError as e:
-        handle_error(e)
-        return False, None
-    except (OSError, UnicodeEncodeError) as e:
-        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
-        return False, None
-
-    if not quiet:
-        logger.info(f"Successfully updated changelog: {changelog_file}")
-
-    return True, token_usage
-
-
-def validate_workflow_prereqs(
-    changelog_file: str,
-    gap_threshold_hours: float,
-    grouping_mode: str,
-) -> None:
-    """Perform early validation of workflow requirements.
-
-    Args:
-        changelog_file: Path to changelog file
-        gap_threshold_hours: Gap threshold for date/gaps mode
-        grouping_mode: The boundary grouping mode
-
-    Raises:
-        ChangelogError: If changelog file is not writable
-        GitError: If git repository is invalid
-        ConfigError: If gap_threshold_hours is invalid
-    """
-    import os
-
-    from kittylog.tag_operations import get_repo
-
-    # Validate changelog file is writable
-    try:
-        # Check if we can write to the directory
-        changelog_dir = Path(changelog_file).resolve().parent
-        if not os.access(str(changelog_dir), os.W_OK):
-            raise ChangelogError(f"Cannot write to changelog directory: {changelog_dir}")
-
-        # If file exists, check if it's writable
-        changelog_path = Path(changelog_file)
-        if changelog_path.exists() and not os.access(changelog_file, os.W_OK):
-            raise ChangelogError(f"Changelog file is not writable: {changelog_file}")
-
-    except OSError as e:
-        raise ChangelogError(f"Cannot access changelog file: {e}") from e
-
-    # Validate git repository exists and is valid
-    try:
-        get_repo()  # This will raise GitError if invalid
-    except GitError as e:
-        raise GitError(f"Invalid git repository: {e}") from e
-
-    # Validate gap threshold bounds
-    if grouping_mode in [GroupingMode.GAPS.value, GroupingMode.DATES.value] and (
-        gap_threshold_hours <= 0 or gap_threshold_hours > 168
-    ):  # 1 week max
-        raise ConfigError(
-            f"gap_threshold_hours must be between 0 and 168, got: {gap_threshold_hours}",
-            config_key="gap_threshold_hours",
-            config_value=str(gap_threshold_hours),
-        )
-
-
-def validate_and_setup_workflow(
-    changelog_file: str,
-    language: str | None,
-    audience: str | None,
-    grouping_mode: str,
-    gap_threshold_hours: float,
-    date_grouping: str,
-    special_unreleased_mode: bool,
-) -> tuple[str, str | None, bool, str | None]:
-    """Validate inputs and setup workflow parameters."""
-    # Early validation
-    validate_workflow_prereqs(changelog_file, gap_threshold_hours, grouping_mode)
-
-    # Auto-detect changelog file if using default
-    if changelog_file == "CHANGELOG.md":
-        changelog_file = find_changelog_file()
-        logger.debug(f"Auto-detected changelog file: {changelog_file}")
-
-    # Determine language preferences (CLI overrides config)
-    effective_language = language.strip() if language else None
-    if not effective_language:
-        config_language_value = config.get("language")
-        effective_language = config_language_value.strip() if config_language_value else None
-
-    if effective_language:
-        effective_language = Languages.resolve_code(effective_language)
-
-    translate_headings_value = config.get("translate_headings")
-    translate_headings = translate_headings_value is True  # Explicit True check, False/None → False
-    if not effective_language:
-        translate_headings = False
-
-    config_audience = config.get("audience")
-    effective_audience = Audiences.resolve(audience) if audience else Audiences.resolve(config_audience)
-
-    # Validate we're in a git repository and have boundaries
-    try:
-        all_boundaries = get_all_boundaries(
-            mode=grouping_mode, gap_threshold_hours=gap_threshold_hours, date_grouping=date_grouping
-        )
-        # In special_unreleased_mode, we don't require boundaries
-        if not all_boundaries and not special_unreleased_mode:
-            output = get_output_manager()
-            if grouping_mode == GroupingMode.TAGS.value:
-                output.warning("No git tags found. Create some tags first to generate changelog entries.")
-                output.info(
-                    "💡 Tip: Try 'git tag v1.0.0' to create your first tag, or use --grouping-mode dates/gaps for tagless workflows"
-                )
-            elif grouping_mode == GroupingMode.DATES.value:
-                output.warning("No date-based boundaries found. This repository might have very few commits.")
-                output.info(
-                    "💡 Tip: Try --date-grouping weekly/monthly for longer periods, or --grouping-mode gaps for activity-based grouping"
-                )
-            elif grouping_mode == GroupingMode.GAPS.value:
-                output.warning(f"No gap-based boundaries found with {gap_threshold_hours} hour threshold.")
-                output.info(
-                    f"💡 Tip: Try --gap-threshold {gap_threshold_hours / 2} for shorter gaps, or --grouping-mode dates for time-based grouping"
-                )
-            raise GitError(f"No {grouping_mode} boundaries found in repository")
-    except GitError:
-        # Re-raise GitError for no boundaries - it will be caught upstream
-        raise
-    except (ConfigError, ValueError, KeyError) as e:
-        handle_error(e)
-        raise
-
-    return changelog_file, effective_language, translate_headings, effective_audience
 
 
 def main_business_logic(
@@ -423,6 +238,9 @@ def main_business_logic(
     logger.debug(f"Changelog options: {changelog_opts}")
     logger.debug(f"Workflow options: {workflow_opts}")
 
+    # Load config inside function to avoid module-level loading
+    config = load_config()
+
     # Extract values from parameter objects for existing logic
     try:
         (
@@ -431,13 +249,8 @@ def main_business_logic(
             translate_headings,
             effective_audience,
         ) = validate_and_setup_workflow(
-            changelog_file=changelog_opts.changelog_file,
-            language=workflow_opts.language,
-            audience=workflow_opts.audience,
-            grouping_mode=changelog_opts.grouping_mode,
-            gap_threshold_hours=changelog_opts.gap_threshold_hours,
-            date_grouping=changelog_opts.date_grouping,
-            special_unreleased_mode=changelog_opts.special_unreleased_mode,
+            changelog_opts=changelog_opts,
+            workflow_opts=workflow_opts,
         )
     except (ConfigError, GitError, AIError, ChangelogError) as e:
         handle_error(e)
@@ -445,7 +258,7 @@ def main_business_logic(
 
     # Get model from config if not specified
     if not model:
-        model = config.get("model")
+        model = config.model
         if not model:
             handle_error(Exception("No model specified in config"))
             return False, None
@@ -456,26 +269,13 @@ def main_business_logic(
     # Process workflow based on mode
     try:
         existing_content, token_usage = process_workflow_modes(
-            changelog_file=changelog_file,
-            from_tag=changelog_opts.from_tag,
-            to_tag=changelog_opts.to_tag,
+            changelog_opts=changelog_opts,
+            workflow_opts=workflow_opts,
             model=model,
             hint=hint,
-            show_prompt=workflow_opts.show_prompt,
-            quiet=workflow_opts.quiet,
-            dry_run=workflow_opts.dry_run,
-            special_unreleased_mode=changelog_opts.special_unreleased_mode,
-            update_all_entries=workflow_opts.update_all_entries,
-            no_unreleased=workflow_opts.no_unreleased,
-            grouping_mode=changelog_opts.grouping_mode,
-            gap_threshold_hours=changelog_opts.gap_threshold_hours,
-            date_grouping=changelog_opts.date_grouping,
-            yes=workflow_opts.yes,
-            include_diff=workflow_opts.include_diff,
             effective_language=effective_language,
             translate_headings=translate_headings,
             effective_audience=effective_audience,
-            context_entries_count=workflow_opts.context_entries_count,
         )
     except ChangelogError as e:
         handle_error(e)
