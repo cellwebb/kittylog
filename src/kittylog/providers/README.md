@@ -132,7 +132,7 @@ API_KEYS = [
 Models are specified as `<provider>:<model_name>`:
 
 ```bash
-kittylog --model openai:gpt-4o-mini
-kittylog --model anthropic:claude-3-haiku-20240307
-kittylog --model ollama:llama3
+kittylog --model openai:gpt-5-mini
+kittylog --model anthropic:claude-haiku-4-5
+kittylog --model ollama:gpt-oss-20b
 ```
