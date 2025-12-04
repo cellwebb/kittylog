@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [v2.3.0] - 2025-12-04
+
+### Added
+
+- Add --context-entries CLI option to include preceding changelog entries for style reference
+- Support for extracting and using preceding changelog entries as style context in AI generation
+- Add extract_preceding_entries() function to retrieve N most recent changelog entries
+- Add release command with comprehensive options for automated changelog preparation
+- Add prepare_release function to convert Unreleased sections to versioned releases
+- Add comprehensive test coverage for provider registry validation and consistency
+
+### Changed
+
+- Refactor configuration system with dataclass-based validation and improved error handling
+- Refactor all 24 AI providers to use standardized base classes and reduce code duplication
+- Refactor core modules into focused packages (config, changelog, constants, utils)
+- Update configuration precedence to load environment variables directly into os.environ
+- Refactor workflow modules to use structured parameter objects instead of argument explosion
+- Update API endpoints across multiple providers to current specifications
+- Replace bump-my-version with custom version management system
+- Improve token counting fallback estimation with character-based approximation
+- Reorganize utility modules into package structure for better code organization
+
+### Fixed
+
+- Resolve tag recognition and changelog ordering issues in missing entries mode
+- Fix critical boundary filtering bug causing all boundaries to be reprocessed
+- Update API key loading to use environment variables with proper override behavior
+- Correct version normalization and semantic version ordering in changelog insertion
+- Fix response validation and specific exception handling across all AI providers
+- Resolve environment pollution in OAuth token storage and configuration loading
+
 ## [v2.2.0] - 2025-12-03
 
 ### Added
