@@ -30,7 +30,6 @@ dependencies = [
     "tiktoken>=0.12.0",
     # Core functionality
     "packaging>=25.0",
-    "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
     # CLI and formatting
     "click>=8.3.1",
