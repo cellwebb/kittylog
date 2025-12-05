@@ -16,10 +16,6 @@ def get_qwen_auth() -> tuple[str, str]:
     Returns:
         Tuple of (token, api_url) for authentication.
     """
-    api_key = os.getenv("QWEN_API_KEY")
-    if api_key:
-        return api_key, QWEN_API_URL
-
     oauth_provider = QwenOAuthProvider(TokenStore())
     token = oauth_provider.get_token()
     if token:
