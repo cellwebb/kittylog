@@ -127,6 +127,9 @@ def git_repo(temp_dir):
                 os.chdir(str(Path.home()))
 
 
+# Import simplified fixtures
+
+
 @pytest.fixture
 def git_repo_with_tags(git_repo):
     """Create a git repository with sample tags and commits."""
@@ -412,3 +415,6 @@ def isolated_config_test(temp_dir, monkeypatch):
         except (OSError, PermissionError, RuntimeError):
             with contextlib.suppress((OSError, PermissionError, RuntimeError)):
                 os.chdir(str(Path.home()))
+
+
+# Import simplified fixtures
