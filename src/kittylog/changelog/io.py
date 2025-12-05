@@ -23,8 +23,7 @@ def create_changelog_header(include_unreleased: bool = True) -> str:
     """
     header = "# Changelog\n\n"
     header += "All notable changes to this project will be documented in this file.\n\n"
-    header += "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), "
-    header += "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n"
+    header += "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).\n\n"
 
     if include_unreleased:
         header += "## [Unreleased]\n\n"
