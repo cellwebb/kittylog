@@ -4,7 +4,7 @@ from kittylog.changelog.parser import find_existing_boundaries, find_insertion_p
 from kittylog.commit_analyzer import get_commits_between_tags
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_tags, get_tag_date
-from kittylog.utils.text import normalize_tag
+from kittylog.utils.text import format_version_for_changelog
 
 
 def determine_missing_entries(changelog_file: str) -> list[str]:
@@ -114,7 +114,7 @@ def handle_missing_entries_mode(
             version_date = tag_date.strftime("%Y-%m-%d") if tag_date else datetime.now().strftime("%Y-%m-%d")
 
             # Create version section
-            version_section = f"## [{normalize_tag(tag)}] - {version_date}\n\n{entry}"
+            version_section = f"## [{format_version_for_changelog(tag, updated_content)}] - {version_date}\n\n{entry}"
 
             # Find correct insertion point based on semantic version ordering
             lines = updated_content.split("\n")

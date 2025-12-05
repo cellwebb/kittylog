@@ -3,7 +3,7 @@
 from kittylog.commit_analyzer import get_commits_between_boundaries
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries
-from kittylog.utils.text import normalize_tag
+from kittylog.utils.text import format_version_for_changelog
 
 
 def handle_single_boundary_mode(
@@ -76,7 +76,9 @@ def handle_single_boundary_mode(
             return True, existing_content
 
         # Update changelog (simplified for now)
-        updated_content = f"{existing_content}\n\n## [{normalize_tag(boundary_name)}]\n\n{entry}"
+        updated_content = (
+            f"{existing_content}\n\n## [{format_version_for_changelog(boundary_name, existing_content)}]\n\n{entry}"
+        )
 
         return True, updated_content
 
@@ -163,7 +165,9 @@ def handle_boundary_range_mode(
             return True, existing_content
 
         # Update changelog (simplified for now)
-        updated_content = f"{existing_content}\n\n## [{normalize_tag(to_name)}]\n\n{entry}"
+        updated_content = (
+            f"{existing_content}\n\n## [{format_version_for_changelog(to_name, existing_content)}]\n\n{entry}"
+        )
 
         return True, updated_content
 
@@ -265,7 +269,9 @@ def handle_update_all_mode(
             from kittylog.changelog.updater import _update_version_section
 
             # Create the version section
-            version_section = f"## [{normalize_tag(boundary_name)}] - {boundary_date}\n\n{entry}"
+            version_section = (
+                f"## [{format_version_for_changelog(boundary_name, updated_content)}] - {boundary_date}\n\n{entry}"
+            )
             updated_content = _update_version_section(updated_content, version_section, boundary_name)
 
         except (AIError, OSError, TimeoutError, ValueError) as e:
