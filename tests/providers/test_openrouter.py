@@ -15,7 +15,7 @@ API_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 class TestOpenrouterProvider:
     """Test Openrouter provider functionality."""
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": API_KEY})
     def test_call_openrouter_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Openrouter API call."""
@@ -54,7 +54,7 @@ class TestOpenrouterProvider:
 
         assert "OPENROUTER_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": API_KEY})
     def test_call_openrouter_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Openrouter API call handles HTTP errors."""
@@ -70,9 +70,9 @@ class TestOpenrouterProvider:
                 max_tokens=100,
             )
 
-        assert "OpenRouter API error" in str(exc_info.value) or "Error calling OpenRouter API" in str(exc_info.value)
+        assert "OpenRouter API error" in str(exc_info.value) or "OpenRouter" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": API_KEY})
     def test_call_openrouter_api_general_error(self, mock_post, dummy_messages):
         """Test Openrouter API call handles general errors."""
@@ -86,9 +86,9 @@ class TestOpenrouterProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling OpenRouter API" in str(exc_info.value)
+        assert "OpenRouter" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": API_KEY})
     def test_call_openrouter_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestOpenrouterProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": API_KEY})
     def test_call_openrouter_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

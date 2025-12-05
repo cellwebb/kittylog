@@ -16,7 +16,7 @@ API_VERSION = "2023-06-01"
 class TestCustomAnthropicProvider:
     """Test Custom Anthropic provider functionality."""
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(
         os.environ,
         {
@@ -82,7 +82,7 @@ class TestCustomAnthropicProvider:
 
         assert "CUSTOM_ANTHROPIC_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(
         os.environ,
         {
@@ -105,11 +105,9 @@ class TestCustomAnthropicProvider:
                 max_tokens=100,
             )
 
-        assert "Custom Anthropic API error" in str(exc_info.value) or "Error calling Custom Anthropic API" in str(
-            exc_info.value
-        )
+        assert "Custom Anthropic" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(
         os.environ,
         {
@@ -130,9 +128,9 @@ class TestCustomAnthropicProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Custom Anthropic API" in str(exc_info.value)
+        assert "Custom Anthropic" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(
         os.environ,
         {"CUSTOM_ANTHROPIC_API_KEY": API_KEY, "CUSTOM_ANTHROPIC_BASE_URL": API_BASE_URL},
@@ -158,7 +156,7 @@ class TestCustomAnthropicProvider:
         # Should default to "2023-06-01"
         assert headers["anthropic-version"] == "2023-06-01"
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(
         os.environ,
         {

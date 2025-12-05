@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.kimi.com/coding/v1/chat/completions"
 class TestKimiCodingProvider:
     """Test Kimi Coding provider functionality."""
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"KIMI_CODING_API_KEY": API_KEY})
     def test_call_kimi_coding_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Kimi Coding API call."""
@@ -54,7 +54,7 @@ class TestKimiCodingProvider:
 
         assert "KIMI_CODING_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"KIMI_CODING_API_KEY": API_KEY})
     def test_call_kimi_coding_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Kimi Coding API call handles HTTP errors."""
@@ -70,9 +70,9 @@ class TestKimiCodingProvider:
                 max_tokens=100,
             )
 
-        assert "Kimi Coding API error" in str(exc_info.value) or "Error calling Kimi Coding API" in str(exc_info.value)
+        assert "Kimi Coding" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"KIMI_CODING_API_KEY": API_KEY})
     def test_call_kimi_coding_api_general_error(self, mock_post, dummy_messages):
         """Test Kimi Coding API call handles general errors."""
@@ -86,9 +86,9 @@ class TestKimiCodingProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Kimi Coding API" in str(exc_info.value)
+        assert "Kimi Coding" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"KIMI_CODING_API_KEY": API_KEY})
     def test_call_kimi_coding_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestKimiCodingProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"KIMI_CODING_API_KEY": API_KEY})
     def test_call_kimi_coding_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

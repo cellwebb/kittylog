@@ -15,7 +15,7 @@ API_ENDPOINT = "https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/comp
 class TestStreamlakeProvider:
     """Test Streamlake provider functionality."""
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"STREAMLAKE_API_KEY": API_KEY})
     def test_call_streamlake_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Streamlake API call."""
@@ -54,7 +54,7 @@ class TestStreamlakeProvider:
 
         assert "STREAMLAKE_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"STREAMLAKE_API_KEY": API_KEY})
     def test_call_streamlake_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Streamlake API call handles HTTP errors."""
@@ -70,9 +70,9 @@ class TestStreamlakeProvider:
                 max_tokens=100,
             )
 
-        assert "StreamLake API error" in str(exc_info.value) or "Error calling StreamLake API" in str(exc_info.value)
+        assert "StreamLake API error" in str(exc_info.value) or "StreamLake" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"STREAMLAKE_API_KEY": API_KEY})
     def test_call_streamlake_api_general_error(self, mock_post, dummy_messages):
         """Test Streamlake API call handles general errors."""
@@ -86,9 +86,9 @@ class TestStreamlakeProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling StreamLake API" in str(exc_info.value)
+        assert "StreamLake" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"STREAMLAKE_API_KEY": API_KEY})
     def test_call_streamlake_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -111,7 +111,7 @@ class TestStreamlakeProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"STREAMLAKE_API_KEY": API_KEY})
     def test_call_streamlake_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

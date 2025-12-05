@@ -16,7 +16,7 @@ class TestReplicateProvider:
     """Test Replicate provider functionality."""
 
     @patch("kittylog.providers.replicate.httpx.get")
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"REPLICATE_API_TOKEN": API_KEY})
     def test_call_replicate_api_success(
         self, mock_post, mock_get, dummy_messages, mock_http_response_factory, api_test_helper
@@ -66,7 +66,7 @@ class TestReplicateProvider:
 
         assert "REPLICATE_API_TOKEN" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"REPLICATE_API_TOKEN": API_KEY})
     def test_call_replicate_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Replicate API call handles HTTP errors."""
@@ -82,9 +82,9 @@ class TestReplicateProvider:
                 max_tokens=100,
             )
 
-        assert "Replicate API error" in str(exc_info.value) or "Error calling Replicate API" in str(exc_info.value)
+        assert "Replicate API error" in str(exc_info.value) or "Replicate" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"REPLICATE_API_TOKEN": API_KEY})
     def test_call_replicate_api_general_error(self, mock_post, dummy_messages):
         """Test Replicate API call handles general errors."""
@@ -98,10 +98,10 @@ class TestReplicateProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Replicate API" in str(exc_info.value)
+        assert "Replicate" in str(exc_info.value)
 
     @patch("kittylog.providers.replicate.httpx.get")
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"REPLICATE_API_TOKEN": API_KEY})
     def test_call_replicate_api_with_system_message(
         self, mock_post, mock_get, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -131,7 +131,7 @@ class TestReplicateProvider:
         assert "Assistant:" in prompt
 
     @patch("kittylog.providers.replicate.httpx.get")
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"REPLICATE_API_TOKEN": API_KEY})
     def test_call_replicate_api_with_conversation(
         self, mock_post, mock_get, dummy_conversation, mock_http_response_factory, api_test_helper

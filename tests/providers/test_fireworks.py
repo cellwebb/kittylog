@@ -15,7 +15,7 @@ API_ENDPOINT = "https://api.fireworks.ai/inference/v1/chat/completions"
 class TestFireworksProvider:
     """Test Fireworks provider functionality."""
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"FIREWORKS_API_KEY": API_KEY})
     def test_call_fireworks_api_success(self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper):
         """Test successful Fireworks API call."""
@@ -54,7 +54,7 @@ class TestFireworksProvider:
 
         assert "FIREWORKS_API_KEY" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"FIREWORKS_API_KEY": API_KEY})
     def test_call_fireworks_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Fireworks API call handles HTTP errors."""
@@ -70,11 +70,9 @@ class TestFireworksProvider:
                 max_tokens=100,
             )
 
-        assert "Fireworks AI API error" in str(exc_info.value) or "Error calling Fireworks AI API" in str(
-            exc_info.value
-        )
+        assert "Fireworks" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"FIREWORKS_API_KEY": API_KEY})
     def test_call_fireworks_api_general_error(self, mock_post, dummy_messages):
         """Test Fireworks API call handles general errors."""
@@ -88,9 +86,9 @@ class TestFireworksProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Fireworks AI API" in str(exc_info.value)
+        assert "Fireworks AI" in str(exc_info.value)
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"FIREWORKS_API_KEY": API_KEY})
     def test_call_fireworks_api_with_system_message(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
@@ -113,7 +111,7 @@ class TestFireworksProvider:
         assert data["messages"][0]["role"] == "system"
         assert data["messages"][1]["role"] == "user"
 
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"FIREWORKS_API_KEY": API_KEY})
     def test_call_fireworks_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper

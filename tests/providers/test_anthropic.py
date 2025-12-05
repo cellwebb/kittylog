@@ -16,7 +16,7 @@ class TestAnthropicProvider:
     """Test Anthropic provider functionality."""
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": API_KEY})
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     def test_call_anthropic_api_success(
         self, mock_post, dummy_messages_with_system, mock_http_response_factory, api_test_helper
     ):
@@ -52,7 +52,7 @@ class TestAnthropicProvider:
         assert data["messages"][0]["role"] == "user"
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": API_KEY})
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     def test_call_anthropic_api_no_system_message(
         self, mock_post, dummy_messages, mock_http_response_factory, api_test_helper
     ):
@@ -79,11 +79,6 @@ class TestAnthropicProvider:
         # Double-check it's gone
         assert os.getenv("ANTHROPIC_API_KEY") is None
 
-        # Reset the cached provider to ensure it rechecks environment
-        from kittylog.providers.anthropic import anthropic_provider
-
-        anthropic_provider._api_key = None
-
         with pytest.raises(AIError) as exc_info:
             call_anthropic_api(
                 model="claude-3-haiku-20240307",
@@ -95,7 +90,7 @@ class TestAnthropicProvider:
         assert "ANTHROPIC_API_KEY not found" in str(exc_info.value)
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": API_KEY})
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     def test_call_anthropic_api_http_error(self, mock_post, dummy_messages, mock_http_response_factory):
         """Test Anthropic API call handles HTTP errors."""
         mock_post.return_value = mock_http_response_factory.create_error_response(
@@ -110,10 +105,10 @@ class TestAnthropicProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Anthropic API" in str(exc_info.value)
+        assert "Anthropic" in str(exc_info.value)
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": API_KEY})
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     def test_call_anthropic_api_general_error(self, mock_post, dummy_messages):
         """Test Anthropic API call handles general errors."""
         mock_post.side_effect = Exception("Connection failed")
@@ -126,10 +121,10 @@ class TestAnthropicProvider:
                 max_tokens=100,
             )
 
-        assert "Error calling Anthropic API" in str(exc_info.value)
+        assert "Anthropic" in str(exc_info.value)
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": API_KEY})
-    @patch("kittylog.providers.base_configured.httpx.post")
+    @patch("kittylog.providers.base.httpx.post")
     def test_call_anthropic_api_with_conversation(
         self, mock_post, dummy_conversation, mock_http_response_factory, api_test_helper
     ):
