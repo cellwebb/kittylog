@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.4.2] - 2025-12-05
+
+### Changed
+
+- Refactor all providers to use new base architecture with lazy initialization for improved resource efficiency
+- Consolidate provider base classes into specialized subclasses with standardized configuration management
+- Standardize API call patterns and error handling across all provider implementations
+- Update all provider tests to validate new lazy initialization and error handling patterns
+
+### Removed
+
+- Deprecated API key authentication from Qwen provider to enforce OAuth-only pattern
+
 ## [2.4.1] - 2025-12-04
 
 ### Changed
