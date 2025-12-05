@@ -5,7 +5,8 @@ Provides structured logging with context for better debugging.
 
 import logging
 import sys
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from kittylog.constants import Logging
 
