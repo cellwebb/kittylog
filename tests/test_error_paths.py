@@ -24,21 +24,23 @@ class TestProviderAuthenticationErrors:
         """Test that missing API key raises AIError."""
         from kittylog.providers.anthropic import call_anthropic_api
 
-        with patch.dict("os.environ", {}, clear=True):
-            with patch("os.getenv", return_value=None):
-                with pytest.raises(AIError):
-                    call_anthropic_api(
-                        model="claude-3-haiku",
-                        messages=[{"role": "user", "content": "test"}],
-                        temperature=0.7,
-                        max_tokens=100,
-                    )
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("os.getenv", return_value=None),
+            pytest.raises(AIError),
+        ):
+            call_anthropic_api(
+                model="claude-3-haiku",
+                messages=[{"role": "user", "content": "test"}],
+                temperature=0.7,
+                max_tokens=100,
+            )
 
     def test_http_401_raises_auth_error(self):
         """Test that 401 HTTP response raises authentication error."""
-        from kittylog.providers.error_handler import handle_provider_errors
         from kittylog.errors import AIError
-        
+        from kittylog.providers.error_handler import handle_provider_errors
+
         # Create a test function with the decorator
         @handle_provider_errors("TestProvider")
         def mock_api_call():
@@ -50,7 +52,7 @@ class TestProviderAuthenticationErrors:
                 request=Mock(),
                 response=mock_response,
             )
-        
+
         with pytest.raises(AIError) as exc_info:
             mock_api_call()
         assert exc_info.value.error_type == "authentication"
@@ -62,7 +64,7 @@ class TestRateLimitErrors:
     def test_http_429_raises_rate_limit_error(self):
         """Test that 429 HTTP response raises rate_limit error type."""
         from kittylog.providers.error_handler import handle_provider_errors
-        
+
         @handle_provider_errors("TestProvider")
         def mock_api_call():
             mock_response = Mock()
@@ -73,7 +75,7 @@ class TestRateLimitErrors:
                 request=Mock(),
                 response=mock_response,
             )
-        
+
         with pytest.raises(AIError) as exc_info:
             mock_api_call()
         assert exc_info.value.error_type == "rate_limit"
@@ -90,11 +92,11 @@ class TestTimeoutErrors:
     def test_timeout_exception_raises_timeout_error(self):
         """Test that httpx TimeoutException raises timeout error type."""
         from kittylog.providers.error_handler import handle_provider_errors
-        
+
         @handle_provider_errors("TestProvider")
         def mock_api_call():
             raise httpx.TimeoutException("Request timed out")
-        
+
         with pytest.raises(AIError) as exc_info:
             mock_api_call()
         assert exc_info.value.error_type == "timeout"
@@ -102,11 +104,11 @@ class TestTimeoutErrors:
     def test_connect_error_raises_connection_error(self):
         """Test that httpx ConnectError raises connection error."""
         from kittylog.providers.error_handler import handle_provider_errors
-        
+
         @handle_provider_errors("TestProvider")
         def mock_api_call():
             raise httpx.ConnectError("Connection refused")
-        
+
         with pytest.raises(AIError) as exc_info:
             mock_api_call()
         assert exc_info.value.error_type == "connection"
@@ -178,7 +180,7 @@ class TestGitOperationErrors:
 
         # Clear cache first
         clear_git_cache()
-        
+
         with patch("kittylog.tag_operations.get_repo") as mock_get_repo:
             mock_repo = Mock()
             # Mock tags as a dict-like object that raises KeyError for missing tags
