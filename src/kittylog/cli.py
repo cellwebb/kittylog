@@ -35,7 +35,11 @@ logger = logging.getLogger(__name__)
 
 
 def workflow_options(f: Callable) -> Callable:
-    """Common workflow control options."""
+    """Decorator for workflow control options.
+    
+    Adds options for controlling the changelog update workflow including:
+    dry-run mode, auto-confirmation, processing scope, and save behavior.
+    """
     f = click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")(f)
     f = click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")(f)
     f = click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")(f)
@@ -48,7 +52,11 @@ def workflow_options(f: Callable) -> Callable:
 
 
 def changelog_options(f: Callable) -> Callable:
-    """Common changelog-related options."""
+    """Decorator for changelog file and content options.
+    
+    Adds options for specifying changelog file location, tag ranges, language/audience,
+    and content generation parameters.
+    """
     f = click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")(f)
     f = click.option("--from-tag", "-s", default=None, help="Start from specific tag")(f)
     f = click.option("--to-tag", "-t", default=None, help="Update up to specific tag")(f)
@@ -108,13 +116,19 @@ def changelog_options(f: Callable) -> Callable:
 
 
 def model_options(f: Callable) -> Callable:
-    """Common model-related options."""
+    """Decorator for AI model selection options.
+    
+    Adds options for overriding the default AI model used for changelog generation.
+    """
     f = click.option("--model", "-m", default=None, help="Override default model")(f)
     return f
 
 
 def logging_options(f: Callable) -> Callable:
-    """Common logging and output options."""
+    """Decorator for logging and output control options.
+    
+    Adds options for controlling output verbosity, log levels, and quiet mode.
+    """
     f = click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")(f)
     f = click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")(f)
     f = click.option(
@@ -282,8 +296,6 @@ def add(
             date_grouping=date_grouping or EnvDefaults.DATE_GROUPING,
             special_unreleased_mode=False,
         )
-
-        # Language/audience already set in WorkflowOptions constructor
 
         # Language/audience already set in WorkflowOptions constructor
 
