@@ -41,6 +41,7 @@ def handle_missing_entries_mode(
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
+    incremental_save: bool = True,
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle missing entries mode workflow.
@@ -51,12 +52,13 @@ def handle_missing_entries_mode(
         quiet: Suppress non-error output
         yes: Skip confirmation prompts
         dry_run: Preview changes without saving
+        incremental_save: Save after each entry is generated instead of all at once
         **kwargs: Additional arguments for entry generation
 
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog.io import read_changelog
+    from kittylog.changelog.io import ensure_changelog_exists, read_changelog, write_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
@@ -74,19 +76,15 @@ def handle_missing_entries_mode(
 
     output.info(f"Found {len(missing_tags)} missing changelog entries: {', '.join(missing_tags)}")
 
-    # Read existing changelog
-    try:
-        existing_content = read_changelog(changelog_file)
-    except FileNotFoundError:
-        existing_content = ""
+    # Ensure changelog exists, creating it if needed
+    updated_content = ensure_changelog_exists(changelog_file)
+
+    success = True
 
     # Process each missing tag in chronological order (oldest first)
     # This ensures the AI has historical context from previously generated entries
     # Note: Insertion point logic handles correct changelog placement regardless of processing order
-    updated_content = existing_content
-    success = True
-
-    for tag in missing_tags:
+    for i, tag in enumerate(missing_tags):
         try:
             # Get commits for this tag
             commits = get_commits_between_tags(
@@ -122,10 +120,17 @@ def handle_missing_entries_mode(
 
             # Insert the new section at the correct position
             new_lines = ["", *version_section.split("\n")]
-            for i, line in enumerate(new_lines):
-                lines.insert(insert_point + i, line)
+            for j, line in enumerate(new_lines):
+                lines.insert(insert_point + j, line)
 
             updated_content = "\n".join(lines)
+
+            # Save incrementally if enabled and not in dry run mode
+            if incremental_save and not dry_run:
+                write_changelog(changelog_file, updated_content)
+                if not quiet:
+                    progress = f"({i + 1}/{len(missing_tags)})"
+                    output.success(f"✓ Saved changelog entry for {tag} {progress}")
 
         except (GitError, AIError, OSError, TimeoutError, ValueError, KeyError) as e:
             output.warning(f"Failed to process tag {tag}: {e}")

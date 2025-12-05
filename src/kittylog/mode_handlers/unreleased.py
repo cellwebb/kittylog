@@ -58,6 +58,7 @@ def handle_unreleased_mode(
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
+    incremental_save: bool = True,
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle unreleased mode workflow.
@@ -69,6 +70,7 @@ def handle_unreleased_mode(
         quiet: Suppress non-error output
         yes: Skip confirmation prompts
         dry_run: Preview changes without saving
+        incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation
 
     Returns:
@@ -117,6 +119,14 @@ def handle_unreleased_mode(
 
         # Insert entry into the [Unreleased] section (or create one if needed)
         updated_content = _insert_unreleased_entry(existing_content, entry)
+
+        # Save incrementally if enabled and not in dry run mode
+        if incremental_save and not dry_run:
+            from kittylog.changelog.io import write_changelog
+
+            write_changelog(changelog_file, updated_content)
+            if not quiet:
+                output.success("✓ Saved unreleased changelog entry")
 
         return True, updated_content
 

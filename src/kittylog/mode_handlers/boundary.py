@@ -13,6 +13,7 @@ def handle_single_boundary_mode(
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
+    incremental_save: bool = True,
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle single boundary mode workflow.
@@ -24,22 +25,19 @@ def handle_single_boundary_mode(
         quiet: Suppress non-error output
         yes: Skip confirmation prompts
         dry_run: Preview changes without saving
+        incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation
 
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog.io import read_changelog
+    from kittylog.changelog.io import ensure_changelog_exists, write_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
 
-    # Read existing changelog
-    try:
-        existing_content = read_changelog(changelog_file)
-    except FileNotFoundError:
-        output.warning(f"Changelog file not found: {changelog_file}")
-        return False, ""
+    # Ensure changelog exists, creating it if needed
+    existing_content = ensure_changelog_exists(changelog_file)
 
     # Get boundary information
     boundary_name = boundary.get("identifier", boundary.get("hash", "unknown"))
@@ -80,6 +78,12 @@ def handle_single_boundary_mode(
             f"{existing_content}\n\n## [{format_version_for_changelog(boundary_name, existing_content)}]\n\n{entry}"
         )
 
+        # Save incrementally if enabled and not in dry run mode
+        if incremental_save and not dry_run:
+            write_changelog(changelog_file, updated_content)
+            if not quiet:
+                output.success(f"✓ Saved changelog entry for {boundary_name}")
+
         return True, updated_content
 
     except (AIError, OSError, TimeoutError, ValueError) as e:
@@ -97,6 +101,7 @@ def handle_boundary_range_mode(
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
+    incremental_save: bool = True,
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle boundary range mode workflow.
@@ -109,22 +114,19 @@ def handle_boundary_range_mode(
         quiet: Suppress non-error output
         yes: Skip confirmation prompts
         dry_run: Preview changes without saving
+        incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation
 
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog.io import read_changelog
+    from kittylog.changelog.io import ensure_changelog_exists, write_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
 
-    # Read existing changelog
-    try:
-        existing_content = read_changelog(changelog_file)
-    except FileNotFoundError:
-        output.warning(f"Changelog file not found: {changelog_file}")
-        return False, ""
+    # Ensure changelog exists, creating it if needed
+    existing_content = ensure_changelog_exists(changelog_file)
 
     # Get boundary information
     to_name = to_boundary.get("identifier", to_boundary.get("hash", "unknown"))
@@ -169,6 +171,12 @@ def handle_boundary_range_mode(
             f"{existing_content}\n\n## [{format_version_for_changelog(to_name, existing_content)}]\n\n{entry}"
         )
 
+        # Save incrementally if enabled and not in dry run mode
+        if incremental_save and not dry_run:
+            write_changelog(changelog_file, updated_content)
+            if not quiet:
+                output.success(f"✓ Saved changelog entry for range {from_name} to {to_name}")
+
         return True, updated_content
 
     except (AIError, OSError, TimeoutError, ValueError) as e:
@@ -185,6 +193,7 @@ def handle_update_all_mode(
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
+    incremental_save: bool = True,
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle update all mode workflow.
@@ -196,22 +205,19 @@ def handle_update_all_mode(
         quiet: Suppress non-error output
         yes: Skip confirmation prompts
         dry_run: Preview changes without saving
+        incremental_save: Save after each entry is generated instead of all at once
         **kwargs: Additional arguments for entry generation
 
     Returns:
         Tuple of (success, updated_content)
     """
-    from kittylog.changelog.io import read_changelog
+    from kittylog.changelog.io import ensure_changelog_exists, write_changelog
     from kittylog.output import get_output_manager
 
     output = get_output_manager()
 
-    # Read existing changelog
-    try:
-        existing_content = read_changelog(changelog_file)
-    except FileNotFoundError:
-        output.warning(f"Changelog file not found: {changelog_file}")
-        return False, ""
+    # Ensure changelog exists, creating it if needed
+    existing_content = ensure_changelog_exists(changelog_file)
 
     # Get all boundaries
     try:
@@ -229,13 +235,12 @@ def handle_update_all_mode(
 
     output.info(f"Found {len(boundaries)} boundaries for mode {mode}")
 
+    success = True
+
     # Process each boundary in chronological order (oldest first)
     # This ensures the AI has historical context from previously generated entries
     # Note: Insertion point logic handles correct changelog placement regardless of processing order
-    updated_content = existing_content
-    success = True
-
-    for boundary in boundaries:
+    for i, boundary in enumerate(boundaries):
         boundary_name = boundary.get("identifier", boundary.get("hash", "unknown"))
         boundary_date = boundary.get("date", "")
 
@@ -270,13 +275,20 @@ def handle_update_all_mode(
 
             # Create the version section
             version_section = (
-                f"## [{format_version_for_changelog(boundary_name, updated_content)}] - {boundary_date}\n\n{entry}"
+                f"## [{format_version_for_changelog(boundary_name, existing_content)}] - {boundary_date}\n\n{entry}"
             )
-            updated_content = _update_version_section(updated_content, version_section, boundary_name)
+            existing_content = _update_version_section(existing_content, version_section, boundary_name)
+
+            # Save incrementally if enabled and not in dry run mode
+            if incremental_save and not dry_run:
+                write_changelog(changelog_file, existing_content)
+                if not quiet:
+                    progress = f"({i + 1}/{len(boundaries)})"
+                    output.success(f"✓ Saved changelog entry for {boundary_name} {progress}")
 
         except (AIError, OSError, TimeoutError, ValueError) as e:
             output.warning(f"Failed to generate entry for boundary {boundary_name}: {e}")
             success = False
             continue
 
-    return success, updated_content
+    return success, existing_content
