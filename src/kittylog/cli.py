@@ -39,6 +39,11 @@ def workflow_options(f: Callable) -> Callable:
     f = click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")(f)
     f = click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")(f)
     f = click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")(f)
+    f = click.option(
+        "--incremental-save/--no-incremental-save",
+        default=True,
+        help="Save entries incrementally as they are generated (default: enabled)",
+    )(f)
     return f
 
 
@@ -196,6 +201,7 @@ def add(
     verbose,
     log_level,
     all,
+    incremental_save,
     tag,
     no_unreleased,
     include_diff,
@@ -264,6 +270,7 @@ def add(
             hint=hint or "",
             show_prompt=show_prompt,
             context_entries_count=context_entries,
+            incremental_save=incremental_save,
         )
 
         changelog_opts = ChangelogOptions(
@@ -335,6 +342,7 @@ def cli(ctx, version):
             verbose=False,
             log_level=None,
             all=False,
+            incremental_save=True,
             tag=None,
             no_unreleased=False,
             include_diff=False,
