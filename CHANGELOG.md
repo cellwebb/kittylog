@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.4.0] - 2025-12-04
+
+### Added
+
+- Qwen AI provider with OAuth device flow and API key authentication support
+- Secure token storage system for OAuth providers with atomic writes and proper file permissions
+- Structured logging system with contextual information throughout the application
+- Version style detection and formatting utilities for consistent changelog version handling
+
+### Changed
+
+- Replace normalize_tag with style-aware version formatting across changelog modules
+- Simplify test fixtures with MockAIResponse builder and fluent MockProviderBuilder interface
+- Enhance OAuth authentication CLI with Qwen support and improved provider status display
+- Update documentation with visual indicators for correct uv run command usage
+
+### Fixed
+
+- Correct version prefix stripping tests to use proper string literal formatting
+- Fix import order in boundary and missing mode handlers following PEP 8 guidelines
+
 ## [2.3.4] - 2025-12-04
 
 ### Added
