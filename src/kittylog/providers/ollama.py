@@ -2,7 +2,7 @@
 
 import os
 
-from kittylog.providers.base_configured import NoAuthProvider, ProviderConfig
+from kittylog.providers.base import NoAuthProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -35,36 +35,21 @@ class OllamaProvider(NoAuthProvider):
         return response.get("message", {}).get("content", "")
 
 
-# Create provider configuration
+# Provider configuration
 _ollama_config = ProviderConfig(
     name="Ollama",
-    api_key_env="",  # No API key needed
-    base_url="http://localhost:11434/api/chat",  # Will be overridden by _get_api_url
+    api_key_env="",
+    base_url="http://localhost:11434/api/chat",
 )
 
-# Create provider instance
-ollama_provider = OllamaProvider(_ollama_config)
+
+def _get_ollama_provider() -> OllamaProvider:
+    """Lazy getter to initialize Ollama provider at call time."""
+    return OllamaProvider(_ollama_config)
 
 
 @handle_provider_errors("Ollama")
 def call_ollama_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Ollama API directly.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return ollama_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Ollama API directly."""
+    provider = _get_ollama_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

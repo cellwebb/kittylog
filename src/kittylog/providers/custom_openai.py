@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
@@ -84,45 +84,21 @@ class CustomOpenAIProvider(OpenAICompatibleProvider):
             raise
 
 
-# Create provider configuration - these will be overridden/validated during API call
+# Provider configuration
 _custom_openai_config = ProviderConfig(
     name="Custom OpenAI",
     api_key_env="CUSTOM_OPENAI_API_KEY",
-    base_url="https://custom-endpoint.com/chat/completions",  # Will be overridden by CUSTOM_OPENAI_BASE_URL
+    base_url="https://custom-endpoint.com/chat/completions",
 )
 
-# Create provider instance
-custom_openai_provider = CustomOpenAIProvider(_custom_openai_config)
+
+def _get_custom_openai_provider() -> CustomOpenAIProvider:
+    """Lazy getter to initialize Custom OpenAI provider at call time."""
+    return CustomOpenAIProvider(_custom_openai_config)
 
 
 @handle_provider_errors("Custom OpenAI")
 def call_custom_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call a custom OpenAI-compatible endpoint.
-
-    Environment variables:
-        CUSTOM_OPENAI_API_KEY: Custom endpoint API key (required)
-        CUSTOM_OPENAI_BASE_URL: Custom endpoint base URL (required)
-            Example: https://your-endpoint.com
-            Example: https://your-endpoint.com/v1/chat/completions
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    # Explicitly validate configuration before attempting API call
-    custom_openai_provider._validate_config()
-
-    return custom_openai_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call a custom OpenAI-compatible endpoint."""
+    provider = _get_custom_openai_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

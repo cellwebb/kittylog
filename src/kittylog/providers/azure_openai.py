@@ -6,7 +6,7 @@ endpoint construction and API version handling.
 
 import os
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -57,48 +57,21 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
         return f"{endpoint.rstrip('/')}/openai/deployments/{model}/chat/completions?api-version={self.api_version}"
 
 
-# Create provider configuration - base_url is placeholder since we override _get_api_url
+# Provider configuration
 _azure_openai_config = ProviderConfig(
     name="Azure OpenAI",
     api_key_env="AZURE_OPENAI_API_KEY",
-    base_url="https://placeholder.openai.azure.com",  # Overridden in _get_api_url
+    base_url="https://placeholder.openai.azure.com",
 )
 
-# Create provider instance
-azure_openai_provider = AzureOpenAIProvider(_azure_openai_config)
+
+def _get_azure_openai_provider() -> AzureOpenAIProvider:
+    """Lazy getter to initialize Azure OpenAI provider at call time."""
+    return AzureOpenAIProvider(_azure_openai_config)
 
 
 @handle_provider_errors("Azure OpenAI")
 def call_azure_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Azure OpenAI Service API.
-
-    Environment variables:
-        AZURE_OPENAI_API_KEY: Azure OpenAI API key (required)
-        AZURE_OPENAI_ENDPOINT: Azure OpenAI endpoint URL (required)
-            Example: https://your-resource.openai.azure.com
-        AZURE_OPENAI_API_VERSION: Azure OpenAI API version (required)
-            Example: 2025-01-01-preview
-            Example: 2024-02-15-preview
-
-    Args:
-        model: The deployment name in Azure OpenAI (e.g., 'gpt-4o', 'gpt-35-turbo')
-        messages: List of message dictionaries
-        temperature: Temperature parameter (0.0-2.0)
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return azure_openai_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-
-
-# Backward compatibility alias for tests
-_azure_openai_provider = azure_openai_provider
+    """Call Azure OpenAI Service API."""
+    provider = _get_azure_openai_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

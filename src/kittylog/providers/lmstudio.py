@@ -3,7 +3,7 @@
 import os
 from typing import Any
 
-from kittylog.providers.base_configured import NoAuthProvider, ProviderConfig
+from kittylog.providers.base import NoAuthProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -63,40 +63,21 @@ class LMStudioProvider(NoAuthProvider):
         raise AIError.model_error("LM Studio API response missing content")
 
 
-# Create provider configuration - no API key required by default
+# Provider configuration
 _lmstudio_config = ProviderConfig(
     name="LM Studio",
-    api_key_env="",  # No required API key
-    base_url="http://localhost:1234/v1/chat/completions",  # Can be overridden via LMSTUDIO_API_URL
+    api_key_env="",
+    base_url="http://localhost:1234/v1/chat/completions",
 )
 
-# Create provider instance
-lmstudio_provider = LMStudioProvider(_lmstudio_config)
+
+def _get_lmstudio_provider() -> LMStudioProvider:
+    """Lazy getter to initialize LM Studio provider at call time."""
+    return LMStudioProvider(_lmstudio_config)
 
 
 @handle_provider_errors("LM Studio")
 def call_lmstudio_api(model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int) -> str:
-    """Call the LM Studio OpenAI-compatible API.
-
-    Environment variables:
-        LMSTUDIO_API_URL: Local LM Studio URL (optional, defaults to http://localhost:1234)
-        LMSTUDIO_API_KEY: Optional API key if LM Studio is configured to require one
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return lmstudio_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call the LM Studio OpenAI-compatible API."""
+    provider = _get_lmstudio_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

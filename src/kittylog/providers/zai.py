@@ -1,6 +1,6 @@
 """Z.AI API provider for kittylog."""
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -23,7 +23,7 @@ class ZAIProvider(OpenAICompatibleProvider):
         return content
 
 
-# Create provider configurations
+# Provider configurations
 _zai_config = ProviderConfig(
     name="Z.AI", api_key_env="ZAI_API_KEY", base_url="https://api.z.ai/api/paas/v4/chat/completions"
 )
@@ -32,53 +32,26 @@ _zai_coding_config = ProviderConfig(
     name="Z.AI Coding", api_key_env="ZAI_API_KEY", base_url="https://api.z.ai/api/coding/paas/v4/chat/completions"
 )
 
-# Create provider instances
-zai_provider = ZAIProvider(_zai_config)
-zai_coding_provider = ZAIProvider(_zai_coding_config)
+
+def _get_zai_provider() -> ZAIProvider:
+    """Lazy getter to initialize Z.AI provider at call time."""
+    return ZAIProvider(_zai_config)
+
+
+def _get_zai_coding_provider() -> ZAIProvider:
+    """Lazy getter to initialize Z.AI Coding provider at call time."""
+    return ZAIProvider(_zai_coding_config)
 
 
 @handle_provider_errors("Z.AI")
 def call_zai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI regular API directly.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return zai_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Z.AI regular API directly."""
+    provider = _get_zai_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
 
 
+@handle_provider_errors("Z.AI Coding")
 def call_zai_coding_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Z.AI coding API directly.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return zai_coding_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Z.AI coding API directly."""
+    provider = _get_zai_coding_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

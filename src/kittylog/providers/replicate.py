@@ -4,7 +4,7 @@ import time
 
 import httpx
 
-from kittylog.providers.base_configured import GenericHTTPProvider, ProviderConfig
+from kittylog.providers.base import GenericHTTPProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -131,36 +131,21 @@ class ReplicateProvider(GenericHTTPProvider):
         return api_key
 
 
-# Create provider configuration
+# Provider configuration
 _replicate_config = ProviderConfig(
     name="Replicate",
-    api_key_env="REPLICATE_API_TOKEN",  # Will be overridden by _get_api_key
+    api_key_env="REPLICATE_API_TOKEN",
     base_url="https://api.replicate.com/v1/predictions",
 )
 
-# Create provider instance
-replicate_provider = ReplicateProvider(_replicate_config)
+
+def _get_replicate_provider() -> ReplicateProvider:
+    """Lazy getter to initialize Replicate provider at call time."""
+    return ReplicateProvider(_replicate_config)
 
 
 @handle_provider_errors("Replicate")
 def call_replicate_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Replicate API directly.
-
-    Args:
-        model: Model version string (Replicate uses version as model identifier)
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return replicate_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Replicate API directly."""
+    provider = _get_replicate_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -3,7 +3,7 @@
 import json
 import logging
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
@@ -67,39 +67,21 @@ class KimiCodingProvider(OpenAICompatibleProvider):
             raise
 
 
-# Create provider configuration
+# Provider configuration
 _kimi_coding_config = ProviderConfig(
     name="Kimi Coding",
     api_key_env="KIMI_CODING_API_KEY",
-    base_url="https://api.kimi.com/coding/v1/chat/completions",  # Will be overridden in _get_api_url
+    base_url="https://api.kimi.com/coding/v1/chat/completions",
 )
 
-# Create provider instance
-kimi_coding_provider = KimiCodingProvider(_kimi_coding_config)
+
+def _get_kimi_coding_provider() -> KimiCodingProvider:
+    """Lazy getter to initialize Kimi Coding provider at call time."""
+    return KimiCodingProvider(_kimi_coding_config)
 
 
 @handle_provider_errors("Kimi Coding")
 def call_kimi_coding_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Kimi Coding API using OpenAI-compatible endpoint.
-
-    Environment variables:
-        KIMI_CODING_API_KEY: Kimi Coding API key (required)
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return kimi_coding_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Kimi Coding API using OpenAI-compatible endpoint."""
+    provider = _get_kimi_coding_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -1,65 +1,76 @@
-"""Qwen API provider for kittylog with OAuth support."""
-
-import os
-
-import httpx
+"""Qwen API provider for kittylog with OAuth-only support."""
 
 from kittylog.errors import AIError
 from kittylog.oauth import QwenOAuthProvider, TokenStore
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.error_handler import handle_provider_errors
 
-QWEN_API_URL = "https://chat.qwen.ai/api/v1/chat/completions"
+QWEN_DEFAULT_API_URL = "https://chat.qwen.ai/api/v1/chat/completions"
 
 
-def get_qwen_auth() -> tuple[str, str]:
-    """Get Qwen authentication (API key or OAuth token).
+class QwenProvider(OpenAICompatibleProvider):
+    """Qwen provider with OAuth-only authentication."""
 
-    Returns:
-        Tuple of (token, api_url) for authentication.
-    """
-    oauth_provider = QwenOAuthProvider(TokenStore())
-    token = oauth_provider.get_token()
-    if token:
-        resource_url = token.get("resource_url")
-        if resource_url:
-            if not resource_url.startswith(("http://", "https://")):
-                resource_url = f"https://{resource_url}"
-            if not resource_url.endswith("/chat/completions"):
-                resource_url = resource_url.rstrip("/") + "/v1/chat/completions"
-            api_url = resource_url
-        else:
-            api_url = QWEN_API_URL
-        return token["access_token"], api_url
-
-    raise AIError.authentication_error(
-        "Qwen authentication not found. Set QWEN_API_KEY or run 'kittylog auth qwen login' for OAuth."
+    config = ProviderConfig(
+        name="Qwen",
+        api_key_env="",
+        base_url=QWEN_DEFAULT_API_URL,
     )
 
+    def __init__(self, config: ProviderConfig):
+        """Initialize with OAuth authentication."""
+        super().__init__(config)
+        self._auth_token, resolved_url = self._get_oauth_token()
+        self.config.base_url = resolved_url
 
+    def _get_api_key(self) -> str:
+        """Return placeholder for parent class compatibility (OAuth is used instead)."""
+        return "oauth-token"
+
+    def _get_oauth_token(self) -> tuple[str, str]:
+        """Get Qwen OAuth token from token store.
+
+        Returns:
+            Tuple of (access_token, api_url) for authentication.
+
+        Raises:
+            AIError: If no OAuth token is found.
+        """
+        oauth_provider = QwenOAuthProvider(TokenStore())
+        token = oauth_provider.get_token()
+        if token:
+            resource_url = token.get("resource_url")
+            if resource_url:
+                if not resource_url.startswith(("http://", "https://")):
+                    resource_url = f"https://{resource_url}"
+                if not resource_url.endswith("/chat/completions"):
+                    resource_url = resource_url.rstrip("/") + "/v1/chat/completions"
+                api_url = resource_url
+            else:
+                api_url = QWEN_DEFAULT_API_URL
+            return token["access_token"], api_url
+
+        raise AIError.authentication_error(
+            "Qwen OAuth token not found. Run 'kittylog auth qwen login' to authenticate."
+        )
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers with OAuth token."""
+        headers = super()._build_headers()
+        # Replace Bearer token with the stored auth token
+        if "Authorization" in headers:
+            del headers["Authorization"]
+        headers["Authorization"] = f"Bearer {self._auth_token}"
+        return headers
+
+
+def _get_qwen_provider() -> QwenProvider:
+    """Lazy getter to initialize Qwen provider at call time."""
+    return QwenProvider(QwenProvider.config)
+
+
+@handle_provider_errors("Qwen")
 def call_qwen_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Qwen API with OAuth or API key authentication."""
-    auth_token, api_url = get_qwen_auth()
-
-    headers = {"Authorization": f"Bearer {auth_token}", "Content-Type": "application/json"}
-
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
-
-    try:
-        response = httpx.post(api_url, headers=headers, json=data, timeout=120)
-        response.raise_for_status()
-        response_data = response.json()
-        content = response_data["choices"][0]["message"]["content"]
-        if content is None:
-            raise AIError.model_error("Qwen API returned null content")
-        if content == "":
-            raise AIError.model_error("Qwen API returned empty content")
-        return content
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 401:
-            raise AIError.authentication_error(f"Qwen authentication failed: {e.response.text}") from e
-        if e.response.status_code == 429:
-            raise AIError.rate_limit_error(f"Qwen API rate limit exceeded: {e.response.text}") from e
-        raise AIError.model_error(f"Qwen API error: {e.response.status_code} - {e.response.text}") from e
-    except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Qwen API request timed out: {e!s}") from e
-    except Exception as e:
-        raise AIError.model_error(f"Error calling Qwen API: {e!s}") from e
+    """Call Qwen API with OAuth authentication."""
+    provider = _get_qwen_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

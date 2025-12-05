@@ -1,6 +1,6 @@
 """OpenAI provider implementation."""
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -33,42 +33,13 @@ class OpenAIProvider(OpenAICompatibleProvider):
         return data
 
 
-# Create provider instance for backward compatibility
-openai_provider = OpenAIProvider(OpenAIProvider.config)
+def _get_openai_provider() -> OpenAIProvider:
+    """Lazy getter to initialize OpenAI provider at call time."""
+    return OpenAIProvider(OpenAIProvider.config)
 
 
 @handle_provider_errors("OpenAI")
-def call_openai_api(
-    model: str,
-    messages: list[dict],
-    temperature: float,
-    max_tokens: int,
-    stream: bool = False,
-    response_format: dict | None = None,
-    stop: list | None = None,
-) -> str:
-    """Call OpenAI API directly.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-        stream: Whether to stream response (not implemented yet)
-        response_format: Response format specification
-        stop: Stop sequences
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return openai_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        response_format=response_format,
-        stop=stop,
-    )
+def call_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int, **kwargs) -> str:
+    """Call OpenAI API directly."""
+    provider = _get_openai_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, **kwargs)

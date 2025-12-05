@@ -1,7 +1,7 @@
 """MiniMax API provider for kittylog."""
 
 from kittylog.errors import AIError
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -22,29 +22,13 @@ class MiniMaxProvider(OpenAICompatibleProvider):
         return content
 
 
-# Create provider instance for backward compatibility
-minimax_provider = MiniMaxProvider(MiniMaxProvider.config)
+def _get_minimax_provider() -> MiniMaxProvider:
+    """Lazy getter to initialize MiniMax provider at call time."""
+    return MiniMaxProvider(MiniMaxProvider.config)
 
 
 @handle_provider_errors("MiniMax")
 def call_minimax_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call MiniMax API directly.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return minimax_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call MiniMax API directly."""
+    provider = _get_minimax_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

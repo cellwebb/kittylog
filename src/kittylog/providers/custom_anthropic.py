@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from kittylog.providers.base_configured import AnthropicCompatibleProvider, ProviderConfig
+from kittylog.providers.base import AnthropicCompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
@@ -102,46 +102,21 @@ class CustomAnthropicProvider(AnthropicCompatibleProvider):
             ) from e
 
 
-# Create provider configuration - these will be overridden/validated during API call
+# Provider configuration
 _custom_anthropic_config = ProviderConfig(
     name="Custom Anthropic",
     api_key_env="CUSTOM_ANTHROPIC_API_KEY",
-    base_url="https://custom-endpoint.com/v1/messages",  # Will be overridden by CUSTOM_ANTHROPIC_BASE_URL
+    base_url="https://custom-endpoint.com/v1/messages",
 )
 
-# Create provider instance
-custom_anthropic_provider = CustomAnthropicProvider(_custom_anthropic_config)
+
+def _get_custom_anthropic_provider() -> CustomAnthropicProvider:
+    """Lazy getter to initialize Custom Anthropic provider at call time."""
+    return CustomAnthropicProvider(_custom_anthropic_config)
 
 
 @handle_provider_errors("Custom Anthropic")
 def call_custom_anthropic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call a custom Anthropic-compatible endpoint.
-
-    Environment variables:
-        CUSTOM_ANTHROPIC_API_KEY: Custom endpoint API key (required)
-        CUSTOM_ANTHROPIC_BASE_URL: Custom endpoint base URL (required)
-            Example: https://your-endpoint.com
-            Example: https://your-endpoint.com/v1/messages
-        CUSTOM_ANTHROPIC_VERSION: Anthropic API version (optional, defaults to "2023-06-01")
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    # Explicitly validate configuration before attempting API call
-    custom_anthropic_provider._validate_config()
-
-    return custom_anthropic_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call a custom Anthropic-compatible endpoint."""
+    provider = _get_custom_anthropic_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

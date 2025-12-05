@@ -1,6 +1,6 @@
 """Synthetic.new API provider for kittylog."""
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -50,40 +50,21 @@ class SyntheticProvider(OpenAICompatibleProvider):
         return content
 
 
-# Create provider configuration
+# Provider configuration
 _synthetic_config = ProviderConfig(
     name="Synthetic",
-    api_key_env="SYNTHETIC_API_KEY",  # Will be overridden by _get_api_key to support SYN_API_KEY alias
+    api_key_env="SYNTHETIC_API_KEY",
     base_url="https://api.synthetic.new/openai/v1/chat/completions",
 )
 
-# Create provider instance
-synthetic_provider = SyntheticProvider(_synthetic_config)
+
+def _get_synthetic_provider() -> SyntheticProvider:
+    """Lazy getter to initialize Synthetic provider at call time."""
+    return SyntheticProvider(_synthetic_config)
 
 
 @handle_provider_errors("Synthetic")
 def call_synthetic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Synthetic.new API directly.
-
-    Environment variables:
-        SYNTHETIC_API_KEY: Synthetic API key (required)
-        SYN_API_KEY: Alternative API key variable name (alias for SYNTHETIC_API_KEY)
-
-    Args:
-        model: Model name (will be prefixed with 'hf:' if not already)
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return synthetic_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call Synthetic.new API directly."""
+    provider = _get_synthetic_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from kittylog.providers.base_configured import GenericHTTPProvider, ProviderConfig
+from kittylog.providers.base import GenericHTTPProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -88,36 +88,21 @@ class GeminiProvider(GenericHTTPProvider):
         return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
-# Create provider configuration - base_url is placeholder since we override _get_api_url
+# Provider configuration
 _gemini_config = ProviderConfig(
     name="Gemini",
     api_key_env="GEMINI_API_KEY",
-    base_url="https://generativelanguage.googleapis.com",  # Overridden in _get_api_url
+    base_url="https://generativelanguage.googleapis.com",
 )
 
-# Create provider instance
-gemini_provider = GeminiProvider(_gemini_config)
+
+def _get_gemini_provider() -> GeminiProvider:
+    """Lazy getter to initialize Gemini provider at call time."""
+    return GeminiProvider(_gemini_config)
 
 
 @handle_provider_errors("Gemini")
 def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int) -> str:
-    """Call the Gemini API.
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return gemini_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call the Gemini API."""
+    provider = _get_gemini_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -2,7 +2,7 @@
 
 import os
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -34,40 +34,21 @@ class ChutesProvider(OpenAICompatibleProvider):
         return content
 
 
-# Create provider configuration - base_url is placeholder
+# Provider configuration
 _chutes_config = ProviderConfig(
     name="Chutes",
     api_key_env="CHUTES_API_KEY",
-    base_url="https://llm.chutes.ai/v1/chat/completions",  # Can be overridden via CHUTES_BASE_URL
+    base_url="https://llm.chutes.ai/v1/chat/completions",
 )
 
-# Create provider instance
-chutes_provider = ChutesProvider(_chutes_config)
+
+def _get_chutes_provider() -> ChutesProvider:
+    """Lazy getter to initialize Chutes provider at call time."""
+    return ChutesProvider(_chutes_config)
 
 
 @handle_provider_errors("Chutes")
 def call_chutes_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call the Chutes.ai API using an OpenAI-compatible endpoint.
-
-    Environment variables:
-        CHUTES_API_KEY: Chutes.ai API key (required)
-        CHUTES_BASE_URL: Custom base URL (optional, defaults to https://llm.chutes.ai)
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return chutes_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call the Chutes.ai API using an OpenAI-compatible endpoint."""
+    provider = _get_chutes_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

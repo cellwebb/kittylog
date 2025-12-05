@@ -1,6 +1,6 @@
 """StreamLake (Vanchin) API provider for kittylog."""
 
-from kittylog.providers.base_configured import OpenAICompatibleProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 from kittylog.providers.error_handler import handle_provider_errors
 
 
@@ -36,40 +36,21 @@ class StreamLakeProvider(OpenAICompatibleProvider):
         return content
 
 
-# Create provider configuration
+# Provider configuration
 _streamlake_config = ProviderConfig(
     name="StreamLake",
-    api_key_env="STREAMLAKE_API_KEY",  # Will be overridden by _get_api_key to support VC_API_KEY alias
+    api_key_env="STREAMLAKE_API_KEY",
     base_url="https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions",
 )
 
-# Create provider instance
-streamlake_provider = StreamLakeProvider(_streamlake_config)
+
+def _get_streamlake_provider() -> StreamLakeProvider:
+    """Lazy getter to initialize StreamLake provider at call time."""
+    return StreamLakeProvider(_streamlake_config)
 
 
 @handle_provider_errors("StreamLake")
 def call_streamlake_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call StreamLake (Vanchin) chat completions API.
-
-    Environment variables:
-        STREAMLAKE_API_KEY: StreamLake API key (required)
-        VC_API_KEY: Alternative API key variable name (alias for STREAMLAKE_API_KEY)
-
-    Args:
-        model: Model name
-        messages: List of message dictionaries
-        temperature: Temperature parameter
-        max_tokens: Maximum tokens in response
-
-    Returns:
-        Generated text content
-
-    Raises:
-        AIError: For any API-related errors
-    """
-    return streamlake_provider.generate(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    """Call StreamLake (Vanchin) chat completions API."""
+    provider = _get_streamlake_provider()
+    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
