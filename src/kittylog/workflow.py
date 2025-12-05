@@ -79,6 +79,7 @@ def process_workflow_modes(
     effective_language: str | None,
     translate_headings: bool,
     effective_audience: str | None,
+    incremental_save: bool = True,
 ) -> tuple[str, dict[str, int] | None]:
     """Process changelog workflow based on mode selection."""
     # Extract values from dataclasses
@@ -131,6 +132,7 @@ def process_workflow_modes(
             quiet=quiet,
             yes=yes,
             dry_run=dry_run,
+            incremental_save=incremental_save,
         )
         return content, None
 
@@ -159,6 +161,7 @@ def process_workflow_modes(
             quiet=quiet,
             yes=yes,
             dry_run=dry_run,
+            incremental_save=incremental_save,
         )
         return content, None
 
@@ -173,6 +176,7 @@ def process_workflow_modes(
             quiet=quiet,
             yes=yes,
             dry_run=dry_run,
+            incremental_save=incremental_save,
         )
         return content, None
 
@@ -186,6 +190,7 @@ def process_workflow_modes(
             quiet=quiet,
             yes=yes,
             dry_run=dry_run,
+            incremental_save=incremental_save,
         )
         return content, None
 
@@ -208,6 +213,7 @@ def process_workflow_modes(
         quiet=quiet,
         yes=yes,
         dry_run=dry_run,
+        incremental_save=incremental_save,
     )
     return content, None
 
@@ -294,6 +300,7 @@ def main_business_logic(
             effective_language=effective_language,
             translate_headings=translate_headings,
             effective_audience=effective_audience,
+            incremental_save=workflow_opts.incremental_save,
         )
     except ChangelogError as e:
         handle_error(e)
@@ -312,4 +319,5 @@ def main_business_logic(
         require_confirmation=workflow_opts.require_confirmation,
         quiet=workflow_opts.quiet,
         yes=workflow_opts.yes,
+        incremental_save=workflow_opts.incremental_save,
     )

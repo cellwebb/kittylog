@@ -25,6 +25,7 @@ def handle_dry_run_and_confirmation(
     require_confirmation: bool,
     quiet: bool,
     yes: bool,
+    incremental_save: bool = False,
 ) -> tuple[bool, dict[str, int] | None]:
     """Handle dry run preview and confirmation logic."""
     # Show preview and get confirmation
@@ -66,17 +67,20 @@ def handle_dry_run_and_confirmation(
             output.warning("Changelog update cancelled.")
             return True, token_usage
 
-    # Write the updated changelog
-    try:
-        write_changelog(changelog_file, existing_content)
-    except ChangelogError as e:
-        handle_error(e)
-        return False, None
-    except (OSError, UnicodeEncodeError) as e:
-        handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
-        return False, None
-
-    if not quiet:
-        logger.info(f"Successfully updated changelog: {changelog_file}")
+    # Write the updated changelog (skip if already saved incrementally)
+    if not incremental_save:
+        try:
+            write_changelog(changelog_file, existing_content)
+            if not quiet:
+                logger.info(f"Successfully updated changelog: {changelog_file}")
+        except ChangelogError as e:
+            handle_error(e)
+            return False, None
+        except (OSError, UnicodeEncodeError) as e:
+            handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
+            return False, None
+    elif not quiet:
+        output = get_output_manager()
+        output.success(f"Changelog updated incrementally: {changelog_file}")
 
     return True, token_usage
