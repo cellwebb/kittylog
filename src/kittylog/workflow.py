@@ -4,8 +4,6 @@ This module contains the core business logic for changelog generation
 workflow including mode selection, boundary processing, and coordination.
 """
 
-import logging
-
 from kittylog.ai import generate_changelog_entry
 from kittylog.changelog.io import read_changelog
 from kittylog.changelog.parser import extract_preceding_entries
@@ -15,10 +13,11 @@ from kittylog.mode_handlers import (
     handle_single_boundary_mode,
     handle_unreleased_mode,
 )
+from kittylog.utils.logging import get_logger, log_debug, log_info
 from kittylog.workflow_ui import handle_dry_run_and_confirmation
 from kittylog.workflow_validation import validate_and_setup_workflow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _create_entry_generator(
@@ -44,7 +43,11 @@ def _create_entry_generator(
             changelog_content = read_changelog(changelog_file)
             context_entries = extract_preceding_entries(changelog_content, context_entries_count)
             if context_entries and not quiet:
-                logger.debug(f"Extracted {context_entries_count} preceding entries for context")
+                log_debug(
+                    logger,
+                    "Extracted context entries",
+                    count=context_entries_count,
+                )
         except (FileNotFoundError, OSError):
             # No existing changelog, so no context to extract
             pass
@@ -84,6 +87,17 @@ def process_workflow_modes(
     to_tag = changelog_opts.to_tag
     special_unreleased_mode = changelog_opts.special_unreleased_mode
     grouping_mode = changelog_opts.grouping_mode
+
+    # Log workflow start with context
+    log_info(
+        logger,
+        "Starting workflow",
+        grouping_mode=grouping_mode,
+        changelog_file=changelog_file,
+        from_tag=from_tag,
+        to_tag=to_tag,
+        special_unreleased=special_unreleased_mode,
+    )
 
     show_prompt = workflow_opts.show_prompt
     quiet = workflow_opts.quiet
@@ -232,11 +246,15 @@ def main_business_logic(
         workflow_opts = WorkflowOptions(dry_run=True, quiet=False)
         success, usage = main_business_logic(changelog_opts, workflow_opts)
     """
-    logger.debug("main_business_logic called with parameter objects")
+    log_debug(
+        logger,
+        "Main business logic started",
+        grouping_mode=changelog_opts.grouping_mode,
+        dry_run=workflow_opts.dry_run,
+    )
 
     # Validate parameter objects (they handle their own validation)
-    logger.debug(f"Changelog options: {changelog_opts}")
-    logger.debug(f"Workflow options: {workflow_opts}")
+    log_debug(logger, "Parameter objects validated")
 
     # Load config inside function to avoid module-level loading
     config = load_config()

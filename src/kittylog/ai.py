@@ -4,8 +4,6 @@ This module handles AI model integration for generating changelog entries from c
 Based on gac's AI module but specialized for changelog generation.
 """
 
-import logging
-
 from rich.console import Console
 from rich.panel import Panel
 
@@ -16,8 +14,9 @@ from kittylog.errors import AIError
 from kittylog.prompt import build_changelog_prompt, clean_changelog_content
 from kittylog.providers import PROVIDER_REGISTRY
 from kittylog.utils import count_tokens
+from kittylog.utils.logging import get_logger, log_error, log_info
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def generate_changelog_entry(
@@ -108,7 +107,14 @@ def generate_changelog_entry(
 
     # Count tokens
     prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
-    logger.info(f"Prompt tokens: {prompt_tokens}")
+    log_info(
+        logger,
+        "Generating changelog entry",
+        tag=tag or "unreleased",
+        commit_count=len(commits),
+        model=model,
+        prompt_tokens=prompt_tokens,
+    )
 
     # Generate the changelog content
     try:
@@ -133,7 +139,14 @@ def generate_changelog_entry(
         total_tokens = prompt_tokens + completion_tokens
 
         if not quiet:
-            logger.info(f"Token usage: {prompt_tokens} prompt + {completion_tokens} completion = {total_tokens} total")
+            log_info(
+                logger,
+                "Changelog generation successful",
+                tag=tag or "unreleased",
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            )
 
         token_usage = {
             "prompt_tokens": prompt_tokens,
@@ -143,5 +156,11 @@ def generate_changelog_entry(
         return cleaned_content, token_usage
 
     except (AIError, ValueError, TypeError, AttributeError, RuntimeError, Exception) as e:
-        logger.error(f"Failed to generate changelog entry: {e}")
+        log_error(
+            logger,
+            "Changelog generation failed",
+            tag=tag or "unreleased",
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
         raise AIError.generation_error(f"Failed to generate changelog entry: {e}") from e

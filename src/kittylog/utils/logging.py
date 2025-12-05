@@ -1,7 +1,11 @@
-"""Logging utilities for kittylog."""
+"""Logging utilities for kittylog.
+
+Provides structured logging with context for better debugging.
+"""
 
 import logging
 import sys
+from typing import Any, MutableMapping
 
 from kittylog.constants import Logging
 
@@ -62,3 +66,91 @@ def print_message(message: str, level: str = "info") -> None:
         print(f"Warning: {message}", file=sys.stderr)
     else:
         print(message)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger with the kittylog namespace.
+
+    Args:
+        name: Module name (typically __name__)
+
+    Returns:
+        Logger instance
+    """
+    return logging.getLogger(f"kittylog.{name}" if not name.startswith("kittylog") else name)
+
+
+def log_with_context(
+    logger: logging.Logger,
+    level: int,
+    message: str,
+    **context: Any,
+) -> None:
+    """Log a message with structured context.
+
+    Args:
+        logger: Logger instance
+        level: Log level (e.g., logging.INFO)
+        message: Log message
+        **context: Additional context as key-value pairs
+
+    Example:
+        log_with_context(
+            logger, logging.INFO,
+            "Processing commits",
+            tag="v1.0.0",
+            commit_count=15,
+            provider="openai"
+        )
+    """
+    if context:
+        # Format context for readability
+        context_str = " ".join(f"{k}={v}" for k, v in context.items())
+        logger.log(level, f"{message} [{context_str}]")
+    else:
+        logger.log(level, message)
+
+
+class StructuredLoggerAdapter(logging.LoggerAdapter):
+    """Logger adapter that adds structured context to all log messages.
+
+    Usage:
+        logger = StructuredLoggerAdapter(
+            logging.getLogger(__name__),
+            {"component": "ai", "version": "1.0.0"}
+        )
+        logger.info("Processing", extra={"tag": "v1.0.0"})
+    """
+
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
+        """Add context to log message."""
+        extra = kwargs.get("extra", {})
+
+        # Merge adapter context with call-site context
+        if self.extra:
+            context = {**self.extra, **extra.get("context", {})}
+            extra["context"] = context
+
+        kwargs["extra"] = extra
+        return msg, kwargs
+
+
+# Convenience functions for common log levels
+def log_debug(logger: logging.Logger, message: str, **context: Any) -> None:
+    """Log a debug message with context."""
+    log_with_context(logger, logging.DEBUG, message, **context)
+
+
+def log_info(logger: logging.Logger, message: str, **context: Any) -> None:
+    """Log an info message with context."""
+    log_with_context(logger, logging.INFO, message, **context)
+
+
+def log_warning(logger: logging.Logger, message: str, **context: Any) -> None:
+    """Log a warning message with context."""
+    log_with_context(logger, logging.WARNING, message, **context)
+
+
+def log_error(logger: logging.Logger, message: str, **context: Any) -> None:
+    """Log an error message with context."""
+    log_with_context(logger, logging.ERROR, message, **context)
