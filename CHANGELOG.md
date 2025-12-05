@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.5.0] - 2025-12-05
+
+### Added
+
+- Add incremental save functionality to workflow execution with CLI option
+- Implement incremental saving for all workflow modes (boundary, missing, unreleased)
+- Add progress indicators during incremental save operations for multiple entries
+
+### Changed
+
+- Modify workflow processing to handle incremental save option while maintaining backward compatibility
+- Update changelog writing logic to skip final write when incremental save is enabled
+
 ## [2.4.2] - 2025-12-05
 
 ### Changed
