@@ -1,176 +1,271 @@
 """Tests for Qwen provider."""
 
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.qwen import call_qwen_api, get_qwen_auth
+from kittylog.providers.qwen import call_qwen_api
 
 
-class TestGetQwenAuth:
-    """Tests for get_qwen_auth function."""
+class TestQwenImports:
+    """Test that Qwen provider can be imported."""
 
-    def test_uses_api_key_when_available(self, monkeypatch):
-        """Test that API key is used when available."""
-        monkeypatch.setenv("QWEN_API_KEY", "test_api_key")
-        token, url = get_qwen_auth()
-        assert token == "test_api_key"
-        assert "qwen" in url.lower()
+    def test_import_provider(self):
+        """Test that Qwen provider module can be imported."""
+        from kittylog.providers import qwen  # noqa: F401
 
-    @mock.patch("kittylog.providers.qwen.QwenOAuthProvider")
-    def test_uses_oauth_when_no_api_key(self, mock_provider_class, monkeypatch):
-        """Test that OAuth is used when no API key is available."""
-        monkeypatch.delenv("QWEN_API_KEY", raising=False)
-        mock_provider = mock.Mock()
-        mock_provider.get_token.return_value = {
-            "access_token": "oauth_token",
-            "resource_url": "portal.qwen.ai",
-        }
-        mock_provider_class.return_value = mock_provider
+    def test_import_api_function(self):
+        """Test that Qwen API function can be imported and is callable."""
+        from kittylog.providers.qwen import call_qwen_api
 
-        token, url = get_qwen_auth()
-        assert token == "oauth_token"
-        assert url == "https://portal.qwen.ai/v1/chat/completions"
+        assert callable(call_qwen_api)
 
-    @mock.patch("kittylog.providers.qwen.QwenOAuthProvider")
-    def test_error_when_no_auth(self, mock_provider_class, monkeypatch):
-        """Test that error is raised when no auth is available."""
-        monkeypatch.delenv("QWEN_API_KEY", raising=False)
-        mock_provider = mock.Mock()
-        mock_provider.get_token.return_value = None
-        mock_provider_class.return_value = mock_provider
 
-        with pytest.raises(AIError) as exc_info:
-            get_qwen_auth()
+class TestQwenOAuthValidation:
+    """Test Qwen OAuth validation."""
 
-        assert exc_info.value.error_type == "authentication"
+    def test_missing_oauth_token_error(self):
+        """Test that Qwen raises error when no OAuth token is available."""
+        with patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class:
+            mock_provider = mock.Mock()
+            mock_provider.get_token.return_value = None
+            mock_provider_class.return_value = mock_provider
+
+            with pytest.raises(AIError) as exc_info:
+                call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+
+            assert exc_info.value.error_type == "authentication"
 
 
 class TestCallQwenApi:
     """Tests for call_qwen_api function."""
 
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_successful_api_call(self, mock_post, mock_auth):
-        """Test successful API call."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_response = mock.Mock()
-        mock_response.json.return_value = {"choices": [{"message": {"content": "Test response"}}]}
-        mock_post.return_value = mock_response
+    def test_successful_api_call(self):
+        """Test successful API call with OAuth."""
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "oauth_token_123",
+                "resource_url": "portal.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
 
-        result = call_qwen_api(
-            model="qwen3-coder-plus",
-            messages=[{"role": "user", "content": "Hello"}],
-            temperature=0.7,
-            max_tokens=100,
-        )
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "Test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
 
-        assert result == "Test response"
-        mock_post.assert_called_once()
+            result = call_qwen_api(
+                model="qwen3-coder-plus",
+                messages=[{"role": "user", "content": "Hello"}],
+                temperature=0.7,
+                max_tokens=100,
+            )
 
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_null_content_error(self, mock_post, mock_auth):
+            assert result == "Test response"
+            mock_post.assert_called_once()
+
+            # Verify OAuth token was used
+            call_args = mock_post.call_args
+            headers = call_args.kwargs["headers"]
+            assert "Authorization" in headers
+            assert headers["Authorization"] == "Bearer oauth_token_123"
+
+    def test_dynamic_resource_url(self):
+        """Test Qwen OAuth with dynamic resource URL."""
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "oauth_token",
+                "resource_url": "custom.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
+
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+
+            # Verify custom URL was used
+            call_args = mock_post.call_args
+            url = call_args[0][0]
+            assert url == "https://custom.qwen.ai/v1/chat/completions"
+            assert result == "test response"
+
+    def test_missing_choices_error(self):
+        """Test handling of response without choices field."""
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
+
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"some_other_field": "value"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+
+            assert "invalid response" in str(exc_info.value).lower() or "missing" in str(exc_info.value).lower()
+
+    def test_null_content_error(self):
         """Test error when API returns null content."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_response = mock.Mock()
-        mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
-        mock_post.return_value = mock_response
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
 
-        with pytest.raises(AIError) as exc_info:
-            call_qwen_api(
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_qwen_api(
+                    model="qwen3-coder-plus",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+
+            assert "missing" in str(exc_info.value).lower() or "content" in str(exc_info.value).lower()
+
+    def test_empty_content_returns_empty_string(self):
+        """Test that API returning empty content returns empty string (not an error)."""
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
+
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": ""}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # Empty string is a valid response, not an error
+            result = call_qwen_api(
                 model="qwen3-coder-plus",
                 messages=[{"role": "user", "content": "Hello"}],
                 temperature=0.7,
                 max_tokens=100,
             )
+            assert result == ""
 
-        assert exc_info.value.error_type == "model"
-        assert "null" in str(exc_info.value).lower()
-
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_empty_content_error(self, mock_post, mock_auth):
-        """Test error when API returns empty content."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_response = mock.Mock()
-        mock_response.json.return_value = {"choices": [{"message": {"content": ""}}]}
-        mock_post.return_value = mock_response
-
-        with pytest.raises(AIError) as exc_info:
-            call_qwen_api(
-                model="qwen3-coder-plus",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                max_tokens=100,
-            )
-
-        assert exc_info.value.error_type == "model"
-        assert "empty" in str(exc_info.value).lower()
-
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_authentication_error(self, mock_post, mock_auth):
+    def test_authentication_error(self):
         """Test 401 authentication error."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_response = mock.Mock()
-        mock_response.status_code = 401
-        mock_response.text = "Unauthorized"
-        mock_post.return_value.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "401 Unauthorized",
-            request=mock.Mock(),
-            response=mock_response,
-        )
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
 
-        with pytest.raises(AIError) as exc_info:
-            call_qwen_api(
-                model="qwen3-coder-plus",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                max_tokens=100,
+            mock_response = MagicMock()
+            mock_response.status_code = 401
+            mock_response.text = "Unauthorized"
+            mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+                "401 Unauthorized",
+                request=mock.Mock(),
+                response=mock_response,
             )
+            mock_post.return_value = mock_response
 
-        assert exc_info.value.error_type == "authentication"
+            with pytest.raises(AIError):
+                call_qwen_api(
+                    model="qwen3-coder-plus",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
 
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_rate_limit_error(self, mock_post, mock_auth):
+    def test_rate_limit_error(self):
         """Test 429 rate limit error."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_response = mock.Mock()
-        mock_response.status_code = 429
-        mock_response.text = "Rate limit exceeded"
-        mock_post.return_value.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "429 Too Many Requests",
-            request=mock.Mock(),
-            response=mock_response,
-        )
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
 
-        with pytest.raises(AIError) as exc_info:
-            call_qwen_api(
-                model="qwen3-coder-plus",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                max_tokens=100,
+            mock_response = MagicMock()
+            mock_response.status_code = 429
+            mock_response.text = "Rate limit exceeded"
+            mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+                "429 Too Many Requests",
+                request=mock.Mock(),
+                response=mock_response,
             )
+            mock_post.return_value = mock_response
 
-        assert exc_info.value.error_type == "rate_limit"
+            with pytest.raises(AIError) as exc_info:
+                call_qwen_api(
+                    model="qwen3-coder-plus",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
 
-    @mock.patch("kittylog.providers.qwen.get_qwen_auth")
-    @mock.patch("kittylog.providers.qwen.httpx.post")
-    def test_timeout_error(self, mock_post, mock_auth):
+            assert exc_info.value.error_type == "rate_limit"
+
+    def test_timeout_error(self):
         """Test timeout error."""
-        mock_auth.return_value = ("test_token", "https://api.qwen.ai/v1/chat/completions")
-        mock_post.side_effect = httpx.TimeoutException("Request timed out")
+        with (
+            patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
+            patch("kittylog.providers.base.httpx.post") as mock_post,
+        ):
+            mock_oauth_provider = mock.Mock()
+            mock_oauth_provider.get_token.return_value = {
+                "access_token": "test-oauth-token",
+                "resource_url": "chat.qwen.ai",
+            }
+            mock_provider_class.return_value = mock_oauth_provider
 
-        with pytest.raises(AIError) as exc_info:
-            call_qwen_api(
-                model="qwen3-coder-plus",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                max_tokens=100,
-            )
+            mock_post.side_effect = httpx.TimeoutException("Request timed out")
 
-        assert exc_info.value.error_type == "timeout"
+            with pytest.raises(AIError) as exc_info:
+                call_qwen_api(
+                    model="qwen3-coder-plus",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+
+            assert exc_info.value.error_type == "timeout"

@@ -24,6 +24,9 @@ def handle_provider_errors(provider_name: str) -> Callable[[Callable[..., Any]],
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except AIError:
+                # Re-raise AIError exceptions as-is without wrapping
+                raise
             except httpx.ConnectError as e:
                 raise AIError.connection_error(f"{provider_name}: {e}") from e
             except httpx.TimeoutException as e:

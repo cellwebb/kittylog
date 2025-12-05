@@ -1,31 +1,45 @@
-"""Base provider class for AI API implementations."""
+"""Base configured provider class to eliminate code duplication."""
 
 import os
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from kittylog.errors import AIError
+from kittylog.providers.protocol import ProviderProtocol
 from kittylog.providers.registry import register_provider
 
 
-class BaseAPIProvider(ABC):
-    """Base class for AI API providers.
+@dataclass
+class ProviderConfig:
+    """Configuration for AI providers."""
 
-    This class provides common functionality for API calls including:
-    - API key validation
-    - HTTP request handling with timeout
-    - Standardized error handling
-    - Response validation
+    name: str
+    api_key_env: str
+    base_url: str
+    timeout: int = 120
+    headers: dict[str, str] | None = None
+
+    def __post_init__(self):
+        """Initialize default headers if not provided."""
+        if self.headers is None:
+            self.headers = {"Content-Type": "application/json"}
+
+
+class BaseConfiguredProvider(ABC, ProviderProtocol):
+    """Base class for configured AI providers.
+
+    This class eliminates code duplication by providing:
+    - Standardized HTTP handling with httpx
+    - Common error handling patterns
+    - Flexible configuration via ProviderConfig
+    - Template methods for customization
+
+    Implements ProviderProtocol for type safety.
     """
-
-    # Provider-specific constants - to be overridden by subclasses
-    API_URL: str
-    API_KEY_ENV: str
-    TIMEOUT: int = 120
-    PROVIDER_NAME: str
 
     @classmethod
     def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
@@ -41,57 +55,140 @@ class BaseAPIProvider(ABC):
         """
         return register_provider(provider_name, env_vars, api_function)(cls)
 
-    def __init__(self):
-        self._api_key = None  # Lazy load
+    def __init__(self, config: ProviderConfig):
+        self.config = config
+        self._api_key: str | None = None  # Lazy load
 
     @property
     def api_key(self) -> str:
         """Lazy-load API key when needed."""
-        if self._api_key is None:
-            self._api_key = self._get_api_key()
-        return self._api_key
+        if self.config.api_key_env:
+            # Always check environment for fresh value to support test isolation
+            return self._get_api_key()
+        return ""
+
+    @property
+    def name(self) -> str:
+        """Get the provider name."""
+        return self.config.name
+
+    @property
+    def api_key_env(self) -> str:
+        """Get the environment variable name for the API key."""
+        return self.config.api_key_env
+
+    @property
+    def base_url(self) -> str:
+        """Get the base URL for the API."""
+        return self.config.base_url
+
+    @property
+    def timeout(self) -> int:
+        """Get the timeout in seconds."""
+        return self.config.timeout
 
     def _get_api_key(self) -> str:
         """Get API key from environment variables."""
-        api_key = os.getenv(self.API_KEY_ENV)
+        api_key = os.getenv(self.config.api_key_env)
         if not api_key:
-            raise AIError.generation_error(f"{self.API_KEY_ENV} not found in environment variables")
+            raise AIError.authentication_error(f"{self.config.api_key_env} not found in environment variables")
         return api_key
 
-    def _get_headers(self) -> dict[str, str]:
-        """Get default headers for the API request.
+    @abstractmethod
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict[str, Any]:
+        """Build the request body for the API call.
+
+        Args:
+            messages: List of message dictionaries
+            temperature: Temperature parameter
+            max_tokens: Maximum tokens in response
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            Request body dictionary
+        """
+        pass
+
+    @abstractmethod
+    def _parse_response(self, response: dict[str, Any]) -> str:
+        """Parse the API response and extract content.
+
+        Args:
+            response: Response dictionary from API
+
+        Returns:
+            Generated text content
+        """
+        pass
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers for the API request.
 
         Can be overridden by subclasses to add provider-specific headers.
         """
-        return {
-            "Content-Type": "application/json",
-        }
+        headers = self.config.headers.copy() if self.config.headers else {}
+        return headers
 
-    def _prepare_request_data(
-        self, model: str, messages: list[dict], temperature: float, max_tokens: int, **kwargs
-    ) -> dict[str, Any]:
-        """Prepare request data payload.
+    def _get_api_url(self, model: str | None = None) -> str:
+        """Get the API URL for the request.
 
-        Can be overridden by subclasses to customize the request format.
+        Can be overridden by subclasses for dynamic URLs.
+
+        Args:
+            model: Model name (for providers that need model-specific URLs)
+
+        Returns:
+            API URL string
         """
-        return {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens, **kwargs}
+        return self.config.base_url
 
-    def _process_response_data(self, response_data: dict[str, Any]) -> str:
-        """Process response data and extract content.
+    def _make_http_request(self, url: str, body: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
+        """Make the HTTP request with standardized error handling.
 
-        Default implementation expects OpenAI-style response format.
-        Can be overridden by subclasses for different response formats.
+        Args:
+            url: API URL
+            body: Request body
+            headers: Request headers
+
+        Returns:
+            Response JSON dictionary
+
+        Raises:
+            AIError: For any API-related errors
         """
-        choices = response_data.get("choices")
-        if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
-        content = choices[0].get("message", {}).get("content")
-        if content is None:
-            raise AIError.generation_error("Invalid response: missing content")
-        return content
+        try:
+            response = httpx.post(url, json=body, headers=headers, timeout=self.config.timeout)
+            response.raise_for_status()
+            return response.json()
 
-    def call(self, model: str, messages: list[dict], temperature: float, max_tokens: int, **kwargs) -> str:
-        """Make API call with common error handling.
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                raise AIError.authentication_error(
+                    f"{self.config.name} API: Invalid API key or authentication failed"
+                ) from e
+            elif e.response.status_code == 429:
+                raise AIError.rate_limit_error(f"{self.config.name} API: Rate limit exceeded") from e
+            elif e.response.status_code >= 500:
+                raise AIError.connection_error(
+                    f"{self.config.name} API: Server error (HTTP {e.response.status_code})"
+                ) from e
+            else:
+                raise AIError.model_error(
+                    f"{self.config.name} API error: HTTP {e.response.status_code} - {e.response.text}"
+                ) from e
+        except httpx.TimeoutException as e:
+            raise AIError.timeout_error(f"{self.config.name} API request timed out") from e
+        except httpx.RequestError as e:
+            raise AIError.connection_error(f"{self.config.name} API network error: {e}") from e
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+    def generate(
+        self, model: str, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1024, **kwargs
+    ) -> str:
+        """Generate text using the AI provider.
 
         Args:
             model: Model name to use
@@ -106,24 +203,220 @@ class BaseAPIProvider(ABC):
         Raises:
             AIError: For any API-related errors
         """
-        headers = self._get_headers()
-        data = self._prepare_request_data(model, messages, temperature, max_tokens, **kwargs)
+        # Build request components
+        try:
+            url = self._get_api_url(model)
+        except AIError:
+            raise
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
 
         try:
-            response = httpx.post(self.API_URL, headers=headers, json=data, timeout=self.TIMEOUT)
-            response.raise_for_status()
-            response_data = response.json()
-            return self._process_response_data(response_data)
-
-        except httpx.HTTPStatusError as e:
-            raise AIError.generation_error(
-                f"{self.PROVIDER_NAME} API error: {e.response.status_code} - {e.response.text}"
-            ) from e
-        except httpx.TimeoutException as e:
-            raise AIError.generation_error(f"{self.PROVIDER_NAME} API request timed out") from e
-        except httpx.RequestError as e:
-            raise AIError.generation_error(f"{self.PROVIDER_NAME} API network error: {e}") from e
-        except (KeyError, IndexError, TypeError) as e:
-            raise AIError.generation_error(f"{self.PROVIDER_NAME} API invalid response format: {e}") from e
+            headers = self._build_headers()
+        except AIError:
+            raise
         except Exception as e:
-            raise AIError.generation_error(f"Error calling {self.PROVIDER_NAME} API: {e!s}") from e
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        try:
+            body = self._build_request_body(messages, temperature, max_tokens, model, **kwargs)
+        except AIError:
+            raise
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        # Add model to body if not already present
+        if "model" not in body:
+            body["model"] = model
+
+        # Make HTTP request
+        response_data = self._make_http_request(url, body, headers)
+
+        # Parse response
+        return self._parse_response(response_data)
+
+
+class OpenAICompatibleProvider(BaseConfiguredProvider):
+    """Base class for OpenAI-compatible providers.
+
+    Handles standard OpenAI API format with minimal customization needed.
+    """
+
+    @classmethod
+    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
+        """Register this class as a provider.
+
+        Args:
+            provider_name: Name to register the provider under
+            env_vars: List of required environment variables
+            api_function: The API call function for the provider
+
+        Returns:
+            Decorated class ready for auto-registration
+        """
+        return register_provider(provider_name, env_vars, api_function)(cls)
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers with OpenAI-style authorization."""
+        headers = super()._build_headers()
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict[str, Any]:
+        """Build OpenAI-style request body."""
+        return {"messages": messages, "temperature": temperature, "max_tokens": max_tokens, **kwargs}
+
+    def _parse_response(self, response: dict[str, Any]) -> str:
+        """Parse OpenAI-style response."""
+        choices = response.get("choices")
+        if not choices or not isinstance(choices, list):
+            raise AIError.generation_error("Invalid response: missing choices")
+        content = choices[0].get("message", {}).get("content")
+        if content is None:
+            raise AIError.generation_error("Invalid response: missing content")
+        return content
+
+
+class AnthropicCompatibleProvider(BaseConfiguredProvider):
+    """Base class for Anthropic-compatible providers."""
+
+    @classmethod
+    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
+        """Register this class as a provider.
+
+        Args:
+            provider_name: Name to register the provider under
+            env_vars: List of required environment variables
+            api_function: The API call function for the provider
+
+        Returns:
+            Decorated class ready for auto-registration
+        """
+        return register_provider(provider_name, env_vars, api_function)(cls)
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers with Anthropic-style authorization."""
+        headers = super()._build_headers()
+        api_key = self._get_api_key()
+        headers["x-api-key"] = api_key
+        headers["anthropic-version"] = "2023-06-01"
+        return headers
+
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict[str, Any]:
+        """Build Anthropic-style request body."""
+        # Convert messages to Anthropic format
+        anthropic_messages = []
+        system_message = ""
+
+        for msg in messages:
+            if msg["role"] == "system":
+                system_message = msg["content"]
+            else:
+                anthropic_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        body = {"messages": anthropic_messages, "temperature": temperature, "max_tokens": max_tokens, **kwargs}
+
+        if system_message:
+            body["system"] = system_message
+
+        return body
+
+    def _parse_response(self, response: dict[str, Any]) -> str:
+        """Parse Anthropic-style response."""
+        content = response.get("content")
+        if not content or not isinstance(content, list):
+            raise AIError.generation_error("Invalid response: missing content")
+        return content[0].get("text", "")
+
+
+class NoAuthProvider(BaseConfiguredProvider):
+    """Base class for providers that don't use API keys (like Ollama)."""
+
+    @classmethod
+    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
+        """Register this class as a provider.
+
+        Args:
+            provider_name: Name to register the provider under
+            env_vars: List of required environment variables
+            api_function: The API call function for the provider
+
+        Returns:
+            Decorated class ready for auto-registration
+        """
+        return register_provider(provider_name, env_vars, api_function)(cls)
+
+    def __init__(self, config: ProviderConfig):
+        """Initialize without API key loading."""
+        self.config = config
+        self._api_key = "no-key-needed"
+
+    @property
+    def api_key(self) -> str:
+        """Return placeholder for no-key providers."""
+        return "no-key-needed"
+
+
+class GenericHTTPProvider(BaseConfiguredProvider):
+    """Base class for completely custom providers."""
+
+    @classmethod
+    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
+        """Register this class as a provider.
+
+        Args:
+            provider_name: Name to register the provider under
+            env_vars: List of required environment variables
+            api_function: The API call function for the provider
+
+        Returns:
+            Decorated class ready for auto-registration
+        """
+        return register_provider(provider_name, env_vars, api_function)(cls)
+
+    def _build_request_body(
+        self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
+    ) -> dict[str, Any]:
+        """Default implementation - override this in subclasses."""
+        return {"messages": messages, "temperature": temperature, "max_tokens": max_tokens, **kwargs}
+
+    def _parse_response(self, response: dict[str, Any]) -> str:
+        """Default implementation - override this in subclasses."""
+        # Try OpenAI-style first
+        choices = response.get("choices")
+        if choices and isinstance(choices, list):
+            content = choices[0].get("message", {}).get("content")
+            if content:
+                return content
+
+        # Try Anthropic-style
+        content = response.get("content")
+        if content and isinstance(content, list):
+            return content[0].get("text", "")
+
+        # Try Ollama-style
+        message = response.get("message", {})
+        if "content" in message:
+            return message["content"]
+
+        # Fallback - try to find any string content
+        for value in response.values():
+            if isinstance(value, str) and len(value) > 10:  # Assume longer strings are content
+                return value
+
+        raise AIError.generation_error("Could not extract content from response")
+
+
+__all__ = [
+    "AnthropicCompatibleProvider",
+    "BaseConfiguredProvider",
+    "GenericHTTPProvider",
+    "NoAuthProvider",
+    "OpenAICompatibleProvider",
+    "ProviderConfig",
+]
