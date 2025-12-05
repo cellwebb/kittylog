@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.4.1] - 2025-12-04
+
+### Changed
+
+- Modernize import statements for better consistency and compliance
+- Clean up test formatting and structure for improved readability
+
 ## [2.4.0] - 2025-12-04
 
 ### Added
