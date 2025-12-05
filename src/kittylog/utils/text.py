@@ -223,3 +223,44 @@ def determine_next_version(latest_version: str | None, commits: list[dict]) -> s
         return f"v{major}.{minor + 1}.0"
     else:
         return f"v{major}.{minor}.{patch + 1}"
+
+
+def detect_changelog_version_style(content: str) -> bool:
+    """Detect if the changelog uses 'v' prefix for versions.
+
+    Args:
+        content: Existing changelog content
+
+    Returns:
+        True if changelog uses 'v' prefix (e.g., ## [v1.0.0]), False otherwise
+    """
+    # Look for version headers like ## [v1.0.0] or ## [1.0.0]
+    # Match the first versioned section (not Unreleased)
+    pattern = r"##\s*\[\s*(v)?(\d+\.\d+\.\d+)"
+    match = re.search(pattern, content, re.IGNORECASE)
+    if match:
+        return match.group(1) is not None and match.group(1).lower() == "v"
+    return False  # Default to no prefix
+
+
+def format_version_for_changelog(tag: str, existing_content: str = "") -> str:
+    """Format a version tag to match the existing changelog style.
+
+    Args:
+        tag: Git tag string (e.g., "v1.0.0" or "1.0.0")
+        existing_content: Existing changelog content to detect style from
+
+    Returns:
+        Version string formatted to match existing style
+    """
+    # Get the base version without prefix
+    base_version = normalize_tag(tag)
+
+    # If we have existing content, match its style
+    if existing_content.strip():
+        uses_v_prefix = detect_changelog_version_style(existing_content)
+        if uses_v_prefix:
+            return f"v{base_version}"
+
+    # Default: no prefix
+    return base_version
