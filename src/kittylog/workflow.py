@@ -187,6 +187,9 @@ def process_workflow_modes(
         _, content = handle_missing_entries_mode(
             changelog_file=changelog_file,
             generate_entry_func=generate_entry_func,
+            mode=grouping_mode,  # ADD THIS
+            date_grouping=changelog_opts.date_grouping,  # ADD THIS for dates mode
+            gap_threshold=changelog_opts.gap_threshold_hours,  # ADD THIS for gaps mode
             quiet=quiet,
             yes=yes,
             dry_run=dry_run,

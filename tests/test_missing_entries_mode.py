@@ -37,9 +37,13 @@ class TestDetermineMissingEntries:
 - Feature A
 """)
 
-        # Mock get_all_tags to return tags WITH 'v' prefix (git tag format)
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
+        # Mock get_all_boundaries to return tags WITH 'v' prefix (git tag format)
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v0.2.0", "identifier": "v0.2.0", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)},
+                {"name": "v0.3.0", "identifier": "v0.3.0", "date": datetime(2024, 1, 3, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -55,8 +59,11 @@ class TestDetermineMissingEntries:
 - Initial release
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["1.0.0", "1.1.0"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "1.0.0", "identifier": "1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "1.1.0", "identifier": "1.1.0", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -72,9 +79,12 @@ class TestDetermineMissingEntries:
 - Initial release
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
             # Tags also have 'v' prefix
-            mock_get_tags.return_value = ["v1.0.0", "v1.1.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "v1.0.0", "identifier": "v1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v1.1.0", "identifier": "v1.1.0", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -91,8 +101,11 @@ class TestDetermineMissingEntries:
 Nothing here yet.
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v0.1.0", "v0.2.0"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v0.2.0", "identifier": "v0.2.0", "date": datetime(2024, 1, 15, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -110,8 +123,11 @@ Nothing here yet.
 - Initial
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v0.1.0", "v0.2.0"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v0.2.0", "identifier": "v0.2.0", "date": datetime(2024, 1, 15, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -121,8 +137,12 @@ Nothing here yet.
         """Test that all tags are returned when changelog doesn't exist."""
         nonexistent_file = temp_dir / "NONEXISTENT.md"
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v1.0.0"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [{
+                "name": "v1.0.0",
+                "identifier": "v1.0.0",
+                "date": datetime(2024, 6, 15, tzinfo=timezone.utc)
+            }]
 
             missing = determine_missing_entries(str(nonexistent_file))
 
@@ -149,13 +169,17 @@ class TestHandleMissingEntriesMode:
             return f"### Added\n\n- Changes for {tag}"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            # Tags in ascending order (oldest first) as returned by get_all_tags
-            mock_get_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
+            # Tags in ascending order (oldest first) as returned by get_all_boundaries
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v0.2.0", "identifier": "v0.2.0", "date": datetime(2024, 2, 1, tzinfo=timezone.utc)},
+                {"name": "v0.3.0", "identifier": "v0.3.0", "date": datetime(2024, 3, 1, tzinfo=timezone.utc)}
+            ]
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.side_effect = [
                 datetime(2024, 1, 1, tzinfo=timezone.utc),
@@ -201,14 +225,18 @@ class TestHandleMissingEntriesMode:
             return f"### Added\n\n- Changes for {tag}"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
             patch(f"{MISSING_MODULE}.find_existing_boundaries") as mock_find_existing,
         ):
             # v0.1.0 is older, v0.3.0 is newer - both missing
-            mock_get_tags.return_value = ["v0.1.0", "v0.2.0", "v0.3.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v0.2.0", "identifier": "v0.2.0", "date": datetime(2024, 2, 1, tzinfo=timezone.utc)},
+                {"name": "v0.3.0", "identifier": "v0.3.0", "date": datetime(2024, 3, 1, tzinfo=timezone.utc)}
+            ]
             mock_find_existing.return_value = {"0.2.0"}  # Only 0.2.0 exists
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.side_effect = [
@@ -247,12 +275,16 @@ class TestHandleMissingEntriesMode:
             return "### Added\n\n- Test feature"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v1.0.0"]
+            mock_get_boundaries.return_value = [{
+                "name": "v1.0.0",
+                "identifier": "v1.0.0",
+                "date": datetime(2024, 6, 15, tzinfo=timezone.utc)
+            }]
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.return_value = datetime(2024, 6, 15, tzinfo=timezone.utc)
             mock_read.return_value = changelog_file.read_text()
@@ -283,10 +315,12 @@ class TestHandleMissingEntriesMode:
             return "### Added\n\n- Should not be called"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v0.1.0"]  # Already exists
+            mock_get_boundaries.return_value = [
+                {"name": "v0.1.0", "identifier": "v0.1.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)}
+            ]  # Already exists
             mock_read.return_value = changelog_content
 
             success, content = handle_missing_entries_mode(
@@ -308,11 +342,14 @@ class TestHandleMissingEntriesMode:
             return "### Added\n\n- Test"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v1.0.0", "v1.1.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "v1.0.0", "identifier": "v1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v1.1.0", "identifier": "v1.1.0", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)}
+            ]
             # Chronological processing order: v1.0.0 first, then v1.1.0
             # v1.0.0 has commits, v1.1.0 has no commits (skipped)
             mock_get_commits.side_effect = [
@@ -346,11 +383,15 @@ class TestHandleMissingEntriesMode:
             return ""  # Empty response
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v1.0.0"]
+            mock_get_boundaries.return_value = [{
+                "name": "v1.0.0",
+                "identifier": "v1.0.0",
+                "date": datetime(2024, 6, 15, tzinfo=timezone.utc)
+            }]
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_read.return_value = original_content
 
@@ -377,9 +418,12 @@ class TestTagNormalizationEdgeCases:
 - Test
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
             # Unusual but possible: double v prefix
-            mock_get_tags.return_value = ["vv1.0.0", "v1.1.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "vv1.0.0", "identifier": "vv1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v1.1.0", "identifier": "v1.1.0", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -396,8 +440,11 @@ class TestTagNormalizationEdgeCases:
 - Test
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v1.0.0-alpha", "v1.0.0-beta"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "v1.0.0-alpha", "identifier": "v1.0.0-alpha", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v1.0.0-beta", "identifier": "v1.0.0-beta", "date": datetime(2024, 1, 2, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
@@ -413,15 +460,16 @@ class TestTagNormalizationEdgeCases:
 - Test
 """)
 
-        with patch("kittylog.mode_handlers.missing.get_all_tags") as mock_get_tags:
-            mock_get_tags.return_value = ["v1.0.0", "v2.0.0"]
+        with patch("kittylog.mode_handlers.missing.get_all_boundaries") as mock_get_boundaries:
+            mock_get_boundaries.return_value = [
+                {"name": "V1.0.0", "identifier": "V1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "V2.0.0", "identifier": "V2.0.0", "date": datetime(2024, 1, 15, tzinfo=timezone.utc)}
+            ]
 
             missing = determine_missing_entries(str(changelog_file))
 
-            # V1.0.0 should match v1.0.0 (case insensitive via lstrip('v'))
-            # Actually, lstrip only strips lowercase 'v', so V1.0.0 won't match
-            # This documents current behavior
-            assert "v1.0.0" in missing or "v2.0.0" in missing
+            # V1.0.0 exists in changelog, V2.0.0 should be missing
+            assert "V2.0.0" in missing
 
 
 class TestVersionStrippingInMissingMode:
@@ -451,12 +499,16 @@ class TestVersionStrippingInMissingMode:
             return "### Added\n\n- Feature for " + tag
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v1.0.0"]
+            mock_get_boundaries.return_value = [{
+                "name": "v1.0.0",
+                "identifier": "v1.0.0",
+                "date": datetime(2024, 6, 15, tzinfo=timezone.utc)
+            }]
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.return_value = datetime(2024, 6, 15, tzinfo=timezone.utc)
             mock_read.return_value = changelog_file.read_text()
@@ -492,12 +544,14 @@ class TestVersionStrippingInMissingMode:
             return "### Added\n\n- Feature"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["2.0.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "2.0.0", "identifier": "2.0.0", "date": datetime(2024, 7, 20, tzinfo=timezone.utc)}
+            ]
             mock_get_commits.return_value = [{"hash": "xyz", "message": "test"}]
             mock_get_date.return_value = datetime(2024, 7, 20, tzinfo=timezone.utc)
             mock_read.return_value = changelog_file.read_text()
@@ -528,12 +582,16 @@ class TestVersionStrippingInMissingMode:
             return f"### Added\n\n- Changes for {tag}"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v1.0.0", "v1.1.0", "v1.2.0"]
+            mock_get_boundaries.return_value = [
+                {"name": "v1.0.0", "identifier": "v1.0.0", "date": datetime(2024, 1, 1, tzinfo=timezone.utc)},
+                {"name": "v1.1.0", "identifier": "v1.1.0", "date": datetime(2024, 2, 1, tzinfo=timezone.utc)},
+                {"name": "v1.2.0", "identifier": "v1.2.0", "date": datetime(2024, 3, 1, tzinfo=timezone.utc)}
+            ]
             mock_get_commits.return_value = [{"hash": "abc", "message": "test"}]
             mock_get_date.side_effect = [
                 datetime(2024, 1, 1, tzinfo=timezone.utc),
@@ -578,12 +636,14 @@ class TestVersionStrippingInMissingMode:
             return "### Added\n\n- Beta feature"
 
         with (
-            patch(f"{MISSING_MODULE}.get_all_tags") as mock_get_tags,
+            patch(f"{MISSING_MODULE}.get_all_boundaries") as mock_get_boundaries,
             patch(f"{MISSING_MODULE}.get_commits_between_tags") as mock_get_commits,
             patch(f"{MISSING_MODULE}.get_tag_date") as mock_get_date,
             patch(f"{CHANGELOG_IO_MODULE}.read_changelog") as mock_read,
         ):
-            mock_get_tags.return_value = ["v2.0.0-beta.1"]
+            mock_get_boundaries.return_value = [
+                {"name": "v2.0.0-beta.1", "identifier": "v2.0.0-beta.1", "date": datetime(2024, 8, 15, tzinfo=timezone.utc)}
+            ]
             mock_get_commits.return_value = [{"hash": "def", "message": "beta"}]
             mock_get_date.return_value = datetime(2024, 8, 1, tzinfo=timezone.utc)
             mock_read.return_value = changelog_file.read_text()

@@ -1,20 +1,24 @@
 """Missing entries mode handler for kittylog."""
 
 from kittylog.changelog.parser import find_existing_boundaries, find_insertion_point_by_version
-from kittylog.commit_analyzer import get_commits_between_tags
+from kittylog.commit_analyzer import get_commits_between_tags, get_commits_between_boundaries
 from kittylog.errors import AIError, GitError
-from kittylog.tag_operations import get_all_tags, get_tag_date
+from kittylog.tag_operations import get_all_boundaries, get_tag_date
 from kittylog.utils.text import format_version_for_changelog
 
 
-def determine_missing_entries(changelog_file: str) -> list[str]:
-    """Determine which tags have missing changelog entries.
+def determine_missing_entries(changelog_file: str, mode: str = "tags", **kwargs) -> list[str]:
+    """Determine which boundaries have missing changelog entries.
 
     Args:
         changelog_file: Path to changelog file
+        mode: Boundary detection mode ('tags', 'dates', or 'gaps')
+        **kwargs: Additional parameters for specific modes
+            - date_grouping: For 'dates' mode ('daily', 'weekly', 'monthly')
+            - gap_threshold_hours: For 'gaps' mode (minimum gap in hours)
 
     Returns:
-        List of tag names that need changelog entries
+        List of boundary identifiers that need changelog entries
     """
     try:
         from kittylog.changelog.io import read_changelog
@@ -26,18 +30,33 @@ def determine_missing_entries(changelog_file: str) -> list[str]:
         # If changelog doesn't exist, all tags are missing
         existing_versions = set()
 
-    # Get all tags and find missing ones
-    # Normalize tags by stripping 'v' prefix for comparison since
-    # find_existing_boundaries normalizes changelog versions the same way
-    all_tags = get_all_tags()
-    missing_tags = [tag for tag in all_tags if tag.lstrip("v") not in existing_versions]
+    # Get all boundaries based on mode
+    all_boundaries = get_all_boundaries(mode=mode, **kwargs)
 
-    return missing_tags
+    # Extract boundary identifiers and find missing ones
+    if mode == "tags":
+        # For tags mode, normalize by stripping 'v' prefix for comparison since
+        # find_existing_boundaries normalizes changelog versions the same way
+        missing_boundaries = [
+            boundary["name"] for boundary in all_boundaries 
+            if boundary["name"].lstrip("v") not in existing_versions
+        ]
+    else:
+        # For dates and gaps modes, use the boundary identifier directly
+        missing_boundaries = [
+            boundary["identifier"] for boundary in all_boundaries 
+            if boundary["identifier"] not in existing_versions
+        ]
+
+    return missing_boundaries
 
 
 def handle_missing_entries_mode(
     changelog_file: str,
     generate_entry_func,
+    mode: str = "tags",  # ADD
+    date_grouping: str = "daily",  # ADD
+    gap_threshold: float = 4.0,  # ADD
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
@@ -63,10 +82,10 @@ def handle_missing_entries_mode(
 
     output = get_output_manager()
 
-    # Determine which tags need entries
-    missing_tags = determine_missing_entries(changelog_file)
+    # Determine which boundaries need entries
+    missing_boundaries = determine_missing_entries(changelog_file, mode=mode, date_grouping=date_grouping, gap_threshold_hours=gap_threshold)
 
-    if not missing_tags:
+    if not missing_boundaries:
         output.info("No missing changelog entries found")
         try:
             existing_content = read_changelog(changelog_file)
@@ -74,49 +93,80 @@ def handle_missing_entries_mode(
             existing_content = ""
         return True, existing_content
 
-    output.info(f"Found {len(missing_tags)} missing changelog entries: {', '.join(missing_tags)}")
+    output.info(f"Found {len(missing_boundaries)} missing changelog entries: {', '.join(missing_boundaries)}")
 
     # Ensure changelog exists, creating it if needed
     updated_content = ensure_changelog_exists(changelog_file)
 
     success = True
 
-    # Process each missing tag in chronological order (oldest first)
+    # Get all boundaries to find the ones we need to process
+    all_boundaries = get_all_boundaries(mode=mode, date_grouping=date_grouping, gap_threshold_hours=gap_threshold)
+    
+    # Create a mapping from identifier to boundary dict
+    boundary_map = {boundary["identifier"]: boundary for boundary in all_boundaries}
+    
+    # Process each missing boundary in chronological order (oldest first)
     # This ensures the AI has historical context from previously generated entries
     # Note: Insertion point logic handles correct changelog placement regardless of processing order
-    for i, tag in enumerate(missing_tags):
+    for i, boundary_id in enumerate(missing_boundaries):
         try:
-            # Get commits for this tag
-            commits = get_commits_between_tags(
-                from_tag=None,  # From beginning
-                to_tag=tag,
-            )
+            boundary = boundary_map[boundary_id]
+            
+            # Get commits for this boundary
+            if mode == "tags":
+                # For tags mode, use the existing tag-based function
+                commits = get_commits_between_tags(
+                    from_tag=None,  # From beginning
+                    to_tag=boundary["name"],
+                )
+                tag = boundary["name"]
+            else:
+                # For dates and gaps modes, use the boundary-aware function
+                commits = get_commits_between_boundaries(
+                    from_boundary=None,  # From beginning
+                    to_boundary=boundary,
+                    mode=mode,
+                )
+                tag = boundary["identifier"]
 
             if not commits:
-                output.info(f"No commits found for tag {tag}, skipping")
+                output.info(f"No commits found for {boundary_id}, skipping")
                 continue
 
-            output.info(f"Processing missing tag: {tag} ({len(commits)} commits)")
+            output.info(f"Processing missing boundary: {boundary_id} ({len(commits)} commits)")
 
             # Generate changelog entry
             entry = generate_entry_func(commits=commits, tag=tag, from_boundary=None, **kwargs)
 
             if not entry.strip():
-                output.warning(f"AI generated empty content for tag {tag}")
+                output.warning(f"AI generated empty content for {boundary_id}")
                 continue
 
-            # Get tag date for proper formatting
+            # Get date for proper formatting
             from datetime import datetime
 
-            tag_date = get_tag_date(tag)
-            version_date = tag_date.strftime("%Y-%m-%d") if tag_date else datetime.now().strftime("%Y-%m-%d")
+            if mode == "tags":
+                # For tags mode, get tag date
+                tag_date = get_tag_date(tag)
+                version_date = tag_date.strftime("%Y-%m-%d") if tag_date else datetime.now().strftime("%Y-%m-%d")
+                version_name = format_version_for_changelog(tag, updated_content)
+            else:
+                # For dates and gaps modes, use boundary date
+                version_date = boundary["date"].strftime("%Y-%m-%d")
+                version_name = boundary["identifier"]
 
             # Create version section
-            version_section = f"## [{format_version_for_changelog(tag, updated_content)}] - {version_date}\n\n{entry}"
+            version_section = f"## [{version_name}] - {version_date}\n\n{entry}"
 
-            # Find correct insertion point based on semantic version ordering
+            # Find correct insertion point
             lines = updated_content.split("\n")
-            insert_point = find_insertion_point_by_version(updated_content, tag)
+            if mode == "tags":
+                # For tags mode, use semantic version ordering
+                insert_point = find_insertion_point_by_version(updated_content, tag)
+            else:
+                # For dates and gaps modes, find insertion point by date
+                insert_point = find_insertion_point_by_version(updated_content, boundary_id)
 
             # Insert the new section at the correct position
             new_lines = ["", *version_section.split("\n")]
@@ -129,11 +179,11 @@ def handle_missing_entries_mode(
             if incremental_save and not dry_run:
                 write_changelog(changelog_file, updated_content)
                 if not quiet:
-                    progress = f"({i + 1}/{len(missing_tags)})"
-                    output.success(f"✓ Saved changelog entry for {tag} {progress}")
+                    progress = f"({i + 1}/{len(missing_boundaries)})"
+                    output.success(f"✓ Saved changelog entry for {boundary_id} {progress}")
 
         except (GitError, AIError, OSError, TimeoutError, ValueError, KeyError) as e:
-            output.warning(f"Failed to process tag {tag}: {e}")
+            output.warning(f"Failed to process boundary {boundary_id}: {e}")
             success = False
             continue
 
