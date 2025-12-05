@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.5.1] - 2025-12-05
+
+### Added
+
+- Boundary mode support in missing entries handler with tags, dates, and gaps detection
+- Flexible boundary detection replacing tag-specific functionality
+- Configurable date grouping and gap threshold options for missing entries analysis
+
+### Fixed
+
+- Resolve critical bug where grouping mode was ignored in missing entries processing
+
 ## [2.5.0] - 2025-12-05
 
 ### Added
