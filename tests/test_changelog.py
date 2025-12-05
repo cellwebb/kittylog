@@ -900,7 +900,7 @@ Some custom content that's not a version.
 
 class TestVersionStripping:
     """Test version prefix stripping functionality.
-    
+
     These tests verify that the 'v' prefix is correctly stripped from version tags
     when creating changelog headers, ensuring consistent formatting across all modes.
     """
@@ -910,7 +910,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_version_with_v_prefix_is_stripped(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test that version with 'v' prefix is stripped in header.
-        
+
         Input: v0.1.0
         Expected: ## [0.1.0] - YYYY-MM-DD
         """
@@ -949,7 +949,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_version_without_v_prefix_unchanged(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test that version without 'v' prefix remains unchanged.
-        
+
         Input: 0.1.0
         Expected: ## [0.1.0] - YYYY-MM-DD
         """
@@ -987,7 +987,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_version_with_v_prefix_and_prerelease(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test that 'v' prefix is stripped from prerelease versions.
-        
+
         Input: v1.0.0-beta
         Expected: ## [1.0.0-beta] - YYYY-MM-DD
         """
@@ -1026,7 +1026,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_version_with_major_minor_patch(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test version stripping with standard semantic version.
-        
+
         Input: v1.2.3
         Expected: ## [1.2.3] - YYYY-MM-DD
         """
@@ -1065,7 +1065,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_multiple_versions_consistent_stripping(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test that multiple version updates maintain consistent stripping.
-        
+
         Ensures that when updating a changelog with multiple versions,
         all 'v' prefixes are consistently stripped.
         """
@@ -1076,7 +1076,7 @@ class TestVersionStripping:
             "### Added\n- Feature",
             {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
         )
-        
+
         # First update with v0.1.0
         mock_get_date.return_value = datetime(2024, 1, 1)
         existing_content = """# Changelog
@@ -1084,7 +1084,7 @@ class TestVersionStripping:
 ## [Unreleased]
 
 """
-        
+
         result1, _ = update_changelog(
             existing_content=existing_content,
             from_boundary=None,
@@ -1093,7 +1093,7 @@ class TestVersionStripping:
             quiet=True,
             no_unreleased=False,
         )
-        
+
         # Second update with v0.2.0
         mock_get_date.return_value = datetime(2024, 2, 1)
         result2, _ = update_changelog(
@@ -1104,7 +1104,7 @@ class TestVersionStripping:
             quiet=True,
             no_unreleased=False,
         )
-        
+
         # Both versions should have v stripped
         assert "## [0.1.0] - 2024-01-01" in result2
         assert "## [0.2.0] - 2024-02-01" in result2
@@ -1116,7 +1116,7 @@ class TestVersionStripping:
     @patch("kittylog.changelog.updater.get_tag_date")
     def test_version_stripping_with_existing_entry(self, mock_get_date, mock_generate, mock_get_commits, temp_dir):
         """Test version stripping when updating an existing version entry.
-        
+
         Verifies that when replacing an existing version section,
         the v prefix is still correctly stripped.
         """
@@ -1163,43 +1163,43 @@ class TestVersionStripping:
 
     def test_edge_case_empty_version(self):
         """Test handling of edge case with empty version string.
-        
+
         While this shouldn't happen in practice, ensure graceful handling.
         """
         # lstrip('v') on empty string should return empty string
-        assert "".lstrip('v') == ""
+        assert "".lstrip("v") == ""
 
     def test_edge_case_only_v_character(self):
         """Test handling of version that is only 'v'."""
         # Just 'v' should strip to empty
-        assert "v".lstrip('v') == ""
+        assert "v".lstrip("v") == ""
 
     def test_edge_case_multiple_v_prefixes(self):
         """Test handling of multiple 'v' characters at start.
-        
+
         Input: vv1.0.0
         Expected: 1.0.0 (all leading v's stripped)
         """
         # lstrip removes ALL leading 'v' characters
-        assert "vv1.0.0".lstrip('v') == "1.0.0"
-        assert "vvv1.0.0".lstrip('v') == "1.0.0"
+        assert "vv1.0.0".lstrip("v") == "1.0.0"
+        assert "vvv1.0.0".lstrip("v") == "1.0.0"
 
     def test_edge_case_v_in_middle_of_version(self):
         """Test that 'v' in middle of version is not stripped.
-        
+
         Input: 1.v0.0
         Expected: 1.v0.0 (only leading v's are stripped)
         """
         # lstrip only removes from the beginning
-        assert "1.v0.0".lstrip('v') == "1.v0.0"
+        assert "1.v0.0".lstrip("v") == "1.v0.0"
 
     def test_edge_case_uppercase_v(self):
         """Test handling of uppercase 'V' prefix.
-        
+
         Note: lstrip('v') only strips lowercase 'v', not uppercase 'V'.
         This documents current behavior - may need enhancement if uppercase is used.
         """
         # Current implementation only strips lowercase 'v'
-        assert "V1.0.0".lstrip('v') == "V1.0.0"
+        assert "V1.0.0".lstrip("v") == "V1.0.0"
         # Mixed case
-        assert "vV1.0.0".lstrip('v') == "V1.0.0"
+        assert "vV1.0.0".lstrip("v") == "V1.0.0"

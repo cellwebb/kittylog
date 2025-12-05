@@ -1,9 +1,9 @@
 """Boundary mode handlers for kittylog."""
 
 from kittylog.commit_analyzer import get_commits_between_boundaries
-from kittylog.utils.text import normalize_tag
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries
+from kittylog.utils.text import normalize_tag
 
 
 def handle_single_boundary_mode(

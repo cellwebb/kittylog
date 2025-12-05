@@ -426,20 +426,20 @@ class TestTagNormalizationEdgeCases:
 
 class TestVersionStrippingInMissingMode:
     """Test version prefix stripping in missing entries mode.
-    
+
     These tests verify that the missing entries mode correctly strips 'v' prefixes
     when creating changelog headers for missing tags.
     """
 
     def test_missing_mode_strips_v_prefix_from_header(self, temp_dir):
         """Test that missing mode strips 'v' from version headers.
-        
+
         Input tag: v1.0.0
         Expected header: ## [1.0.0] - YYYY-MM-DD
         """
         from datetime import datetime, timezone
         from unittest.mock import patch
-        
+
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
@@ -474,13 +474,13 @@ class TestVersionStrippingInMissingMode:
 
     def test_missing_mode_preserves_version_without_v(self, temp_dir):
         """Test that missing mode preserves versions without 'v' prefix.
-        
+
         Input tag: 2.0.0
         Expected header: ## [2.0.0] - YYYY-MM-DD
         """
         from datetime import datetime, timezone
         from unittest.mock import patch
-        
+
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
@@ -516,7 +516,7 @@ class TestVersionStrippingInMissingMode:
         """Test that missing mode consistently strips 'v' from all missing tags."""
         from datetime import datetime, timezone
         from unittest.mock import patch
-        
+
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
@@ -560,13 +560,13 @@ class TestVersionStrippingInMissingMode:
 
     def test_missing_mode_strips_v_from_prerelease_versions(self, temp_dir):
         """Test that 'v' prefix is stripped from prerelease versions.
-        
+
         Input tag: v2.0.0-beta.1
         Expected header: ## [2.0.0-beta.1] - YYYY-MM-DD
         """
         from datetime import datetime, timezone
         from unittest.mock import patch
-        
+
         changelog_file = temp_dir / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
