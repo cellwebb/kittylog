@@ -7,11 +7,16 @@ endpoint construction and API version handling.
 import os
 
 from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 
 class AzureOpenAIProvider(OpenAICompatibleProvider):
     """Azure OpenAI API provider with custom URL handling."""
+
+    config = ProviderConfig(
+        name="Azure OpenAI",
+        api_key_env="AZURE_OPENAI_API_KEY",
+        base_url="https://placeholder.openai.azure.com",
+    )
 
     def __init__(self, config: ProviderConfig):
         super().__init__(config)
@@ -55,23 +60,3 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
         if not endpoint:
             raise ValueError("AZURE_OPENAI_ENDPOINT is required")
         return f"{endpoint.rstrip('/')}/openai/deployments/{model}/chat/completions?api-version={self.api_version}"
-
-
-# Provider configuration
-_azure_openai_config = ProviderConfig(
-    name="Azure OpenAI",
-    api_key_env="AZURE_OPENAI_API_KEY",
-    base_url="https://placeholder.openai.azure.com",
-)
-
-
-def _get_azure_openai_provider() -> AzureOpenAIProvider:
-    """Lazy getter to initialize Azure OpenAI provider at call time."""
-    return AzureOpenAIProvider(_azure_openai_config)
-
-
-@handle_provider_errors("Azure OpenAI")
-def call_azure_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Azure OpenAI Service API."""
-    provider = _get_azure_openai_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -1,14 +1,16 @@
 """OpenAI provider implementation."""
 
 from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 
 class OpenAIProvider(OpenAICompatibleProvider):
     """OpenAI API provider with model-specific adjustments."""
 
     config = ProviderConfig(
-        name="OpenAI", api_key_env="OPENAI_API_KEY", base_url="https://api.openai.com/v1/chat/completions"
+        name="OpenAI",
+        api_key_env="OPENAI_API_KEY",
+        base_url="https://api.openai.com",
+        # Uses default path: /v1/chat/completions
     )
 
     def _build_request_body(
@@ -31,15 +33,3 @@ class OpenAIProvider(OpenAICompatibleProvider):
             data["stop"] = kwargs["stop"]
 
         return data
-
-
-def _get_openai_provider() -> OpenAIProvider:
-    """Lazy getter to initialize OpenAI provider at call time."""
-    return OpenAIProvider(OpenAIProvider.config)
-
-
-@handle_provider_errors("OpenAI")
-def call_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int, **kwargs) -> str:
-    """Call OpenAI API directly."""
-    provider = _get_openai_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, **kwargs)

@@ -1,21 +1,26 @@
 """Synthetic.new API provider for kittylog."""
 
+import os
+
+from kittylog.errors import AIError
 from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 
 class SyntheticProvider(OpenAICompatibleProvider):
     """Synthetic.new API provider with hf: model prefix and dual API key support."""
 
+    config = ProviderConfig(
+        name="Synthetic",
+        api_key_env="SYNTHETIC_API_KEY",
+        base_url="https://api.synthetic.new",
+        path="/openai/v1/chat/completions",
+    )
+
     def _get_api_key(self) -> str:
         """Get API key from environment with alias support."""
-        import os
-
-        from kittylog.errors import AIError
-
         api_key = os.getenv("SYNTHETIC_API_KEY") or os.getenv("SYN_API_KEY")
         if not api_key:
-            raise AIError.generation_error("SYNTHETIC_API_KEY or SYN_API_KEY not found in environment variables")
+            raise AIError.authentication_error("SYNTHETIC_API_KEY or SYN_API_KEY not found in environment variables")
         return api_key
 
     def _build_request_body(
@@ -33,38 +38,3 @@ class SyntheticProvider(OpenAICompatibleProvider):
             data["max_completion_tokens"] = data.pop("max_tokens")
 
         return data
-
-    def _parse_response(self, response: dict) -> str:
-        """Parse Synthetic response with validation."""
-        content = super()._parse_response(response)
-
-        if content is None:
-            from kittylog.errors import AIError
-
-            raise AIError.generation_error("Synthetic.new API returned null content")
-        if content == "":
-            from kittylog.errors import AIError
-
-            raise AIError.generation_error("Synthetic.new API returned empty content")
-
-        return content
-
-
-# Provider configuration
-_synthetic_config = ProviderConfig(
-    name="Synthetic",
-    api_key_env="SYNTHETIC_API_KEY",
-    base_url="https://api.synthetic.new/openai/v1/chat/completions",
-)
-
-
-def _get_synthetic_provider() -> SyntheticProvider:
-    """Lazy getter to initialize Synthetic provider at call time."""
-    return SyntheticProvider(_synthetic_config)
-
-
-@handle_provider_errors("Synthetic")
-def call_synthetic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Synthetic.new API directly."""
-    provider = _get_synthetic_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

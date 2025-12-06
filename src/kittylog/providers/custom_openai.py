@@ -4,14 +4,21 @@ import json
 import logging
 import os
 
+from kittylog.errors import AIError
 from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
 
 
 class CustomOpenAIProvider(OpenAICompatibleProvider):
     """Custom OpenAI-compatible API provider with configurable endpoint."""
+
+    config = ProviderConfig(
+        name="Custom OpenAI",
+        api_key_env="CUSTOM_OPENAI_API_KEY",
+        base_url="https://custom-endpoint.com",
+        # URL is configured via CUSTOM_OPENAI_BASE_URL env var
+    )
 
     def __init__(self, config: ProviderConfig):
         super().__init__(config)
@@ -23,23 +30,19 @@ class CustomOpenAIProvider(OpenAICompatibleProvider):
         # Always check environment variable to ensure validation works in tests
         base_url = os.getenv("CUSTOM_OPENAI_BASE_URL")
         if not base_url:
-            from kittylog.errors import AIError
-
             raise AIError.model_error("CUSTOM_OPENAI_BASE_URL environment variable not set")
 
         # Check API key as well
         api_key = os.getenv("CUSTOM_OPENAI_API_KEY")
         if not api_key:
-            from kittylog.errors import AIError
-
             raise AIError.model_error("CUSTOM_OPENAI_API_KEY environment variable not set")
 
-        # Ensure proper URL format
-        if "/chat/completions" not in base_url:
-            base_url = base_url.rstrip("/")
-            self.custom_base_url = f"{base_url}/chat/completions"
-        else:
+        # If the user provided the full URL with path, use it directly
+        # Otherwise, append the default OpenAI path
+        if "/chat/completions" in base_url:
             self.custom_base_url = base_url
+        else:
+            self.custom_base_url = f"{base_url.rstrip('/')}{self.default_path}"
 
     def _get_api_url(self, model: str | None = None) -> str:
         """Get custom OpenAI API URL."""
@@ -64,41 +67,15 @@ class CustomOpenAIProvider(OpenAICompatibleProvider):
             content = super()._parse_response(response)
 
             if content is None:
-                from kittylog.errors import AIError
-
                 raise AIError.generation_error("Invalid response: missing content")
             if content == "":
-                from kittylog.errors import AIError
-
                 raise AIError.model_error("Custom OpenAI API returned empty content")
 
             return content
         except Exception as e:
             logger.error("Unexpected response format from Custom OpenAI API. Response: %s", json.dumps(response))
             if "Unexpected response format" not in str(e):
-                from kittylog.errors import AIError
-
                 raise AIError.model_error(
                     "Custom OpenAI API returned unexpected format. Expected OpenAI-compatible response."
                 ) from e
             raise
-
-
-# Provider configuration
-_custom_openai_config = ProviderConfig(
-    name="Custom OpenAI",
-    api_key_env="CUSTOM_OPENAI_API_KEY",
-    base_url="https://custom-endpoint.com/chat/completions",
-)
-
-
-def _get_custom_openai_provider() -> CustomOpenAIProvider:
-    """Lazy getter to initialize Custom OpenAI provider at call time."""
-    return CustomOpenAIProvider(_custom_openai_config)
-
-
-@handle_provider_errors("Custom OpenAI")
-def call_custom_openai_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call a custom OpenAI-compatible endpoint."""
-    provider = _get_custom_openai_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

@@ -9,14 +9,21 @@ import os
 
 import httpx
 
+from kittylog.errors import AIError
 from kittylog.providers.base import AnthropicCompatibleProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 logger = logging.getLogger(__name__)
 
 
 class ClaudeCodeProvider(AnthropicCompatibleProvider):
     """Claude Code API provider with OAuth token handling and re-authentication."""
+
+    config = ProviderConfig(
+        name="Claude Code",
+        api_key_env="CLAUDE_CODE_ACCESS_TOKEN",
+        base_url="https://api.anthropic.com",
+        # Uses default path: /v1/messages
+    )
 
     def __init__(self, config: ProviderConfig):
         super().__init__(config)
@@ -100,15 +107,11 @@ class ClaudeCodeProvider(AnthropicCompatibleProvider):
                             return response.json()
                         except Exception as retry_error:
                             logger.error(f"Retry after re-authentication failed: {retry_error}")
-                            from kittylog.errors import AIError
-
                             raise AIError.authentication_error(
                                 f"Claude Code authentication still failing after re-authentication: {retry_error}"
                             ) from retry_error
 
                 # Re-authentication failed or was declined
-                from kittylog.errors import AIError
-
                 raise AIError.authentication_error(
                     f"Claude Code authentication failed: {e.response.text}. "
                     "Your token may have expired. Please re-authenticate using 'kittylog config reauth'."
@@ -122,22 +125,14 @@ class ClaudeCodeProvider(AnthropicCompatibleProvider):
         content = super()._parse_response(response)
 
         if content is None:
-            from kittylog.errors import AIError
-
             raise AIError.model_error("Claude Code API returned null content")
         if content == "":
-            from kittylog.errors import AIError
-
             raise AIError.model_error("Claude Code API returned empty content")
 
         return content
 
     def _get_api_key(self) -> str:
         """Get Claude Code OAuth access token."""
-        import os
-
-        from kittylog.errors import AIError
-
         access_token = os.getenv("CLAUDE_CODE_ACCESS_TOKEN")
         if not access_token:
             raise AIError.authentication_error(
@@ -145,23 +140,3 @@ class ClaudeCodeProvider(AnthropicCompatibleProvider):
                 "Please authenticate with Claude Code using 'kittylog init' or 'kittylog config' and set this token."
             )
         return access_token
-
-
-# Provider configuration
-_claude_code_config = ProviderConfig(
-    name="Claude Code",
-    api_key_env="CLAUDE_CODE_ACCESS_TOKEN",
-    base_url="https://api.anthropic.com/v1/messages",
-)
-
-
-def _get_claude_code_provider() -> ClaudeCodeProvider:
-    """Lazy getter to initialize Claude Code provider at call time."""
-    return ClaudeCodeProvider(_claude_code_config)
-
-
-@handle_provider_errors("Claude Code")
-def call_claude_code_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Claude Code API using OAuth token."""
-    provider = _get_claude_code_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)

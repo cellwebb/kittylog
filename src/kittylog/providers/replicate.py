@@ -1,15 +1,23 @@
 """Replicate API provider for kittylog."""
 
+import os
 import time
 
 import httpx
 
+from kittylog.errors import AIError
 from kittylog.providers.base import GenericHTTPProvider, ProviderConfig
-from kittylog.providers.error_handler import handle_provider_errors
 
 
 class ReplicateProvider(GenericHTTPProvider):
     """Replicate API provider with async prediction handling."""
+
+    config = ProviderConfig(
+        name="Replicate",
+        api_key_env="REPLICATE_API_TOKEN",
+        base_url="https://api.replicate.com",
+        path="/v1/predictions",
+    )
 
     def _build_headers(self) -> dict[str, str]:
         """Build headers with Replicate token format."""
@@ -60,12 +68,12 @@ class ReplicateProvider(GenericHTTPProvider):
 
     def _get_api_url(self, model: str | None = None) -> str:
         """Get Replicate prediction URL."""
-        return "https://api.replicate.com/v1/predictions"
+        base = self.config.base_url.rstrip("/")
+        path = self.config.path if self.config.path is not None else "/v1/predictions"
+        return f"{base}{path}"
 
     def _make_http_request(self, url: str, body: dict, headers: dict[str, str]) -> dict:
         """Override to handle Replicate's async prediction workflow."""
-        from kittylog.errors import AIError
-
         try:
             # Create prediction
             response = httpx.post(url, json=body, headers=headers, timeout=self.config.timeout)
@@ -112,8 +120,6 @@ class ReplicateProvider(GenericHTTPProvider):
 
     def _parse_response(self, response: dict) -> str:
         """Parse Replicate response."""
-        from kittylog.errors import AIError
-
         content = response.get("content")
         if not content:
             raise AIError.model_error("Replicate API returned empty content")
@@ -121,31 +127,7 @@ class ReplicateProvider(GenericHTTPProvider):
 
     def _get_api_key(self) -> str:
         """Override to use REPLICATE_API_TOKEN instead of standard pattern."""
-        import os
-
-        from kittylog.errors import AIError
-
         api_key = os.getenv("REPLICATE_API_TOKEN")
         if not api_key:
             raise AIError.authentication_error("REPLICATE_API_TOKEN not found in environment variables")
         return api_key
-
-
-# Provider configuration
-_replicate_config = ProviderConfig(
-    name="Replicate",
-    api_key_env="REPLICATE_API_TOKEN",
-    base_url="https://api.replicate.com/v1/predictions",
-)
-
-
-def _get_replicate_provider() -> ReplicateProvider:
-    """Lazy getter to initialize Replicate provider at call time."""
-    return ReplicateProvider(_replicate_config)
-
-
-@handle_provider_errors("Replicate")
-def call_replicate_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Replicate API directly."""
-    provider = _get_replicate_provider()
-    return provider.generate(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
