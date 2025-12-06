@@ -143,9 +143,11 @@ def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
 
     # Create boundaries (take the last commit of each group)
     boundaries = []
-    for _group_date, group_commits in sorted(grouped_commits.items()):
+    for group_date, group_commits in sorted(grouped_commits.items()):
         boundary_commit = group_commits[-1]  # Last commit in the group
         boundary_commit["boundary_type"] = "date"
+        # Use the actual commit date as the identifier - this gives us the last day of the period
+        boundary_commit["identifier"] = boundary_commit["date"].date().isoformat()
         boundaries.append(boundary_commit)
 
     logger.debug(f"Found {len(boundaries)} date-based boundaries with {date_grouping} grouping")
@@ -202,7 +204,10 @@ def get_commits_by_gap_boundaries(gap_threshold_hours: float = 4.0) -> list[dict
                 f"Repository has very frequent commits (avg gap: {avg_gap:.2f}h). Consider decreasing --gap-threshold or using --date-grouping daily."
             )
 
-    boundaries = [commits[0]]  # First commit is always a boundary
+    # First commit is always a boundary
+    first_commit = commits[0]
+    first_commit["identifier"] = first_commit["date"].strftime("%Y-%m-%d")
+    boundaries = [first_commit]
     gap_threshold_seconds = gap_threshold_hours * 3600
 
     for i in range(1, len(commits)):
@@ -214,6 +219,8 @@ def get_commits_by_gap_boundaries(gap_threshold_hours: float = 4.0) -> list[dict
 
         # If gap exceeds threshold, mark current commit as boundary
         if time_gap > gap_threshold_seconds:
+            # Use the commit date as the identifier for display purposes
+            current_commit["identifier"] = current_commit["date"].strftime("%Y-%m-%d")
             boundaries.append(current_commit)
 
     logger.debug(f"Found {len(boundaries)} gap boundaries with {gap_threshold_hours} hour threshold")
