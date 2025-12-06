@@ -259,7 +259,7 @@ def _validate_cli_options(
 @click.command(context_settings={"ignore_unknown_options": True})
 @common_options
 @click.argument("tag", required=False)
-def add(tag: str | None = None, **kwargs) -> None:
+def add_cli(tag: str | None = None, **kwargs) -> None:
     """Add missing changelog entries or update a specific tag entry.
 
     Modern CLI using **kwargs to reduce parameter count from 26 to 2.
@@ -384,7 +384,7 @@ def cli(ctx, version):
     # If no subcommand was invoked, run the add command by default
     if ctx.invoked_subcommand is None:
         ctx.invoke(
-            add,
+            add_cli,
             file="CHANGELOG.md",
             from_tag=None,
             to_tag=None,
@@ -417,7 +417,7 @@ cli.add_command(config_cli)
 cli.add_command(init_cli)
 cli.add_command(language_cli)
 cli.add_command(init_changelog)
-cli.add_command(add)
+cli.add_command(add_cli)
 cli.add_command(update_version, "update")
 cli.add_command(release_cli, "release")
 cli.add_command(auth_cli)
