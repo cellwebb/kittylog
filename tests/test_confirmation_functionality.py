@@ -360,11 +360,11 @@ All notable changes will be documented in this file.
             clear_git_cache()
             runner = CliRunner()
 
-            # Test add command (auto mode) with confirmation "y"
+            # Test add-cli command (auto mode) with confirmation "y"
             # Use --no-interactive to skip the interactive wizard
             result = runner.invoke(
                 cli,
-                ["add", "--no-interactive"],  # Skip interactive wizard
+                ["add-cli", "--no-interactive"],  # Skip interactive wizard
                 input="y\n",  # Confirm the prompt
             )
 

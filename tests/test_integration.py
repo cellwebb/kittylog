@@ -381,7 +381,7 @@ class TestMultiTagIntegration:
             result = runner.invoke(
                 cli,
                 [
-                    "add",  # Use add command for missing entries
+                    "add-cli",  # Use add-cli command for missing entries
                     "--yes",  # Skip confirmation
                     "--no-interactive",  # Skip interactive wizard
                 ],
