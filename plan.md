@@ -9,7 +9,7 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 - **Phase 3** ⏳ **NEXT** - Medium refactors (1-2hr each)  
 - **Phase 4** ⏳ **PENDING** - Major refactors (4+hr each)
 
-**Total Completed:** 10/13 tasks (77%)
+**Total Completed:** 11/14 tasks (79%)
 **Impact:** 1 critical bug fixed, 1 unused dependency removed, code quality significantly improved, test failures resolved, robust boundary handling implemented
 
 ---
@@ -167,6 +167,97 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 
 ## Phase 3: Medium Refactors (1-2 hours each)
 
+### ✅ 3.0 Create Separate System Prompts Per Audience (HIGH PRIORITY) - **COMPLETED**
+- **Symptom:** "End Users" persona still produces technical details (modules, APIs, etc.)
+- **Root Cause:** Single system prompt with technical framing bleeds through regardless of audience instructions
+- **Status:** ✅ Implemented three completely separate system prompts
+
+**The fix: Three completely separate system prompts**
+
+1. **Create `_build_system_prompt_developers()`** (current behavior)
+   - Technical details, API changes, breaking changes
+   - Module/service references, migration steps
+   - Implementation-focused examples
+
+2. **Create `_build_system_prompt_users()`** (new)
+   ```python
+   def _build_system_prompt_users() -> str:
+       return """You are writing release notes for END USERS who are NOT technical.
+
+   ## STRICT RULES - NO TECHNICAL LANGUAGE
+
+   FORBIDDEN (never use these words):
+   - module, API, SDK, CLI, refactor, architecture, provider, endpoint
+   - dependency, configuration, environment variable, migration, handler
+   - implementation, interface, middleware, backend, frontend, database
+   - Any programming language names, framework names, or library names
+
+   REQUIRED LANGUAGE:
+   - Write like you're explaining to a friend who doesn't code
+   - Focus on WHAT users can do, not HOW it works internally
+   - Describe BENEFITS and OUTCOMES, not implementation
+
+   ## EXAMPLES OF CORRECT TRANSLATIONS:
+   ❌ "Refactored authentication module" → ✅ "Improved sign-in reliability"
+   ❌ "Fixed null pointer exception" → ✅ "Fixed a crash that occurred when saving"
+   ❌ "Added REST API endpoint" → ✅ "New export feature available"
+   ❌ "Optimized database queries" → ✅ "App now loads faster"
+   ❌ "Updated dependencies" → ✅ "Security and stability improvements"
+
+   ## SECTIONS (only include if relevant):
+   - ### What's New - new features users can try
+   - ### Improvements - things that work better now
+   - ### Bug Fixes - problems that are now solved
+
+   DO NOT use standard changelog sections (Added/Changed/Removed/Fixed).
+   Keep language simple. Maximum 3-4 bullets per section."""
+   ```
+
+3. **Create `_build_system_prompt_stakeholders()`** (new)
+   ```python
+   def _build_system_prompt_stakeholders() -> str:
+       return """You are writing release notes for BUSINESS STAKEHOLDERS.
+
+   ## FOCUS AREAS:
+   - Business impact and outcomes
+   - Customer value delivered
+   - Risk mitigation and stability
+   - Strategic alignment
+
+   ## LANGUAGE STYLE:
+   - Professional and scannable
+   - Quantify impact where possible
+   - Mention affected product areas
+   - Avoid deep technical implementation details
+
+   ## SECTIONS:
+   - ### Highlights - key business outcomes
+   - ### Customer Impact - value delivered
+   - ### Technical Notes - brief summary for context (optional)
+
+   Keep entries concise and executive-summary style."""
+   ```
+
+4. **Update `_build_system_prompt()` to dispatch:**
+   ```python
+   def _build_system_prompt(audience: str = "developers") -> str:
+       prompts = {
+           "developers": _build_system_prompt_developers,
+           "users": _build_system_prompt_users,
+           "stakeholders": _build_system_prompt_stakeholders,
+       }
+       return prompts.get(audience, _build_system_prompt_developers)()
+   ```
+
+5. **Update callers to pass audience to system prompt builder**
+
+**Files to modify:**
+- `src/kittylog/prompt_templates.py` - add new functions, update dispatcher
+- `src/kittylog/prompt.py` - pass audience to `_build_system_prompt()`
+- `src/kittylog/ai.py` - ensure audience flows through
+
+**Verify:** `uvx kittylog --audience users` produces no technical jargon
+
 ### 3.1 Refactor CLI Parameter Object Construction
 - **File:** `src/kittylog/cli.py:252-277`
 - **Issue:** Manual construction of WorkflowOptions/ChangelogOptions from 26 raw parameters
@@ -271,6 +362,7 @@ uv run mypy src/
 - [x] 2.5 - Guard config loading at import time
 
 ### Phase 3: Medium Refactors
+- [x] 3.0 - Create separate system prompts per audience (HIGH PRIORITY)
 - [ ] 3.1 - Refactor CLI parameter object construction
 - [ ] 3.2 - Add type hints to weak areas
 
