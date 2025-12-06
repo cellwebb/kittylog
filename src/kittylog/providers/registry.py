@@ -2,8 +2,11 @@
 
 from collections.abc import Callable
 
+# Type signature for provider API functions (matches protocol)
+ProviderFunc = Callable[[str, list[dict], float, int], str]
+
 # Global registry for all providers
-PROVIDER_REGISTRY: dict[str, Callable] = {}
+PROVIDER_REGISTRY: dict[str, ProviderFunc] = {}
 PROVIDER_ENV_VARS: dict[str, list[str]] = {}
 
 
