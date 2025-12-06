@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from kittylog.config import load_config, validate_config
+from kittylog.config import load_config, reset_env_files_cache, validate_config
 from kittylog.errors import ConfigError
 
 
@@ -13,6 +13,7 @@ class TestLoadConfig:
 
     def test_load_config_defaults(self, isolated_config_test):
         """Test loading config with default values."""
+        reset_env_files_cache()
         config = load_config()
 
         # Check defaults
@@ -47,6 +48,7 @@ class TestLoadConfig:
         monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "true")
         monkeypatch.setenv("KITTYLOG_AUDIENCE", "stakeholders")
 
+        reset_env_files_cache()
         config = load_config()
 
         assert config.model == "cerebras:zai-glm-4.6"
@@ -78,6 +80,9 @@ OPENAI_API_KEY=sk-test123
 """
         )
 
+        # Reset cache to ensure fresh loading of .env files
+        reset_env_files_cache()
+        reset_env_files_cache()
         config = load_config()
 
         assert config.model == "openai:gpt-4"
@@ -105,6 +110,7 @@ KITTYLOG_AUDIENCE=developers
 """
         )
 
+        reset_env_files_cache()
         config = load_config()
 
         assert config.model == "groq:llama-4"
@@ -155,6 +161,7 @@ KITTYLOG_AUDIENCE=stakeholders
 """
         )
 
+        reset_env_files_cache()
         config = load_config()
 
         # Project file wins over user file
@@ -185,6 +192,7 @@ KITTYLOG_AUDIENCE=stakeholders
         """A temperature of zero is valid and should survive validation."""
         monkeypatch.setenv("KITTYLOG_TEMPERATURE", "0")
 
+        reset_env_files_cache()
         config = load_config()
 
         assert config.temperature == 0.0
@@ -202,6 +210,7 @@ KITTYLOG_AUDIENCE=stakeholders
         monkeypatch.setenv("KITTYLOG_TRANSLATE_HEADINGS", "notabool")
         monkeypatch.setenv("KITTYLOG_AUDIENCE", "marketing")
 
+        reset_env_files_cache()
         config = load_config()
 
         # Should fall back to defaults for invalid values
@@ -218,6 +227,7 @@ KITTYLOG_AUDIENCE=stakeholders
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""
         # This should not raise an error
+        reset_env_files_cache()
         config = load_config()
 
         # Should get defaults
@@ -482,6 +492,7 @@ KITTYLOG_AUDIENCE=stakeholders
         )
 
         # Load and validate config
+        reset_env_files_cache()
         config = load_config()
         validate_config(config)
 
@@ -514,6 +525,7 @@ KITTYLOG_GAP_THRESHOLD_HOURS=-2.0
         )
 
         # Load config (should handle invalid values gracefully)
+        reset_env_files_cache()
         config = load_config()
 
         # Validation should catch the issues
@@ -545,6 +557,7 @@ KITTYLOG_DATE_GROUPING=monthly
 # Empty line above
 """)
 
+        reset_env_files_cache()
         config = load_config()
 
         assert config.model == "cerebras:zai-glm-4.6"
@@ -585,6 +598,7 @@ class TestConfigUtils:
         # Set string values for new environment variables
         monkeypatch.setenv("KITTYLOG_GAP_THRESHOLD_HOURS", "3.2")
 
+        reset_env_files_cache()
         config = load_config()
 
         # Check types

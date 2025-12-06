@@ -13,6 +13,7 @@ from kittylog.config.data import KittylogConfigData
 from kittylog.config.loader import (
     apply_config_defaults,
     load_config,
+    reset_env_files_cache,
     validate_config,
     validate_config_value,
     validate_env_var,
@@ -33,6 +34,7 @@ __all__ = [
     "get_api_key",
     "inject_provider_keys",
     "load_config",
+    "reset_env_files_cache",
     "validate_config",
     "validate_config_value",
     "validate_env_var",

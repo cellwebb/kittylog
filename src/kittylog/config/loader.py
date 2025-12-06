@@ -12,6 +12,7 @@ Note: Generic project .env file is NOT loaded to avoid conflicts
 with other tools. Use .kittylog.env for project-specific configuration.
 """
 
+import functools
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -25,8 +26,12 @@ from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMod
 T = TypeVar("T")
 
 
+@functools.lru_cache(maxsize=1)
 def _load_env_files() -> None:
     """Load environment variables from .env files into os.environ.
+
+    Uses lru_cache to ensure this only runs once per session while allowing
+    for controlled test isolation.
 
     Files are loaded in order of priority (lowest to highest):
     1. User ~/.kittylog.env
@@ -49,8 +54,22 @@ def _load_env_files() -> None:
         load_dotenv(project_config_env, override=True)
 
 
-# Load env files at module import time so API keys are available
-_load_env_files()
+def ensure_env_files_loaded() -> None:
+    """Ensure environment files are loaded (lazy loading)."""
+    _load_env_files()
+
+
+def reset_env_files_cache() -> None:
+    """Reset the env files cache for testing purposes.
+
+    This function should only be used in tests to ensure clean isolation
+    between test runs that need to control environment variables.
+    """
+    _load_env_files.cache_clear()
+
+
+# Load env files lazily when first needed, not at import time
+# This prevents test isolation issues and improves startup performance
 
 
 def _safe_float(value: str | None, default: float) -> float:
@@ -118,8 +137,8 @@ def load_config() -> KittylogConfigData:
     Returns:
         KittylogConfigData instance containing configuration values
     """
-    # Ensure env files are loaded (idempotent call)
-    _load_env_files()
+    # Ensure env files are loaded (lazy, cached call)
+    ensure_env_files_loaded()
 
     # Valid enum values
     valid_grouping_modes = [mode.value for mode in GroupingMode]
