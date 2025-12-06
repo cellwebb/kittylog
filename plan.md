@@ -6,10 +6,10 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 - **Phase 0** ✅ **COMPLETE** - Critical bug fix (grouping mode ignored)
 - **Phase 1** ✅ **COMPLETE** - Quick wins (cleanup & documentation)
 - **Phase 2** ✅ **COMPLETE** - Small refactors (30min-1hr each)
-- **Phase 3** ⏳ **NEXT** - Medium refactors (1-2hr each)  
-- **Phase 4** ⏳ **PENDING** - Major refactors (4+hr each)
+- **Phase 3** ✅ **COMPLETE** - Medium refactors (1-2hr each)
+- **Phase 4** ⏳ **NEXT** - Major refactors (4+hr each)
 
-**Total Completed:** 12/15 tasks (80%)
+**Total Completed:** 14/15 tasks (93%)
 **Impact:** 1 critical bug fixed, 1 unused dependency removed, code quality significantly improved, test failures resolved, robust boundary handling implemented
 
 ---
@@ -333,10 +333,11 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 
 ---
 
-### 3.2 Refactor CLI Parameter Object Construction
-- **File:** `src/kittylog/cli.py:252-277`
+### ✅ 3.2 Refactor CLI Parameter Object Construction - **COMPLETED**
+- **File:** `src/kittylog/cli.py`
 - **Issue:** Manual construction of WorkflowOptions/ChangelogOptions from 26 raw parameters
-- **Action:** Move parameter object construction into decorator layer:
+- **Status:** ✅ Created `_build_cli_options()` helper function
+- **Action:** Moved parameter object construction into helper:
   ```python
   def common_options(func):
       @workflow_options
@@ -350,12 +351,13 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
       return wrapper
   ```
 
-### 3.3 Add Type Hints to Weak Areas
-- **Files:**
-  - `src/kittylog/ai_utils.py:15-24` - use `dict[str, Callable[..., str]]`
-  - `src/kittylog/mode_handlers/boundary.py` - add type hints throughout
-  - `src/kittylog/commit_analyzer.py` - add type hints
-- **Verify:** `uv run mypy --strict src/kittylog/ai_utils.py`
+### ✅ 3.3 Add Type Hints to Weak Areas - **COMPLETED**
+- **Status:** ✅ Added type aliases and improved type hints
+- **Files updated:**
+  - `src/kittylog/ai_utils.py` - added `ProviderFunc` type alias
+  - `src/kittylog/mode_handlers/boundary.py` - added `EntryGeneratorFunc`, `BoundaryDict` type aliases
+  - `src/kittylog/commit_analyzer.py` - added `CommitDict`, `BoundaryDict` type aliases
+- **Verified:** `uv run mypy` passes on all modified files
 
 ---
 
@@ -439,8 +441,8 @@ uv run mypy src/
 ### Phase 3: Medium Refactors
 - [x] 3.0 - Create separate system prompts per audience (HIGH PRIORITY)
 - [x] 3.1 - Add verbosity/detail level control (`--detail concise|normal|detailed`)
-- [ ] 3.2 - Refactor CLI parameter object construction
-- [ ] 3.3 - Add type hints to weak areas
+- [x] 3.2 - Refactor CLI parameter object construction
+- [x] 3.3 - Add type hints to weak areas
 
 ### Phase 4: Major Refactors
 - [ ] 4.1 - Provider factory to eliminate duplication
