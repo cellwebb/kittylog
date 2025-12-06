@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.10.0] - 2025-12-06
+
+### What's New
+
+- Generate changelogs in different languages and for specific audiences
+- Enjoy a colorful rainbow banner when starting the application
+
+### Improvements
+
+- Removed confirmation prompts for a smoother, faster workflow
+- Changelog formatting is now consistent with proper spacing between versions
+- Simplified prompts and descriptions for better clarity
+
+### Removed
+
+- Removed the init-changelog command to simplify the interface
+
 ## [2.9.2] - 2025-12-06
 
 ### Fixed
