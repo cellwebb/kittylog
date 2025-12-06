@@ -15,11 +15,21 @@ from kittylog.providers.registry import register_provider
 
 @dataclass
 class ProviderConfig:
-    """Configuration for AI providers."""
+    """Configuration for AI providers.
+
+    Attributes:
+        name: Display name of the provider (e.g., "OpenAI", "Anthropic")
+        api_key_env: Environment variable name for the API key
+        base_url: Base URL of the API (e.g., "https://api.openai.com")
+        path: API endpoint path (e.g., "/v1/chat/completions"). If None, uses class default.
+        timeout: Request timeout in seconds
+        headers: Default HTTP headers
+    """
 
     name: str
     api_key_env: str
     base_url: str
+    path: str | None = None  # If None, use the class's default_path
     timeout: int = 120
     headers: dict[str, str] | None = None
 
@@ -39,7 +49,12 @@ class BaseConfiguredProvider(ABC, ProviderProtocol):
     - Template methods for customization
 
     Implements ProviderProtocol for type safety.
+
+    Class Attributes:
+        default_path: Default API path for this provider type. Subclasses should override.
     """
+
+    default_path: str = ""  # Subclasses should override with their default path
 
     @classmethod
     def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
@@ -134,15 +149,21 @@ class BaseConfiguredProvider(ABC, ProviderProtocol):
     def _get_api_url(self, model: str | None = None) -> str:
         """Get the API URL for the request.
 
-        Can be overridden by subclasses for dynamic URLs.
+        Constructs URL from base_url + path. The path is determined by:
+        1. config.path if explicitly set
+        2. class's default_path otherwise
+
+        Can be overridden by subclasses for dynamic URLs (e.g., model in URL).
 
         Args:
             model: Model name (for providers that need model-specific URLs)
 
         Returns:
-            API URL string
+            Full API URL string
         """
-        return self.config.base_url
+        base = self.config.base_url.rstrip("/")
+        path = self.config.path if self.config.path is not None else self.default_path
+        return f"{base}{path}"
 
     def _make_http_request(self, url: str, body: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
         """Make the HTTP request with standardized error handling.
@@ -242,6 +263,8 @@ class OpenAICompatibleProvider(BaseConfiguredProvider):
     Handles standard OpenAI API format with minimal customization needed.
     """
 
+    default_path: str = "/v1/chat/completions"
+
     @classmethod
     def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
         """Register this class as a provider.
@@ -273,15 +296,19 @@ class OpenAICompatibleProvider(BaseConfiguredProvider):
         """Parse OpenAI-style response."""
         choices = response.get("choices")
         if not choices or not isinstance(choices, list):
-            raise AIError.generation_error("Invalid response: missing choices")
+            raise AIError.model_error("Invalid response: missing choices")
         content = choices[0].get("message", {}).get("content")
         if content is None:
-            raise AIError.generation_error("Invalid response: missing content")
+            raise AIError.model_error("Invalid response: null content")
+        if content == "":
+            raise AIError.model_error("Invalid response: empty content")
         return content
 
 
 class AnthropicCompatibleProvider(BaseConfiguredProvider):
     """Base class for Anthropic-compatible providers."""
+
+    default_path: str = "/v1/messages"
 
     @classmethod
     def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
@@ -330,12 +357,23 @@ class AnthropicCompatibleProvider(BaseConfiguredProvider):
         """Parse Anthropic-style response."""
         content = response.get("content")
         if not content or not isinstance(content, list):
-            raise AIError.generation_error("Invalid response: missing content")
-        return content[0].get("text", "")
+            raise AIError.model_error("Invalid response: missing content")
+
+        text_content = content[0].get("text")
+        if text_content is None:
+            raise AIError.model_error("Invalid response: null content")
+        if text_content == "":
+            raise AIError.model_error("Invalid response: empty content")
+        return text_content
 
 
 class NoAuthProvider(BaseConfiguredProvider):
-    """Base class for providers that don't use API keys (like Ollama)."""
+    """Base class for providers that don't use API keys (like Ollama).
+
+    Uses OpenAI-compatible default path since most no-auth providers follow that format.
+    """
+
+    default_path: str = "/v1/chat/completions"
 
     @classmethod
     def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
@@ -409,7 +447,7 @@ class GenericHTTPProvider(BaseConfiguredProvider):
             if isinstance(value, str) and len(value) > 10:  # Assume longer strings are content
                 return value
 
-        raise AIError.generation_error("Could not extract content from response")
+        raise AIError.model_error("Could not extract content from response")
 
 
 __all__ = [
