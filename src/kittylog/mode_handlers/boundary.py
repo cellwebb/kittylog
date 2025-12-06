@@ -298,9 +298,9 @@ def handle_update_all_mode(
             success = False
             continue
 
-    # Insert all boundary entries in reverse order (newest first)
+    # Insert all boundary entries (oldest first, each at same position pushes older down)
     if boundary_entries:
-        output.info(f"Inserting {len(boundary_entries)} boundary entries in reverse chronological order")
+        output.info(f"Inserting {len(boundary_entries)} boundary entries")
 
         # For date boundaries, use direct insertion to ensure correct order
         lines = existing_content.split("\n")
@@ -327,20 +327,22 @@ def handle_update_all_mode(
                     insert_point = i
                     break
 
-        # Insert all entries in reverse chronological order (newest first)
-        for entry_data in reversed(boundary_entries):
+        # Insert all entries in chronological order (oldest first)
+        # Each new entry is inserted at the same position, pushing older entries down
+        # This results in newest entries at top, oldest at bottom
+        for entry_data in boundary_entries:
             # Split the version section into lines
             version_lines = entry_data["version_section"].split("\n")
 
-            # Insert at the correct position
+            # Insert at the fixed position (don't advance insert_point between entries)
+            current_pos = insert_point
             for line in version_lines:
-                lines.insert(insert_point, line)
-                insert_point += 1
+                lines.insert(current_pos, line)
+                current_pos += 1
 
             # Add spacing between entries
-            if insert_point < len(lines) and lines[insert_point].strip():
-                lines.insert(insert_point, "")
-                insert_point += 1
+            if current_pos < len(lines) and lines[current_pos].strip():
+                lines.insert(current_pos, "")
 
             if not quiet:
                 progress = f"({entry_data['index'] + 1}/{len(boundaries)})"

@@ -228,7 +228,7 @@ def handle_missing_entries_mode(
             success = False
             continue
 
-    # Insert all boundary entries in reverse order for proper changelog display
+    # Insert all boundary entries (oldest first, each at same position pushes older down)
     if boundary_entries:
         if mode == "tags":
             # For tags mode, use original logic as semantic versions should work correctly
@@ -272,19 +272,21 @@ def handle_missing_entries_mode(
                         insert_point = line_num
                         break
 
-            # Insert all entries in reverse chronological order (newest first)
-            for entry_data in reversed(boundary_entries):
+            # Insert all entries in chronological order (oldest first)
+            # Each new entry is inserted at the same position, pushing older entries down
+            # This results in newest entries at top, oldest at bottom
+            for entry_data in boundary_entries:
                 version_lines = str(entry_data["version_section"]).split("\n")
 
-                # Insert at the correct position
+                # Insert at the fixed position (don't advance insert_point between entries)
+                current_pos = insert_point
                 for line in version_lines:
-                    lines.insert(insert_point, line)
-                    insert_point += 1
+                    lines.insert(current_pos, line)
+                    current_pos += 1
 
                 # Add spacing between entries
-                if insert_point < len(lines) and lines[insert_point].strip():
-                    lines.insert(insert_point, "")
-                    insert_point += 1
+                if current_pos < len(lines) and lines[current_pos].strip():
+                    lines.insert(current_pos, "")
 
                 if incremental_save and not dry_run:
                     write_changelog(changelog_file, "\n".join(lines))
