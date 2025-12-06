@@ -73,11 +73,10 @@ def _build_system_prompt_developers(detail_level: str = "normal") -> str:
 
 ## CRITICAL RULES - FOLLOW EXACTLY
 
-1. **OUTPUT FORMAT**: Start immediately with section headers (### Added, ### Changed, etc.). NO version headers, NO other text.
+1. **OUTPUT FORMAT**: Start immediately with section headers. NO other text allowed.
 2. **NO EXPLANATIONS**: Never write "Based on commits..." or "Here's the changelog..." or similar phrases
 3. **NO INTRODUCTIONS**: No preamble, analysis, or explanatory text whatsoever
 4. **DIRECT OUTPUT ONLY**: Your entire response must be valid changelog markdown sections
-5. **NO VERSION HEADERS**: Never output "## [X.Y.Z]" or "## [Unreleased]" - only output ### section headers
 
 ## Available Sections (use ONLY if you have content for them, in this exact order):
    1. **### Added** for completely new features/capabilities that didn't exist before
@@ -130,10 +129,9 @@ def _build_system_prompt_developers(detail_level: str = "normal") -> str:
 ## Formatting Requirements:
 - Use bullet points (- ) for changes
 - Separate sections with exactly one blank line
-- Start directly with "### SectionName" - NO version headers (## [X.Y.Z]) ever
 - ALWAYS use the standard Keep a Changelog section order: Added, Changed, Deprecated, Removed, Fixed, Security
 
-## EXAMPLE VALID OUTPUT (correct order - NO version header):
+## EXAMPLE VALID OUTPUT (correct order):
 
 ### Added
 - Support for PostgreSQL database backend (new capability)
@@ -325,7 +323,6 @@ def _build_user_prompt(
     # Start with boundary context
     if tag is None:
         version_context = "Generate a changelog entry for unreleased changes.\n"
-        version_context += "DO NOT include any version header (## [X.Y.Z]) - start directly with ### section headers.\n"
     else:
         if boundary_mode == "tags":
             version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
@@ -359,15 +356,14 @@ def _build_user_prompt(
                 "CRITICAL LANGUAGE REQUIREMENTS:\n"
                 f"- Write the entire changelog (section headings and bullet text) in {language}.\n"
                 "- Translate the standard section names (Added, Changed, Deprecated, Removed, Fixed, Security) while preserving their order.\n"
-                "- Keep the markdown syntax (###, bullet lists) unchanged.\n"
-                "- DO NOT include any version headers - start directly with ### section headers.\n\n"
+                "- Keep the markdown syntax (###, bullet lists) unchanged.\n\n"
             )
         else:
             language_section = (
                 "CRITICAL LANGUAGE REQUIREMENTS:\n"
                 f"- Write all descriptive text and bullet points in {language}.\n"
                 "- KEEP the section headings (### Added, ### Changed, etc.) in English while translating their content.\n"
-                "- Maintain markdown syntax. DO NOT include any version headers.\n\n"
+                "- Maintain markdown syntax.\n\n"
             )
 
     audience_instructions = {
@@ -423,8 +419,7 @@ def _build_user_prompt(
     # Instructions
     instructions = """## Instructions:
 
-Generate ONLY the changelog sections for the above commits. Start directly with ### section headers (### Added, ### Changed, etc.).
-DO NOT include any version headers like "## [X.Y.Z]" or "## [Unreleased]" - the system handles version headers automatically.
+Generate ONLY the changelog sections for the above commits.
 
 Focus on:
 1. User-facing changes and their impact
