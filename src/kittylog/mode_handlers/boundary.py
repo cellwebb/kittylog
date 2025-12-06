@@ -49,7 +49,9 @@ def handle_single_boundary_mode(
 
     # Get boundary information
     boundary_name = boundary.get("identifier", boundary.get("hash", "unknown"))
-    boundary_date = boundary.get("date", "")
+    raw_date = boundary.get("date", "")
+    # Format date as just YYYY-MM-DD for boundaries
+    boundary_date = raw_date.date().isoformat() if raw_date else ""
 
     output.info(f"Processing boundary: {boundary_name} ({boundary_date})")
 
@@ -243,12 +245,15 @@ def handle_update_all_mode(
 
     success = True
 
-    # Process each boundary in chronological order (oldest first)
+    # Collect all boundary entries first, processing in chronological order (oldest first)
     # This ensures the AI has historical context from previously generated entries
-    # Note: Insertion point logic handles correct changelog placement regardless of processing order
+    boundary_entries = []
+
     for i, boundary in enumerate(boundaries):
         boundary_name = boundary.get("identifier", boundary.get("hash", "unknown"))
-        boundary_date = boundary.get("date", "")
+        raw_date = boundary.get("date", "")
+        # Format date as just YYYY-MM-DD for boundaries
+        boundary_date = raw_date.date().isoformat() if raw_date else ""
 
         output.info(f"Processing boundary: {boundary_name} ({boundary_date})")
 
@@ -276,25 +281,76 @@ def handle_update_all_mode(
                 output.warning(f"AI generated empty content for boundary {boundary_name}")
                 continue
 
-            # Update changelog with this boundary
-            from kittylog.changelog.updater import _update_version_section
-
-            # Create the version section
+            # Collect the version section for later insertion
             version_section = (
                 f"## [{format_version_for_changelog(boundary_name, existing_content)}] - {boundary_date}\n\n{entry}"
             )
-            existing_content = _update_version_section(existing_content, version_section, boundary_name)
-
-            # Save incrementally if enabled and not in dry run mode
-            if incremental_save and not dry_run:
-                write_changelog(changelog_file, existing_content)
-                if not quiet:
-                    progress = f"({i + 1}/{len(boundaries)})"
-                    output.success(f"✓ Saved changelog entry for {boundary_name} {progress}")
+            boundary_entries.append({
+                'boundary_name': boundary_name,
+                'version_section': version_section,
+                'index': i  # For progress tracking
+            })
 
         except (AIError, OSError, TimeoutError, ValueError) as e:
             output.warning(f"Failed to generate entry for boundary {boundary_name}: {e}")
             success = False
             continue
+
+    # Insert all boundary entries in reverse order (newest first)
+    if boundary_entries:
+        output.info(f"Inserting {len(boundary_entries)} boundary entries in reverse chronological order")
+
+        # For date boundaries, use direct insertion to ensure correct order
+        lines = existing_content.split('\n')
+
+        # Find the insertion point (after Unreleased section, before first version)
+        insert_point = len(lines)  # Default to end
+
+        # Look for unreleased section and insert after it
+        for i, line in enumerate(lines):
+            if line.strip().startswith('## [Unreleased]'):
+                # Find the end of unreleased section
+                for j in range(i + 1, len(lines)):
+                    if lines[j].strip().startswith('## [') and 'Unreleased' not in lines[j]:
+                        insert_point = j
+                        break
+                    elif j == len(lines) - 1:  # End of file after unreleased
+                        insert_point = j + 1
+                        break
+                break
+        else:
+            # No unreleased section found, find first version section
+            for i, line in enumerate(lines):
+                if line.strip().startswith('## [') and 'Unreleased' not in line:
+                    insert_point = i
+                    break
+
+        # Insert all entries in reverse chronological order (newest first)
+        for entry_data in reversed(boundary_entries):
+            # Split the version section into lines
+            version_lines = entry_data['version_section'].split('\n')
+
+            # Insert at the correct position
+            for line in version_lines:
+                lines.insert(insert_point, line)
+                insert_point += 1
+
+            # Add spacing between entries
+            if insert_point < len(lines) and lines[insert_point].strip():
+                lines.insert(insert_point, '')
+                insert_point += 1
+
+            if not quiet:
+                progress = f"({entry_data['index'] + 1}/{len(boundaries)})"
+                output.success(f"✓ Inserted changelog entry for {entry_data['boundary_name']} {progress}")
+
+        # Reconstruct the content
+        existing_content = '\n'.join(lines)
+
+    # Final save if enabled and not in dry run mode
+    if boundary_entries and incremental_save and not dry_run:
+        write_changelog(changelog_file, existing_content)
+        if not quiet:
+            output.success(f"✓ Saved changelog with {len(boundary_entries)} new entries")
 
     return success, existing_content
