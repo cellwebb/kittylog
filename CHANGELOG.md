@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.9.2] - 2025-12-06
+
+### Fixed
+
+- Corrected commit range calculation to prevent grouping all commits from project start, ensuring accurate changelog entries between releases
+
 ## [2.9.1] - 2025-12-06
 
 ### Platform Improvements
