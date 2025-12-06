@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.8.0] - 2025-12-05
+
+### Changed
+
+- Completed major code refactoring to improve system maintainability and reduce technical debt
+- Centralized CLI parameter construction, reducing code duplication and improving consistency
+- Enhanced type safety across core modules with comprehensive type hints for better reliability
+
 ## [2.7.0] - 2025-12-05
 
 ### Added
