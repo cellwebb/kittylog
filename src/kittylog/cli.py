@@ -31,6 +31,72 @@ from kittylog.utils.logging import setup_command_logging
 logger = logging.getLogger(__name__)
 
 
+def _build_cli_options(
+    *,
+    # Workflow options
+    dry_run: bool,
+    quiet: bool,
+    verbose: bool,
+    yes: bool,
+    all_entries: bool,
+    no_unreleased: bool,
+    include_diff: bool,
+    interactive: bool,
+    audience: str | None,
+    language: str | None,
+    hint: str,
+    show_prompt: bool,
+    context_entries: int,
+    incremental_save: bool,
+    detail: str,
+    # Changelog options
+    file: str,
+    from_tag: str | None,
+    to_tag: str | None,
+    grouping_mode: str | None,
+    gap_threshold: float | None,
+    date_grouping: str | None,
+) -> tuple[WorkflowOptions, ChangelogOptions]:
+    """Build WorkflowOptions and ChangelogOptions from CLI parameters.
+
+    This helper centralizes the construction of option objects, reducing
+    boilerplate in command functions.
+
+    Returns:
+        Tuple of (WorkflowOptions, ChangelogOptions)
+    """
+    workflow_opts = WorkflowOptions(
+        dry_run=dry_run,
+        quiet=quiet,
+        verbose=verbose,
+        require_confirmation=not yes,
+        update_all_entries=all_entries,
+        no_unreleased=no_unreleased,
+        include_diff=include_diff,
+        interactive=interactive,
+        yes=yes,
+        audience=audience or EnvDefaults.AUDIENCE,
+        language=language or EnvDefaults.LANGUAGE,
+        hint=hint or "",
+        show_prompt=show_prompt,
+        context_entries_count=context_entries,
+        incremental_save=incremental_save,
+        detail_level=detail,
+    )
+
+    changelog_opts = ChangelogOptions(
+        changelog_file=file,
+        from_tag=from_tag,
+        to_tag=to_tag,
+        grouping_mode=grouping_mode or EnvDefaults.GROUPING_MODE,
+        gap_threshold_hours=gap_threshold or EnvDefaults.GAP_THRESHOLD_HOURS,
+        date_grouping=date_grouping or EnvDefaults.DATE_GROUPING,
+        special_unreleased_mode=False,
+    )
+
+    return workflow_opts, changelog_opts
+
+
 # Shared option decorators to reduce CLI duplication
 
 
@@ -262,37 +328,30 @@ def add(
         # Early validation of option combinations - fail fast instead of warnings
         _validate_cli_options(grouping_mode, from_tag, to_tag, gap_threshold, date_grouping)
 
-        # Create parameter objects directly - no compatibility layer needed
-        workflow_opts = WorkflowOptions(
+        # Build parameter objects using helper
+        workflow_opts, changelog_opts = _build_cli_options(
             dry_run=dry_run,
             quiet=quiet,
             verbose=verbose,
-            require_confirmation=not yes,
-            update_all_entries=all,
+            yes=yes,
+            all_entries=all,
             no_unreleased=no_unreleased,
             include_diff=include_diff,
             interactive=interactive,
-            yes=yes,
-            audience=selected_audience or EnvDefaults.AUDIENCE,
-            language=language or EnvDefaults.LANGUAGE,
-            hint=hint or "",
+            audience=selected_audience,
+            language=language,
+            hint=hint,
             show_prompt=show_prompt,
-            context_entries_count=context_entries,
+            context_entries=context_entries,
             incremental_save=incremental_save,
-            detail_level=detail,
-        )
-
-        changelog_opts = ChangelogOptions(
-            changelog_file=file,
+            detail=detail,
+            file=file,
             from_tag=from_tag,
             to_tag=to_tag,
-            grouping_mode=grouping_mode or EnvDefaults.GROUPING_MODE,
-            gap_threshold_hours=gap_threshold or EnvDefaults.GAP_THRESHOLD_HOURS,
-            date_grouping=date_grouping or EnvDefaults.DATE_GROUPING,
-            special_unreleased_mode=False,
+            grouping_mode=grouping_mode,
+            gap_threshold=gap_threshold,
+            date_grouping=date_grouping,
         )
-
-        # Language/audience already set in WorkflowOptions constructor
 
         # If a specific tag is provided, process only that tag
         if tag:
