@@ -327,13 +327,13 @@ def handle_update_all_mode(
                     insert_point = i
                     break
 
-        # Insert entries in reverse chronological order (newest first for proper ordering)
-        # Save incrementally after each insertion for progress resilience
-        for entry_data in reversed(boundary_entries):
+        # Insert entries in chronological order (oldest first)
+        # Each insert at fixed position pushes older entries down, resulting in newest on top
+        for entry_data in boundary_entries:
             # Split the version section into lines
             version_lines = entry_data["version_section"].split("\n")
 
-            # Insert at the fixed position (newest entries go first)
+            # Insert at the fixed position
             current_pos = insert_point
             for line in version_lines:
                 lines.insert(current_pos, line)
