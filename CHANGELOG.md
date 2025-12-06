@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.8.1] - 2025-12-05
+
+## [X.Y.Z]
+
+### Changed
+
+- Streamlined CLI command interface by reducing parameter count from 26 to 2, improving usability and maintainability
+- Simplified function signatures while maintaining full compatibility and passing all 587 tests
+
 ## [2.8.0] - 2025-12-05
 
 ### Changed
