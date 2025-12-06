@@ -272,13 +272,12 @@ def handle_missing_entries_mode(
                         insert_point = line_num
                         break
 
-            # Insert all entries in chronological order (oldest first)
-            # Each new entry is inserted at the same position, pushing older entries down
-            # This results in newest entries at top, oldest at bottom
-            for entry_data in boundary_entries:
+            # Insert entries in reverse chronological order (newest first for proper ordering)
+            # Save incrementally after each insertion for progress resilience
+            for entry_data in reversed(boundary_entries):
                 version_lines = str(entry_data["version_section"]).split("\n")
 
-                # Insert at the fixed position (don't advance insert_point between entries)
+                # Insert at the fixed position (newest entries go first)
                 current_pos = insert_point
                 for line in version_lines:
                     lines.insert(current_pos, line)
@@ -287,14 +286,20 @@ def handle_missing_entries_mode(
                 # Add spacing between entries
                 if current_pos < len(lines) and lines[current_pos].strip():
                     lines.insert(current_pos, "")
+                    current_pos += 1
 
+                # Save incrementally after each successful insertion
+                updated_content = "\n".join(lines)
                 if incremental_save and not dry_run:
-                    write_changelog(changelog_file, "\n".join(lines))
+                    write_changelog(changelog_file, updated_content)
                     if not quiet:
                         progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
                         output.success(f"✓ Saved changelog entry for {entry_data['boundary_id']} {progress}")
+                else:
+                    if not quiet:
+                        progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
+                        output.info(f"✓ Prepared changelog entry for {entry_data['boundary_id']} {progress}")
 
-            # Reconstruct the content
-            updated_content = "\n".join(lines)
+            # Note: updated_content is already up to date from incremental saves above
 
     return success, updated_content

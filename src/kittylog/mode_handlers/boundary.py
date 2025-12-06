@@ -327,14 +327,13 @@ def handle_update_all_mode(
                     insert_point = i
                     break
 
-        # Insert all entries in chronological order (oldest first)
-        # Each new entry is inserted at the same position, pushing older entries down
-        # This results in newest entries at top, oldest at bottom
-        for entry_data in boundary_entries:
+        # Insert entries in reverse chronological order (newest first for proper ordering)
+        # Save incrementally after each insertion for progress resilience
+        for entry_data in reversed(boundary_entries):
             # Split the version section into lines
             version_lines = entry_data["version_section"].split("\n")
 
-            # Insert at the fixed position (don't advance insert_point between entries)
+            # Insert at the fixed position (newest entries go first)
             current_pos = insert_point
             for line in version_lines:
                 lines.insert(current_pos, line)
@@ -343,16 +342,25 @@ def handle_update_all_mode(
             # Add spacing between entries
             if current_pos < len(lines) and lines[current_pos].strip():
                 lines.insert(current_pos, "")
+                current_pos += 1
 
-            if not quiet:
-                progress = f"({entry_data['index'] + 1}/{len(boundaries)})"
-                output.success(f"✓ Inserted changelog entry for {entry_data['boundary_name']} {progress}")
-
+            # Save incrementally after each successful insertion
+            existing_content = "\n".join(lines)
+            if incremental_save and not dry_run:
+                write_changelog(changelog_file, existing_content)
+                if not quiet:
+                    progress = f"({entry_data['index'] + 1}/{len(boundaries)})"
+                    output.success(f"✓ Saved changelog entry for {entry_data['boundary_name']} {progress}")
+            else:
+                if not quiet:
+                    progress = f"({entry_data['index'] + 1}/{len(boundaries)})"
+                    output.info(f"✓ Prepared changelog entry for {entry_data['boundary_name']} {progress}")
         # Reconstruct the content
         existing_content = "\n".join(lines)
 
-    # Final save if enabled and not in dry run mode
-    if boundary_entries and incremental_save and not dry_run:
+    # Note: Entries are already saved incrementally above if incremental_save is enabled
+    # Only do final save if incremental_save is disabled
+    if boundary_entries and not incremental_save and not dry_run:
         write_changelog(changelog_file, existing_content)
         if not quiet:
             output.success(f"✓ Saved changelog with {len(boundary_entries)} new entries")
