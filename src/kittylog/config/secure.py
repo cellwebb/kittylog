@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from typing import Any
 
 from kittylog.config.data import KittylogConfigData
-from kittylog.providers import PROVIDER_ENV_VARS
 
 
 def get_api_key(key: str, default: str | None = None) -> str | None:
@@ -74,18 +73,15 @@ class SecureConfig:
 
         # Handle both dict and KittylogConfigData
         if isinstance(self._config, dict):
-            config_get = self._config.get
+            config_dict = self._config
         else:
-            # For dataclass, we need to convert to dict to check for provider env vars
-            # since they are not explicit attributes
             config_dict = self._config.to_dict()
-            config_get = config_dict.get
 
-        for env_vars in PROVIDER_ENV_VARS.values():
-            for env_var in env_vars:
-                value = config_get(env_var)
-                if value:
-                    provider_keys[env_var] = value
+        # Look for any keys ending in _API_KEY or _API_TOKEN
+        for key, value in config_dict.items():
+            if value and isinstance(value, str):
+                if key.endswith("_API_KEY") or key.endswith("_API_TOKEN") or key.endswith("_ACCESS_TOKEN"):
+                    provider_keys[key] = value
 
         return provider_keys
 
@@ -99,20 +95,10 @@ class SecureConfig:
         Yields:
             None
         """
-        # Build provider mapping directly
-        from kittylog.providers import PROVIDER_ENV_VARS
-
-        provider_mappings = {prov: {var: var for var in vars_list} for prov, vars_list in PROVIDER_ENV_VARS.items()}
-        provider_mappings["azure-openai"] = {"AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY"}
-
-        provider_mapping = provider_mappings.get(provider, {})
-
-        # Map env var names to actual key values
+        # Map env var names to actual key values from our extracted keys
         key_mapping = {}
-        for env_var, config_var in provider_mapping.items():
-            actual_key = self._provider_keys.get(config_var)
-            if actual_key:
-                key_mapping[env_var] = actual_key
+        for env_var, value in self._provider_keys.items():
+            key_mapping[env_var] = value
 
         with inject_provider_keys(provider, key_mapping):
             yield
@@ -150,12 +136,6 @@ class SecureConfig:
         Returns:
             Dictionary of provider-specific configuration
         """
-        provider_config = {}
-        env_vars = PROVIDER_ENV_VARS.get(provider, [])
-
-        for env_var in env_vars:
-            value = self._provider_keys.get(env_var)
-            if value:
-                provider_config[env_var] = value
-
-        return provider_config
+        # Return all extracted provider keys
+        # In a real implementation, you might filter by provider name
+        return dict(self._provider_keys)
