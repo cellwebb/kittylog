@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.5.2] - 2025-12-05
+
+### Fixed
+
+- Resolve boundary key access issues in missing entries mode with robust fallbacks
+- Improve AI exception handling to prevent system exception swallowing
+- Fix test failures related to mock configurations and boundary dictionary handling
+
+### Changed
+
+- Extract shared logging setup utility to eliminate code duplication across CLI modules
+- Implement lazy environment file loading with performance caching and test isolation
+- Enhance provider registry with specific type annotations for improved type safety
+- Remove unused pydantic dependency and update project lock file
+- Simplify changelog header text by removing redundant semantic versioning reference
+
 ## [2.5.1] - 2025-12-05
 
 ### Added
