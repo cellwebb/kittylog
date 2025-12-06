@@ -4,15 +4,15 @@ import os
 from typing import Any
 
 from kittylog.errors import AIError
-from kittylog.providers.base import NoAuthProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 
 
-class LMStudioProvider(NoAuthProvider):
+class LMStudioProvider(OpenAICompatibleProvider):
     """LM Studio API provider with configurable local URL and optional API key."""
 
     config = ProviderConfig(
         name="LM Studio",
-        api_key_env="",
+        api_key_env="LMSTUDIO_API_KEY",
         base_url="http://localhost:1234",
         # Uses default path: /v1/chat/completions
     )
@@ -22,13 +22,9 @@ class LMStudioProvider(NoAuthProvider):
         # Allow configurable API URL via environment
         self.custom_api_url = os.getenv("LMSTUDIO_API_URL", "http://localhost:1234").rstrip("/")
 
-    def _build_headers(self) -> dict[str, str]:
-        """Build headers with optional API key."""
-        headers = super()._build_headers()
-        optional_api_key = os.getenv("LMSTUDIO_API_KEY")
-        if optional_api_key:
-            headers["Authorization"] = f"Bearer {optional_api_key}"
-        return headers
+    def _get_api_key(self) -> str:
+        """Get optional API key - LM Studio doesn't require one."""
+        return os.getenv("LMSTUDIO_API_KEY", "")
 
     def _get_api_url(self, model: str | None = None) -> str:
         """Get LM Studio API URL."""
@@ -38,15 +34,8 @@ class LMStudioProvider(NoAuthProvider):
         self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
     ) -> dict[str, Any]:
         """Build LM Studio request body."""
-        # Build OpenAI-compatible request body directly instead of calling super()
-        data = {
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": False,  # LM Studio requires this for non-streaming
-        }
-        # Add any additional kwargs
-        data.update(kwargs)
+        data = super()._build_request_body(messages, temperature, max_tokens, model, **kwargs)
+        data["stream"] = False  # LM Studio requires this for non-streaming
         return data
 
     def _parse_response(self, response: dict) -> str:

@@ -2,28 +2,29 @@
 
 import os
 
-from kittylog.providers.base import NoAuthProvider, ProviderConfig
+from kittylog.providers.base import OpenAICompatibleProvider, ProviderConfig
 
 
-class OllamaProvider(NoAuthProvider):
-    """Ollama AI API provider with dynamic URL support."""
+class OllamaProvider(OpenAICompatibleProvider):
+    """Ollama AI API provider with dynamic URL support and optional API key."""
 
     default_path: str = "/api/chat"
 
     config = ProviderConfig(
         name="Ollama",
-        api_key_env="",
+        api_key_env="OLLAMA_API_KEY",
         base_url="http://localhost:11434",
         # Uses default_path: /api/chat
     )
 
+    def _get_api_key(self) -> str:
+        """Get optional API key - Ollama doesn't require one by default."""
+        return os.getenv("OLLAMA_API_KEY", "")
+
     def _get_api_url(self, model: str | None = None) -> str:
         """Get Ollama API URL from env or default."""
         env_url = os.getenv("OLLAMA_API_URL") or os.getenv("OLLAMA_HOST")
-        if env_url:
-            base_url = env_url.rstrip("/")
-        else:
-            base_url = self.config.base_url.rstrip("/")
+        base_url = env_url.rstrip("/") if env_url else self.config.base_url.rstrip("/")
         return f"{base_url}{self.default_path}"
 
     def _build_request_body(

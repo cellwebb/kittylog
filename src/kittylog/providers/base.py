@@ -2,7 +2,6 @@
 
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,7 +9,6 @@ import httpx
 
 from kittylog.errors import AIError
 from kittylog.providers.protocol import ProviderProtocol
-from kittylog.providers.registry import register_provider
 
 
 @dataclass
@@ -55,20 +53,6 @@ class BaseConfiguredProvider(ABC, ProviderProtocol):
     """
 
     default_path: str = ""  # Subclasses should override with their default path
-
-    @classmethod
-    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
-        """Register this class as a provider.
-
-        Args:
-            provider_name: Name to register the provider under
-            env_vars: List of required environment variables
-            api_function: The API call function for the provider
-
-        Returns:
-            Decorated class ready for auto-registration
-        """
-        return register_provider(provider_name, env_vars, api_function)(cls)
 
     def __init__(self, config: ProviderConfig):
         self.config = config
@@ -265,20 +249,6 @@ class OpenAICompatibleProvider(BaseConfiguredProvider):
 
     default_path: str = "/v1/chat/completions"
 
-    @classmethod
-    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
-        """Register this class as a provider.
-
-        Args:
-            provider_name: Name to register the provider under
-            env_vars: List of required environment variables
-            api_function: The API call function for the provider
-
-        Returns:
-            Decorated class ready for auto-registration
-        """
-        return register_provider(provider_name, env_vars, api_function)(cls)
-
     def _build_headers(self) -> dict[str, str]:
         """Build headers with OpenAI-style authorization."""
         headers = super()._build_headers()
@@ -309,20 +279,6 @@ class AnthropicCompatibleProvider(BaseConfiguredProvider):
     """Base class for Anthropic-compatible providers."""
 
     default_path: str = "/v1/messages"
-
-    @classmethod
-    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
-        """Register this class as a provider.
-
-        Args:
-            provider_name: Name to register the provider under
-            env_vars: List of required environment variables
-            api_function: The API call function for the provider
-
-        Returns:
-            Decorated class ready for auto-registration
-        """
-        return register_provider(provider_name, env_vars, api_function)(cls)
 
     def _build_headers(self) -> dict[str, str]:
         """Build headers with Anthropic-style authorization."""
@@ -367,55 +323,8 @@ class AnthropicCompatibleProvider(BaseConfiguredProvider):
         return text_content
 
 
-class NoAuthProvider(BaseConfiguredProvider):
-    """Base class for providers that don't use API keys (like Ollama).
-
-    Uses OpenAI-compatible default path since most no-auth providers follow that format.
-    """
-
-    default_path: str = "/v1/chat/completions"
-
-    @classmethod
-    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
-        """Register this class as a provider.
-
-        Args:
-            provider_name: Name to register the provider under
-            env_vars: List of required environment variables
-            api_function: The API call function for the provider
-
-        Returns:
-            Decorated class ready for auto-registration
-        """
-        return register_provider(provider_name, env_vars, api_function)(cls)
-
-    def __init__(self, config: ProviderConfig):
-        """Initialize without API key loading."""
-        self.config = config
-        self._api_key = "no-key-needed"
-
-    @property
-    def api_key(self) -> str:
-        """Return placeholder for no-key providers."""
-        return "no-key-needed"
-
-
 class GenericHTTPProvider(BaseConfiguredProvider):
     """Base class for completely custom providers."""
-
-    @classmethod
-    def register(cls, provider_name: str, env_vars: list[str], api_function: Callable):
-        """Register this class as a provider.
-
-        Args:
-            provider_name: Name to register the provider under
-            env_vars: List of required environment variables
-            api_function: The API call function for the provider
-
-        Returns:
-            Decorated class ready for auto-registration
-        """
-        return register_provider(provider_name, env_vars, api_function)(cls)
 
     def _build_request_body(
         self, messages: list[dict], temperature: float, max_tokens: int, model: str, **kwargs
@@ -454,7 +363,6 @@ __all__ = [
     "AnthropicCompatibleProvider",
     "BaseConfiguredProvider",
     "GenericHTTPProvider",
-    "NoAuthProvider",
     "OpenAICompatibleProvider",
     "ProviderConfig",
 ]
