@@ -22,7 +22,12 @@ def clean_changelog_content(content: str, preserve_version_header: bool = False)
 
     # Remove version headers unless we want to preserve them (for unreleased changes)
     if not preserve_version_header:
+        # Remove numeric version headers like ## [1.2.3] or ## v1.2.3
         content = re.sub(r"^##\s*\[?v?\d+\.\d+\.\d+[^\n]*\n?", "", content, flags=re.MULTILINE)
+        # Remove placeholder version headers like ## [X.Y.Z] that AI might output
+        content = re.sub(r"^##\s*\[X\.Y\.Z\][^\n]*\n?", "", content, flags=re.MULTILINE)
+        # Remove any other version-like headers (e.g., ## [Unreleased])
+        content = re.sub(r"^##\s*\[Unreleased\][^\n]*\n?", "", content, flags=re.MULTILINE | re.IGNORECASE)
 
     # Remove any "### Changelog" sections that might have been included
     content = re.sub(r"^###\s+Changelog\s*\n?", "", content, flags=re.MULTILINE)

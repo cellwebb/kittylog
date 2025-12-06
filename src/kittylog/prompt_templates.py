@@ -73,11 +73,11 @@ def _build_system_prompt_developers(detail_level: str = "normal") -> str:
 
 ## CRITICAL RULES - FOLLOW EXACTLY
 
-1. **OUTPUT FORMAT**: Start immediately with section headers. NO other text allowed.
+1. **OUTPUT FORMAT**: Start immediately with section headers (### Added, ### Changed, etc.). NO version headers, NO other text.
 2. **NO EXPLANATIONS**: Never write "Based on commits..." or "Here's the changelog..." or similar phrases
 3. **NO INTRODUCTIONS**: No preamble, analysis, or explanatory text whatsoever
 4. **DIRECT OUTPUT ONLY**: Your entire response must be valid changelog markdown sections
-5. **VERSION HEADER FOR UNRELEASED**: For unreleased changes, you MUST start with "## [X.Y.Z]" where X.Y.Z is the next semantic version
+5. **NO VERSION HEADERS**: Never output "## [X.Y.Z]" or "## [Unreleased]" - only output ### section headers
 
 ## Available Sections (use ONLY if you have content for them, in this exact order):
    1. **### Added** for completely new features/capabilities that didn't exist before
@@ -130,12 +130,10 @@ def _build_system_prompt_developers(detail_level: str = "normal") -> str:
 ## Formatting Requirements:
 - Use bullet points (- ) for changes
 - Separate sections with exactly one blank line
-- For unreleased changes: Start with "## [X.Y.Z]" where X.Y.Z is the determined next version, then add one blank line before sections
-- For tagged versions: Start directly with "### SectionName" - NO version headers
+- Start directly with "### SectionName" - NO version headers (## [X.Y.Z]) ever
 - ALWAYS use the standard Keep a Changelog section order: Added, Changed, Deprecated, Removed, Fixed, Security
 
-## EXAMPLE VALID OUTPUT (correct order):
-## [1.2.0]
+## EXAMPLE VALID OUTPUT (correct order - NO version header):
 
 ### Added
 - Support for PostgreSQL database backend (new capability)
@@ -326,13 +324,8 @@ def _build_user_prompt(
 
     # Start with boundary context
     if tag is None:
-        version_context = "Generate a changelog entry for unreleased changes. "
-        version_context += "⚠️  CRITICAL: You MUST determine and include the next logical semantic version (major/minor/patch) at the VERY TOP of your response in the format: ## [X.Y.Z] followed by one blank line.\n\n"
-        version_context += "Based on commit analysis, determine the appropriate version increment:\n"
-        version_context += "- MAJOR bump (X+1.0.0): Breaking changes, 'feat!' or 'BREAKING CHANGE'\n"
-        version_context += "- MINOR bump (X.Y+1.0): New features, 'feat:' commits\n"
-        version_context += "- PATCH bump (X.Y.Z+1): Bug fixes, 'fix:' commits\n\n"
-        version_context += "The version header MUST be the very first line of your response - no exceptions!"
+        version_context = "Generate a changelog entry for unreleased changes.\n"
+        version_context += "DO NOT include any version header (## [X.Y.Z]) - start directly with ### section headers.\n"
     else:
         if boundary_mode == "tags":
             version_context = f"Generate a changelog entry for version {tag.lstrip('v')}"
@@ -366,15 +359,15 @@ def _build_user_prompt(
                 "CRITICAL LANGUAGE REQUIREMENTS:\n"
                 f"- Write the entire changelog (section headings and bullet text) in {language}.\n"
                 "- Translate the standard section names (Added, Changed, Deprecated, Removed, Fixed, Security) while preserving their order.\n"
-                "- Keep the markdown syntax (#, ##, ###, bullet lists) unchanged.\n"
-                "- The version header MUST remain in the format ## [X.Y.Z] with numeric values.\n\n"
+                "- Keep the markdown syntax (###, bullet lists) unchanged.\n"
+                "- DO NOT include any version headers - start directly with ### section headers.\n\n"
             )
         else:
             language_section = (
                 "CRITICAL LANGUAGE REQUIREMENTS:\n"
                 f"- Write all descriptive text and bullet points in {language}.\n"
                 "- KEEP the section headings (### Added, ### Changed, etc.) in English while translating their content.\n"
-                "- Maintain markdown syntax and the ## [X.Y.Z] version header format.\n\n"
+                "- Maintain markdown syntax. DO NOT include any version headers.\n\n"
             )
 
     audience_instructions = {
@@ -430,17 +423,14 @@ def _build_user_prompt(
     # Instructions
     instructions = """## Instructions:
 
-⚠️  CRITICAL REMINDER: For unreleased changes, your response MUST start with "## [X.Y.Z]" as the very first line, followed by one blank line, then the changelog sections.
-
-Generate ONLY the changelog sections for the above commits. For unreleased changes, start with "## [X.Y.Z]" where X.Y.Z is the determined next version, then one blank line, then the sections.
+Generate ONLY the changelog sections for the above commits. Start directly with ### section headers (### Added, ### Changed, etc.).
+DO NOT include any version headers like "## [X.Y.Z]" or "## [Unreleased]" - the system handles version headers automatically.
 
 Focus on:
 1. User-facing changes and their impact
 2. Important technical improvements
 3. Bug fixes and their effects
 4. Breaking changes
-
-For unreleased changes: Analyze commits to determine if this should be a major (breaking changes), minor (new features), or patch (bug fixes) version bump.
 
 CRITICAL: OMIT SECTIONS WITHOUT CONTENT
 - If there are no bug fixes, DO NOT include the "### Fixed" section at all
