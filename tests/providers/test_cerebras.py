@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.cerebras import call_cerebras_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.cerebras.ai/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestCerebrasProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_cerebras_api(
+        result = PROVIDER_REGISTRY["cerebras"](
             model="llama3.1-8b",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestCerebrasProvider:
         monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_cerebras_api(
+            PROVIDER_REGISTRY["cerebras"](
                 model="llama3.1-8b",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -68,7 +68,7 @@ class TestCerebrasProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_cerebras_api(
+            PROVIDER_REGISTRY["cerebras"](
                 model="llama3.1-8b",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -84,7 +84,7 @@ class TestCerebrasProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_cerebras_api(
+            PROVIDER_REGISTRY["cerebras"](
                 model="llama3.1-8b",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -102,7 +102,7 @@ class TestCerebrasProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_cerebras_api(
+        result = PROVIDER_REGISTRY["cerebras"](
             model="llama3.1-8b",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -125,7 +125,7 @@ class TestCerebrasProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_cerebras_api(
+        result = PROVIDER_REGISTRY["cerebras"](
             model="llama3.1-8b",
             messages=dummy_conversation,
             temperature=0.7,
@@ -148,7 +148,7 @@ class TestCerebrasProvider:
             }
         ]
 
-        result = call_cerebras_api(
+        result = PROVIDER_REGISTRY["cerebras"](
             model="llama3.1-8b",
             messages=messages,
             temperature=0.7,

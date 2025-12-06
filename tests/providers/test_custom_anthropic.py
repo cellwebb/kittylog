@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.custom_anthropic import call_custom_anthropic_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_BASE_URL = "https://custom.anthropic.ai"
@@ -32,7 +32,7 @@ class TestCustomAnthropicProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_anthropic_api(
+        result = PROVIDER_REGISTRY["custom-anthropic"](
             model="claude-3-haiku-20240307",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -63,7 +63,7 @@ class TestCustomAnthropicProvider:
         monkeypatch.delenv("CUSTOM_ANTHROPIC_BASE_URL", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_anthropic_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["custom-anthropic"]("test-model", dummy_messages, 0.7, 32)
 
         assert "CUSTOM_ANTHROPIC_BASE_URL" in str(exc_info.value)
 
@@ -73,7 +73,7 @@ class TestCustomAnthropicProvider:
         monkeypatch.setenv("CUSTOM_ANTHROPIC_BASE_URL", API_BASE_URL)
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_anthropic_api(
+            PROVIDER_REGISTRY["custom-anthropic"](
                 model="claude-3-haiku-20240307",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -98,7 +98,7 @@ class TestCustomAnthropicProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_anthropic_api(
+            PROVIDER_REGISTRY["custom-anthropic"](
                 model="claude-3-haiku-20240307",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -121,7 +121,7 @@ class TestCustomAnthropicProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_anthropic_api(
+            PROVIDER_REGISTRY["custom-anthropic"](
                 model="claude-3-haiku-20240307",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -143,7 +143,7 @@ class TestCustomAnthropicProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_anthropic_api(
+        result = PROVIDER_REGISTRY["custom-anthropic"](
             model="claude-3-haiku-20240307",
             messages=dummy_messages,
             temperature=0.7,
@@ -172,7 +172,7 @@ class TestCustomAnthropicProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_anthropic_api(
+        result = PROVIDER_REGISTRY["custom-anthropic"](
             model="claude-3-haiku-20240307",
             messages=dummy_conversation,
             temperature=0.7,
@@ -198,7 +198,7 @@ class TestCustomAnthropicProvider:
             }
         ]
 
-        result = call_custom_anthropic_api(
+        result = PROVIDER_REGISTRY["custom-anthropic"](
             model="claude-3-haiku-20240307",
             messages=messages,
             temperature=0.7,

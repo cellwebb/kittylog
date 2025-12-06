@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.kimi_coding import call_kimi_coding_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.kimi.com/coding/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestKimiCodingProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_kimi_coding_api(
+        result = PROVIDER_REGISTRY["kimi-coding"](
             model="moonshot-v1-8k",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestKimiCodingProvider:
         monkeypatch.delenv("KIMI_CODING_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_kimi_coding_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["kimi-coding"]("test-model", dummy_messages, 0.7, 32)
 
         assert "KIMI_CODING_API_KEY" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestKimiCodingProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_kimi_coding_api(
+            PROVIDER_REGISTRY["kimi-coding"](
                 model="moonshot-v1-8k",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -79,7 +79,7 @@ class TestKimiCodingProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_kimi_coding_api(
+            PROVIDER_REGISTRY["kimi-coding"](
                 model="moonshot-v1-8k",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -97,7 +97,7 @@ class TestKimiCodingProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_kimi_coding_api(
+        result = PROVIDER_REGISTRY["kimi-coding"](
             model="moonshot-v1-8k",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -120,7 +120,7 @@ class TestKimiCodingProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_kimi_coding_api(
+        result = PROVIDER_REGISTRY["kimi-coding"](
             model="moonshot-v1-8k",
             messages=dummy_conversation,
             temperature=0.7,
@@ -143,7 +143,7 @@ class TestKimiCodingProvider:
             }
         ]
 
-        result = call_kimi_coding_api(
+        result = PROVIDER_REGISTRY["kimi-coding"](
             model="moonshot-v1-8k",
             messages=messages,
             temperature=0.7,

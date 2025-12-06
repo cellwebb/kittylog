@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.lmstudio import call_lmstudio_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "http://localhost:1234/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestLmstudioProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_lmstudio_api(
+        result = PROVIDER_REGISTRY["lm-studio"](
             model="local-model",
             messages=dummy_messages,
             temperature=0.7,
@@ -52,7 +52,7 @@ class TestLmstudioProvider:
         # This should not raise an error since API key is optional for LM Studio
         try:
             # We expect this to fail due to connection error (no running server), not auth
-            call_lmstudio_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["lm-studio"]("test-model", dummy_messages, 0.7, 32)
         except AIError as exc_info:
             # Should be connection error, not auth error
             assert (
@@ -68,7 +68,7 @@ class TestLmstudioProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_lmstudio_api(
+            PROVIDER_REGISTRY["lm-studio"](
                 model="local-model",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -84,7 +84,7 @@ class TestLmstudioProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_lmstudio_api(
+            PROVIDER_REGISTRY["lm-studio"](
                 model="local-model",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -102,7 +102,7 @@ class TestLmstudioProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_lmstudio_api(
+        result = PROVIDER_REGISTRY["lm-studio"](
             model="local-model",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -125,7 +125,7 @@ class TestLmstudioProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_lmstudio_api(
+        result = PROVIDER_REGISTRY["lm-studio"](
             model="local-model",
             messages=dummy_conversation,
             temperature=0.7,
@@ -148,7 +148,7 @@ class TestLmstudioProvider:
             }
         ]
 
-        result = call_lmstudio_api(
+        result = PROVIDER_REGISTRY["lm-studio"](
             model="local-model",
             messages=messages,
             temperature=0.7,

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.moonshot import call_moonshot_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.moonshot.ai/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestMoonshotProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_moonshot_api(
+        result = PROVIDER_REGISTRY["moonshot"](
             model="moonshot-v1-8k",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestMoonshotProvider:
         monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_moonshot_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["moonshot"]("test-model", dummy_messages, 0.7, 32)
 
         assert "MOONSHOT_API_KEY" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestMoonshotProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_moonshot_api(
+            PROVIDER_REGISTRY["moonshot"](
                 model="moonshot-v1-8k",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -79,7 +79,7 @@ class TestMoonshotProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_moonshot_api(
+            PROVIDER_REGISTRY["moonshot"](
                 model="moonshot-v1-8k",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -97,7 +97,7 @@ class TestMoonshotProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_moonshot_api(
+        result = PROVIDER_REGISTRY["moonshot"](
             model="moonshot-v1-8k",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -120,7 +120,7 @@ class TestMoonshotProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_moonshot_api(
+        result = PROVIDER_REGISTRY["moonshot"](
             model="moonshot-v1-8k",
             messages=dummy_conversation,
             temperature=0.7,
@@ -143,7 +143,7 @@ class TestMoonshotProvider:
             }
         ]
 
-        result = call_moonshot_api(
+        result = PROVIDER_REGISTRY["moonshot"](
             model="moonshot-v1-8k",
             messages=messages,
             temperature=0.7,

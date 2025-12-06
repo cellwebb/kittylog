@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.azure_openai import call_azure_openai_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://test.openai.azure.com"
@@ -32,7 +32,7 @@ class TestAzureOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_azure_openai_api(
+        result = PROVIDER_REGISTRY["azure-openai"](
             model="gpt-4",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -57,7 +57,7 @@ class TestAzureOpenAIProvider:
         monkeypatch.delenv("AZURE_OPENAI_API_VERSION", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_azure_openai_api(
+            PROVIDER_REGISTRY["azure-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -73,7 +73,7 @@ class TestAzureOpenAIProvider:
         monkeypatch.delenv("AZURE_OPENAI_API_VERSION", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_azure_openai_api(
+            PROVIDER_REGISTRY["azure-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -96,7 +96,7 @@ class TestAzureOpenAIProvider:
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         # Should succeed with default version
-        result = call_azure_openai_api(
+        result = PROVIDER_REGISTRY["azure-openai"](
             model="gpt-4",
             messages=dummy_messages,
             temperature=0.7,
@@ -121,7 +121,7 @@ class TestAzureOpenAIProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_azure_openai_api(
+            PROVIDER_REGISTRY["azure-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -144,7 +144,7 @@ class TestAzureOpenAIProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_azure_openai_api(
+            PROVIDER_REGISTRY["azure-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -169,7 +169,7 @@ class TestAzureOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_azure_openai_api(
+        result = PROVIDER_REGISTRY["azure-openai"](
             model="gpt-4",
             messages=dummy_conversation,
             temperature=0.7,
@@ -195,7 +195,7 @@ class TestAzureOpenAIProvider:
             }
         ]
 
-        result = call_azure_openai_api(
+        result = PROVIDER_REGISTRY["azure-openai"](
             model="gpt-4",
             messages=messages,
             temperature=0.7,

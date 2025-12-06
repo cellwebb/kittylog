@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.streamlake import call_streamlake_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://vanchin.streamlake.ai/api/gateway/v1/endpoints/chat/completions"
@@ -22,7 +22,7 @@ class TestStreamlakeProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_streamlake_api(
+        result = PROVIDER_REGISTRY["streamlake"](
             model="gpt-4",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestStreamlakeProvider:
         monkeypatch.delenv("STREAMLAKE_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_streamlake_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["streamlake"]("test-model", dummy_messages, 0.7, 32)
 
         assert "STREAMLAKE_API_KEY" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestStreamlakeProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_streamlake_api(
+            PROVIDER_REGISTRY["streamlake"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -79,7 +79,7 @@ class TestStreamlakeProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_streamlake_api(
+            PROVIDER_REGISTRY["streamlake"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -97,7 +97,7 @@ class TestStreamlakeProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_streamlake_api(
+        result = PROVIDER_REGISTRY["streamlake"](
             model="gpt-4",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -120,7 +120,7 @@ class TestStreamlakeProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_streamlake_api(
+        result = PROVIDER_REGISTRY["streamlake"](
             model="gpt-4",
             messages=dummy_conversation,
             temperature=0.7,
@@ -143,7 +143,7 @@ class TestStreamlakeProvider:
             }
         ]
 
-        result = call_streamlake_api(
+        result = PROVIDER_REGISTRY["streamlake"](
             model="gpt-4",
             messages=messages,
             temperature=0.7,

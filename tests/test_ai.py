@@ -114,7 +114,7 @@ class TestGenerateWithRetries:
         """Test successful generation on first try."""
         # Import here to avoid ImportError during test collection
         from kittylog.ai import generate_with_retries
-        from kittylog.providers import call_openai_api
+        from kittylog.providers import PROVIDER_REGISTRY
 
         # Mock API key
         mock_getenv.return_value = "anthropic:claude-3-haiku-20240307"
@@ -126,7 +126,7 @@ class TestGenerateWithRetries:
         mock_post.return_value = mock_response
 
         result = generate_with_retries(
-            provider_funcs={"openai": call_openai_api},
+            provider_funcs={"openai": PROVIDER_REGISTRY["openai"]},
             model="openai:test-model",
             system_prompt="System prompt",
             user_prompt="User prompt",

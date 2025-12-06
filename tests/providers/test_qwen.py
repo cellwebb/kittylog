@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.qwen import call_qwen_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 
 class TestQwenImports:
@@ -18,10 +18,11 @@ class TestQwenImports:
         from kittylog.providers import qwen  # noqa: F401
 
     def test_import_api_function(self):
-        """Test that Qwen API function can be imported and is callable."""
-        from kittylog.providers.qwen import call_qwen_api
+        """Test that Qwen API function is registered and callable."""
+        from kittylog.providers import PROVIDER_REGISTRY
 
-        assert callable(call_qwen_api)
+        assert "qwen" in PROVIDER_REGISTRY
+        assert callable(PROVIDER_REGISTRY["qwen"])
 
 
 class TestQwenOAuthValidation:
@@ -35,7 +36,7 @@ class TestQwenOAuthValidation:
             mock_provider_class.return_value = mock_provider
 
             with pytest.raises(AIError) as exc_info:
-                call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+                PROVIDER_REGISTRY["qwen"]("qwen3-coder-plus", [], 0.7, 1000)
 
             assert exc_info.value.error_type == "authentication"
 
@@ -61,7 +62,7 @@ class TestCallQwenApi:
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response
 
-            result = call_qwen_api(
+            result = PROVIDER_REGISTRY["qwen"](
                 model="qwen3-coder-plus",
                 messages=[{"role": "user", "content": "Hello"}],
                 temperature=0.7,
@@ -95,7 +96,7 @@ class TestCallQwenApi:
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response
 
-            result = call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+            result = PROVIDER_REGISTRY["qwen"]("qwen3-coder-plus", [], 0.7, 1000)
 
             # Verify custom URL was used
             call_args = mock_post.call_args
@@ -122,7 +123,7 @@ class TestCallQwenApi:
             mock_post.return_value = mock_response
 
             with pytest.raises(AIError) as exc_info:
-                call_qwen_api("qwen3-coder-plus", [], 0.7, 1000)
+                PROVIDER_REGISTRY["qwen"]("qwen3-coder-plus", [], 0.7, 1000)
 
             assert "invalid response" in str(exc_info.value).lower() or "missing" in str(exc_info.value).lower()
 
@@ -145,7 +146,7 @@ class TestCallQwenApi:
             mock_post.return_value = mock_response
 
             with pytest.raises(AIError) as exc_info:
-                call_qwen_api(
+                PROVIDER_REGISTRY["qwen"](
                     model="qwen3-coder-plus",
                     messages=[{"role": "user", "content": "Hello"}],
                     temperature=0.7,
@@ -154,8 +155,8 @@ class TestCallQwenApi:
 
             assert "missing" in str(exc_info.value).lower() or "content" in str(exc_info.value).lower()
 
-    def test_empty_content_returns_empty_string(self):
-        """Test that API returning empty content returns empty string (not an error)."""
+    def test_empty_content_raises_error(self):
+        """Test that API returning empty content raises an error."""
         with (
             patch("kittylog.providers.qwen.QwenOAuthProvider") as mock_provider_class,
             patch("kittylog.providers.base.httpx.post") as mock_post,
@@ -172,14 +173,15 @@ class TestCallQwenApi:
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response
 
-            # Empty string is a valid response, not an error
-            result = call_qwen_api(
-                model="qwen3-coder-plus",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                max_tokens=100,
-            )
-            assert result == ""
+            # Empty content should raise an error
+            with pytest.raises(AIError) as exc_info:
+                PROVIDER_REGISTRY["qwen"](
+                    model="qwen3-coder-plus",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+            assert "empty content" in str(exc_info.value).lower()
 
     def test_authentication_error(self):
         """Test 401 authentication error."""
@@ -205,7 +207,7 @@ class TestCallQwenApi:
             mock_post.return_value = mock_response
 
             with pytest.raises(AIError):
-                call_qwen_api(
+                PROVIDER_REGISTRY["qwen"](
                     model="qwen3-coder-plus",
                     messages=[{"role": "user", "content": "Hello"}],
                     temperature=0.7,
@@ -236,7 +238,7 @@ class TestCallQwenApi:
             mock_post.return_value = mock_response
 
             with pytest.raises(AIError) as exc_info:
-                call_qwen_api(
+                PROVIDER_REGISTRY["qwen"](
                     model="qwen3-coder-plus",
                     messages=[{"role": "user", "content": "Hello"}],
                     temperature=0.7,
@@ -261,7 +263,7 @@ class TestCallQwenApi:
             mock_post.side_effect = httpx.TimeoutException("Request timed out")
 
             with pytest.raises(AIError) as exc_info:
-                call_qwen_api(
+                PROVIDER_REGISTRY["qwen"](
                     model="qwen3-coder-plus",
                     messages=[{"role": "user", "content": "Hello"}],
                     temperature=0.7,

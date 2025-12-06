@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.custom_openai import call_custom_openai_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_BASE_URL = "https://custom.openai.ai"
@@ -24,7 +24,7 @@ class TestCustomOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_openai_api(
+        result = PROVIDER_REGISTRY["custom-openai"](
             model="gpt-4",
             messages=dummy_messages,
             temperature=0.7,
@@ -53,7 +53,7 @@ class TestCustomOpenAIProvider:
         monkeypatch.delenv("CUSTOM_OPENAI_BASE_URL", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_openai_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["custom-openai"]("test-model", dummy_messages, 0.7, 32)
 
         assert "CUSTOM_OPENAI_BASE_URL" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestCustomOpenAIProvider:
         monkeypatch.setenv("CUSTOM_OPENAI_BASE_URL", API_BASE_URL)
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_openai_api(
+            PROVIDER_REGISTRY["custom-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -81,7 +81,7 @@ class TestCustomOpenAIProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_openai_api(
+            PROVIDER_REGISTRY["custom-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -97,7 +97,7 @@ class TestCustomOpenAIProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_custom_openai_api(
+            PROVIDER_REGISTRY["custom-openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -115,7 +115,7 @@ class TestCustomOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_openai_api(
+        result = PROVIDER_REGISTRY["custom-openai"](
             model="gpt-4",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -138,7 +138,7 @@ class TestCustomOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_custom_openai_api(
+        result = PROVIDER_REGISTRY["custom-openai"](
             model="gpt-4",
             messages=dummy_conversation,
             temperature=0.7,
@@ -164,7 +164,7 @@ class TestCustomOpenAIProvider:
             }
         ]
 
-        result = call_custom_openai_api(
+        result = PROVIDER_REGISTRY["custom-openai"](
             model="gpt-4",
             messages=messages,
             temperature=0.7,

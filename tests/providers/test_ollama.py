@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.ollama import call_ollama_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_URL = "http://localhost:11434"
 API_ENDPOINT = "http://localhost:11434/api/chat"
@@ -22,7 +22,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_messages,
             temperature=0.7,
@@ -53,7 +53,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api("test-model", dummy_messages, 0.7, 32)
+        result = PROVIDER_REGISTRY["ollama"]("test-model", dummy_messages, 0.7, 32)
 
         assert result == "Test response"
 
@@ -70,7 +70,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_messages,
             temperature=0.7,
@@ -91,7 +91,7 @@ class TestOllamaProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_ollama_api(
+            PROVIDER_REGISTRY["ollama"](
                 model="llama2",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -107,7 +107,7 @@ class TestOllamaProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_ollama_api(
+            PROVIDER_REGISTRY["ollama"](
                 model="llama2",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -127,7 +127,7 @@ class TestOllamaProvider:
             }
         ]
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=messages,
             temperature=0.7,
@@ -145,7 +145,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -168,7 +168,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_conversation,
             temperature=0.7,
@@ -189,7 +189,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        call_ollama_api(
+        PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_messages,
             temperature=0.7,
@@ -210,7 +210,7 @@ class TestOllamaProvider:
         response_data = {"message": {"content": "Test response"}}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_ollama_api(
+        result = PROVIDER_REGISTRY["ollama"](
             model="llama2",
             messages=dummy_messages,
             temperature=0.7,

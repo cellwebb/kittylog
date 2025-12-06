@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.gemini import call_gemini_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -22,7 +22,7 @@ class TestGeminiProvider:
         response_data = {"candidates": [{"content": {"parts": [{"text": "Test response"}]}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_gemini_api(
+        result = PROVIDER_REGISTRY["gemini"](
             model="gemini-pro",
             messages=dummy_messages,
             temperature=0.7,
@@ -53,7 +53,7 @@ class TestGeminiProvider:
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_gemini_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["gemini"]("test-model", dummy_messages, 0.7, 32)
 
         assert "GEMINI_API_KEY" in str(exc_info.value)
 
@@ -66,7 +66,7 @@ class TestGeminiProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_gemini_api(
+            PROVIDER_REGISTRY["gemini"](
                 model="gemini-pro",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -82,7 +82,7 @@ class TestGeminiProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_gemini_api(
+            PROVIDER_REGISTRY["gemini"](
                 model="gemini-pro",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -100,7 +100,7 @@ class TestGeminiProvider:
         response_data = {"candidates": [{"content": {"parts": [{"text": "Test response"}]}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_gemini_api(
+        result = PROVIDER_REGISTRY["gemini"](
             model="gemini-pro",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -122,7 +122,7 @@ class TestGeminiProvider:
         response_data = {"candidates": [{"content": {"parts": [{"text": "Test response"}]}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_gemini_api(
+        result = PROVIDER_REGISTRY["gemini"](
             model="gemini-pro",
             messages=dummy_conversation,
             temperature=0.7,
@@ -152,7 +152,7 @@ class TestGeminiProvider:
             }
         ]
 
-        result = call_gemini_api(
+        result = PROVIDER_REGISTRY["gemini"](
             model="gemini-2.0-flash",
             messages=messages,
             temperature=0.7,

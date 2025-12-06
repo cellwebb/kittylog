@@ -22,14 +22,14 @@ class TestProviderAuthenticationErrors:
 
     def test_missing_api_key_raises_ai_error(self):
         """Test that missing API key raises AIError."""
-        from kittylog.providers.anthropic import call_anthropic_api
+        from kittylog.providers import PROVIDER_REGISTRY
 
         with (
             patch.dict("os.environ", {}, clear=True),
             patch("os.getenv", return_value=None),
             pytest.raises(AIError),
         ):
-            call_anthropic_api(
+            PROVIDER_REGISTRY["anthropic"](
                 model="claude-3-haiku",
                 messages=[{"role": "user", "content": "test"}],
                 temperature=0.7,

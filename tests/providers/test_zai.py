@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.zai import call_zai_api, call_zai_coding_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.z.ai/api/paas/v4/chat/completions"
@@ -25,7 +25,7 @@ class TestZAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_zai_api(
+        result = PROVIDER_REGISTRY["zai"](
             model="gpt-4o",
             messages=dummy_messages,
             temperature=0.7,
@@ -46,7 +46,7 @@ class TestZAIProvider:
         response_data = {"choices": [{"message": {"content": "Coding response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_zai_coding_api(
+        result = PROVIDER_REGISTRY["zai-coding"](
             model="gpt-4o",
             messages=dummy_messages,
             temperature=0.7,
@@ -65,7 +65,7 @@ class TestZAIProvider:
         monkeypatch.delenv("ZAI_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_zai_api("gpt-4o", dummy_messages, 0.7, 100)
+            PROVIDER_REGISTRY["zai"]("gpt-4o", dummy_messages, 0.7, 100)
 
         assert "ZAI_API_KEY" in str(exc_info.value)
 
@@ -74,7 +74,7 @@ class TestZAIProvider:
         monkeypatch.delenv("ZAI_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_zai_coding_api("gpt-4o", dummy_messages, 0.7, 100)
+            PROVIDER_REGISTRY["zai-coding"]("gpt-4o", dummy_messages, 0.7, 100)
 
         assert "ZAI_API_KEY" in str(exc_info.value)
 
@@ -87,7 +87,7 @@ class TestZAIProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_zai_api(
+            PROVIDER_REGISTRY["zai"](
                 model="gpt-4o",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -103,7 +103,7 @@ class TestZAIProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_zai_api(
+            PROVIDER_REGISTRY["zai"](
                 model="gpt-4o",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -121,7 +121,7 @@ class TestZAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_zai_api(
+        result = PROVIDER_REGISTRY["zai"](
             model="gpt-4o",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -144,7 +144,7 @@ class TestZAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_zai_api(
+        result = PROVIDER_REGISTRY["zai"](
             model="gpt-4o",
             messages=dummy_conversation,
             temperature=0.7,
@@ -167,7 +167,7 @@ class TestZAIProvider:
             }
         ]
 
-        result = call_zai_api(
+        result = PROVIDER_REGISTRY["zai"](
             model="gpt-4o",
             messages=messages,
             temperature=0.7,
@@ -187,7 +187,7 @@ class TestZAIProvider:
             }
         ]
 
-        result = call_zai_coding_api(
+        result = PROVIDER_REGISTRY["zai-coding"](
             model="gpt-4o",
             messages=messages,
             temperature=0.7,

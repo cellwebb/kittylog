@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.openai import call_openai_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openai_api(
+        result = PROVIDER_REGISTRY["openai"](
             model="gpt-4",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestOpenAIProvider:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_openai_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["openai"]("test-model", dummy_messages, 0.7, 32)
 
         assert "OPENAI_API_KEY" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestOpenAIProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_openai_api(
+            PROVIDER_REGISTRY["openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -79,7 +79,7 @@ class TestOpenAIProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_openai_api(
+            PROVIDER_REGISTRY["openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -99,7 +99,7 @@ class TestOpenAIProvider:
             }
         ]
 
-        result = call_openai_api(
+        result = PROVIDER_REGISTRY["openai"](
             model="gpt-4",
             messages=messages,
             temperature=0.7,
@@ -117,7 +117,7 @@ class TestOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openai_api(
+        result = PROVIDER_REGISTRY["openai"](
             model="gpt-4",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -140,7 +140,7 @@ class TestOpenAIProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openai_api(
+        result = PROVIDER_REGISTRY["openai"](
             model="gpt-4",
             messages=dummy_conversation,
             temperature=0.7,
@@ -162,7 +162,7 @@ class TestOpenAIProvider:
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         for model in openai_models:
-            result = call_openai_api(
+            result = PROVIDER_REGISTRY["openai"](
                 model=model,
                 messages=dummy_messages,
                 temperature=0.7,
@@ -182,7 +182,7 @@ class TestOpenAIProvider:
         response_data = {"choices": [{"message": {"content": '{"result": "test"}'}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openai_api(
+        result = PROVIDER_REGISTRY["openai"](
             model="gpt-4",
             messages=dummy_messages,
             temperature=0.7,
@@ -198,18 +198,19 @@ class TestOpenAIProvider:
     @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
     def test_call_openai_api_empty_response(self, mock_post, dummy_messages, mock_http_response_factory):
-        """Test OpenAI API call handles empty response."""
+        """Test OpenAI API call raises error for empty response."""
         response_data = {"choices": [{"message": {"content": ""}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openai_api(
-            model="gpt-4",
-            messages=dummy_messages,
-            temperature=0.7,
-            max_tokens=100,
-        )
+        with pytest.raises(AIError) as exc_info:
+            PROVIDER_REGISTRY["openai"](
+                model="gpt-4",
+                messages=dummy_messages,
+                temperature=0.7,
+                max_tokens=100,
+            )
 
-        assert result == ""  # Empty string should be returned
+        assert "empty content" in str(exc_info.value).lower()
 
     @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"OPENAI_API_KEY": API_KEY})
@@ -219,7 +220,7 @@ class TestOpenAIProvider:
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         with pytest.raises(AIError) as exc_info:
-            call_openai_api(
+            PROVIDER_REGISTRY["openai"](
                 model="gpt-4",
                 messages=dummy_messages,
                 temperature=0.7,

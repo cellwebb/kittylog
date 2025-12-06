@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.replicate import call_replicate_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://api.replicate.com/v1/predictions"
@@ -30,7 +30,7 @@ class TestReplicateProvider:
         status_response = {"status": "succeeded", "output": "Test response"}
         mock_get.return_value = mock_http_response_factory.create_success_response(status_response)
 
-        result = call_replicate_api(
+        result = PROVIDER_REGISTRY["replicate"](
             model="meta/meta-llama-3-8b-instruct",
             messages=dummy_messages,
             temperature=0.7,
@@ -62,7 +62,7 @@ class TestReplicateProvider:
         monkeypatch.delenv("REPLICATE_API_TOKEN", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_replicate_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["replicate"]("test-model", dummy_messages, 0.7, 32)
 
         assert "REPLICATE_API_TOKEN" in str(exc_info.value)
 
@@ -75,7 +75,7 @@ class TestReplicateProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_replicate_api(
+            PROVIDER_REGISTRY["replicate"](
                 model="meta/meta-llama-3-8b-instruct",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -91,7 +91,7 @@ class TestReplicateProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_replicate_api(
+            PROVIDER_REGISTRY["replicate"](
                 model="meta/meta-llama-3-8b-instruct",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -115,7 +115,7 @@ class TestReplicateProvider:
         status_response = {"status": "succeeded", "output": "Test response"}
         mock_get.return_value = mock_http_response_factory.create_success_response(status_response)
 
-        result = call_replicate_api(
+        result = PROVIDER_REGISTRY["replicate"](
             model="meta/meta-llama-3-8b-instruct",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -145,7 +145,7 @@ class TestReplicateProvider:
         status_response = {"status": "succeeded", "output": "Test response"}
         mock_get.return_value = mock_http_response_factory.create_success_response(status_response)
 
-        result = call_replicate_api(
+        result = PROVIDER_REGISTRY["replicate"](
             model="meta/meta-llama-3-8b-instruct",
             messages=dummy_conversation,
             temperature=0.7,
@@ -171,7 +171,7 @@ class TestReplicateProvider:
             }
         ]
 
-        result = call_replicate_api(
+        result = PROVIDER_REGISTRY["replicate"](
             model="meta/meta-llama-3-8b-instruct",
             messages=messages,
             temperature=0.7,

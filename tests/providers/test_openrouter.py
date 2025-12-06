@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.openrouter import call_openrouter_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-key"
 API_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
@@ -22,7 +22,7 @@ class TestOpenrouterProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openrouter_api(
+        result = PROVIDER_REGISTRY["openrouter"](
             model="openai/gpt-3.5-turbo",
             messages=dummy_messages,
             temperature=0.7,
@@ -50,7 +50,7 @@ class TestOpenrouterProvider:
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_openrouter_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["openrouter"]("test-model", dummy_messages, 0.7, 32)
 
         assert "OPENROUTER_API_KEY" in str(exc_info.value)
 
@@ -63,7 +63,7 @@ class TestOpenrouterProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_openrouter_api(
+            PROVIDER_REGISTRY["openrouter"](
                 model="openai/gpt-3.5-turbo",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -79,7 +79,7 @@ class TestOpenrouterProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_openrouter_api(
+            PROVIDER_REGISTRY["openrouter"](
                 model="openai/gpt-3.5-turbo",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -97,7 +97,7 @@ class TestOpenrouterProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openrouter_api(
+        result = PROVIDER_REGISTRY["openrouter"](
             model="openai/gpt-3.5-turbo",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -120,7 +120,7 @@ class TestOpenrouterProvider:
         response_data = {"choices": [{"message": {"content": "Test response"}}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_openrouter_api(
+        result = PROVIDER_REGISTRY["openrouter"](
             model="openai/gpt-3.5-turbo",
             messages=dummy_conversation,
             temperature=0.7,
@@ -143,7 +143,7 @@ class TestOpenrouterProvider:
             }
         ]
 
-        result = call_openrouter_api(
+        result = PROVIDER_REGISTRY["openrouter"](
             model="openai/gpt-3.5-turbo",
             messages=messages,
             temperature=0.7,

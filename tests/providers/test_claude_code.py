@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from kittylog.errors import AIError
-from kittylog.providers.claude_code import call_claude_code_api
+from kittylog.providers import PROVIDER_REGISTRY
 
 API_KEY = "test-access-token"
 API_ENDPOINT = "https://api.anthropic.com/v1/messages"
@@ -22,7 +22,7 @@ class TestClaudeCodeProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_claude_code_api(
+        result = PROVIDER_REGISTRY["claude-code"](
             model="claude-code",
             messages=dummy_messages,
             temperature=0.7,
@@ -51,7 +51,7 @@ class TestClaudeCodeProvider:
         monkeypatch.delenv("CLAUDE_CODE_ACCESS_TOKEN", raising=False)
 
         with pytest.raises(AIError) as exc_info:
-            call_claude_code_api("test-model", dummy_messages, 0.7, 32)
+            PROVIDER_REGISTRY["claude-code"]("test-model", dummy_messages, 0.7, 32)
 
         assert "CLAUDE_CODE_ACCESS_TOKEN" in str(exc_info.value)
 
@@ -64,7 +64,7 @@ class TestClaudeCodeProvider:
         )
 
         with pytest.raises(AIError) as exc_info:
-            call_claude_code_api(
+            PROVIDER_REGISTRY["claude-code"](
                 model="claude-code",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -80,7 +80,7 @@ class TestClaudeCodeProvider:
         mock_post.side_effect = Exception("Connection failed")
 
         with pytest.raises(AIError) as exc_info:
-            call_claude_code_api(
+            PROVIDER_REGISTRY["claude-code"](
                 model="claude-code",
                 messages=dummy_messages,
                 temperature=0.7,
@@ -98,7 +98,7 @@ class TestClaudeCodeProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_claude_code_api(
+        result = PROVIDER_REGISTRY["claude-code"](
             model="claude-code",
             messages=dummy_messages_with_system,
             temperature=0.7,
@@ -122,7 +122,7 @@ class TestClaudeCodeProvider:
         response_data = {"content": [{"text": "Test response"}]}
         mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
-        result = call_claude_code_api(
+        result = PROVIDER_REGISTRY["claude-code"](
             model="claude-code",
             messages=dummy_conversation,
             temperature=0.7,
@@ -145,7 +145,7 @@ class TestClaudeCodeProvider:
             }
         ]
 
-        result = call_claude_code_api(
+        result = PROVIDER_REGISTRY["claude-code"](
             model="claude-code",
             messages=messages,
             temperature=0.7,
