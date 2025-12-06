@@ -143,7 +143,7 @@ def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
 
     # Create boundaries (take the last commit of each group)
     boundaries = []
-    for group_date, group_commits in sorted(grouped_commits.items()):
+    for _group_date, group_commits in sorted(grouped_commits.items()):
         boundary_commit = group_commits[-1]  # Last commit in the group
         boundary_commit["boundary_type"] = "date"
         # Use the actual commit date as the identifier - this gives us the last day of the period
