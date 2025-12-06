@@ -3,6 +3,7 @@
 This module creates prompts for AI models to generate changelog entries from git commit data.
 """
 
+from kittylog.constants import Audiences
 from kittylog.prompt_cleaning import categorize_commit_by_message, clean_changelog_content
 from kittylog.prompt_templates import _build_system_prompt, _build_user_prompt
 
@@ -34,7 +35,9 @@ def build_changelog_prompt(
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
-    system_prompt = _build_system_prompt()
+    # Resolve audience to canonical slug
+    resolved_audience = Audiences.resolve(audience) if audience else "developers"
+    system_prompt = _build_system_prompt(audience=resolved_audience)
     user_prompt = _build_user_prompt(
         commits,
         tag,

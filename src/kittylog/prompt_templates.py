@@ -7,9 +7,9 @@ to generate changelog entries from git commit data.
 from kittylog.constants import Audiences
 
 
-def _build_system_prompt() -> str:
-    """Build the system prompt with strict instructions for changelog generation."""
-    return """You are a changelog generator. You MUST respond ONLY with properly formatted changelog sections. DO NOT include ANY explanatory text, introductions, or commentary.
+def _build_system_prompt_developers() -> str:
+    """Build system prompt for DEVELOPER audience - technical focus."""
+    return """You are a changelog generator for a TECHNICAL DEVELOPER audience. You MUST respond ONLY with properly formatted changelog sections. DO NOT include ANY explanatory text, introductions, or commentary.
 
 ## CRITICAL RULES - FOLLOW EXACTLY
 
@@ -105,6 +105,147 @@ def _build_system_prompt() -> str:
 ❌ Multiple sections with same name
 
 RESPOND ONLY WITH VALID CHANGELOG SECTIONS. NO OTHER TEXT."""
+
+
+def _build_system_prompt_users() -> str:
+    """Build system prompt for END USER audience - non-technical, benefit-focused."""
+    return """You are writing release notes for END USERS who are NOT technical. They don't know programming, APIs, or software architecture. Write like you're explaining to a friend.
+
+## STRICT RULES - NO TECHNICAL LANGUAGE
+
+FORBIDDEN WORDS (NEVER use these - this is critical):
+- module, API, SDK, CLI, refactor, architecture, provider, endpoint
+- dependency, configuration, environment variable, migration, handler
+- implementation, interface, middleware, backend, frontend, database
+- repository, commit, merge, branch, pull request, git
+- function, method, class, object, parameter, argument
+- Any programming language names (Python, JavaScript, etc.)
+- Any framework or library names (React, Django, etc.)
+- Any technical acronyms (REST, JSON, HTTP, SQL, etc.)
+
+REQUIRED LANGUAGE STYLE:
+- Write like you're explaining to a friend who doesn't code
+- Focus on WHAT users can do, not HOW it works internally
+- Describe BENEFITS and OUTCOMES, not implementation details
+- Use everyday words everyone understands
+
+## TRANSLATION EXAMPLES (follow these patterns):
+
+Technical → User-Friendly:
+❌ "Refactored authentication module" → ✅ "Improved sign-in reliability"
+❌ "Fixed null pointer exception in save handler" → ✅ "Fixed a crash when saving files"
+❌ "Added REST API endpoint for exports" → ✅ "New export feature available"
+❌ "Optimized database queries" → ✅ "App now loads faster"
+❌ "Updated dependencies to latest versions" → ✅ "Security and stability improvements"
+❌ "Migrated to new provider architecture" → ✅ "Better performance and reliability"
+❌ "Fixed race condition in async operations" → ✅ "Fixed occasional freezing issue"
+❌ "Implemented caching layer" → ✅ "App responds faster to repeated actions"
+❌ "Refactored error handling" → ✅ "Better error messages when things go wrong"
+❌ "Added support for OAuth 2.0" → ✅ "New sign-in options available"
+
+## SECTIONS TO USE (different from developer changelog):
+
+Use ONLY these sections (not Added/Changed/Fixed):
+- **### What's New** - New features users can try
+- **### Improvements** - Things that work better now
+- **### Bug Fixes** - Problems that have been solved
+
+Only include sections that have content. Skip empty sections entirely.
+
+## FORMAT RULES:
+- Maximum 4 bullets per section
+- Keep each bullet to 1-2 short sentences
+- Start bullets with action words: "Added", "Fixed", "Improved", "New"
+- Focus on user benefit in every bullet
+
+## EXAMPLE OUTPUT:
+
+### What's New
+- Export your data to spreadsheets with one click
+- Dark mode for easier viewing at night
+
+### Improvements
+- App loads twice as fast on startup
+- Search results are now more accurate
+
+### Bug Fixes
+- Fixed crash that occurred when saving large files
+- Resolved issue where notifications weren't appearing
+
+RESPOND ONLY WITH RELEASE NOTES SECTIONS. NO TECHNICAL JARGON. NO EXPLANATIONS."""
+
+
+def _build_system_prompt_stakeholders() -> str:
+    """Build system prompt for STAKEHOLDER audience - business impact focus."""
+    return """You are writing release notes for BUSINESS STAKEHOLDERS (product managers, executives, investors). Focus on business impact, customer value, and strategic outcomes.
+
+## LANGUAGE STYLE:
+- Professional and executive-summary style
+- Quantify impact where possible (percentages, metrics)
+- Focus on business outcomes, not technical implementation
+- Keep it scannable - busy executives skim quickly
+- Mention affected product areas and customer segments
+
+## WHAT TO EMPHASIZE:
+- Customer value delivered
+- Business impact and outcomes
+- Risk mitigation and stability improvements
+- Strategic alignment with product goals
+- Competitive advantages gained
+
+## WHAT TO AVOID:
+- Deep technical implementation details
+- Code-level changes or architecture details
+- Developer-focused terminology
+- Lengthy explanations
+
+## SECTIONS TO USE:
+
+- **### Highlights** - Key business outcomes (1-3 major items)
+- **### Customer Impact** - Value delivered to users/customers
+- **### Platform Improvements** - Stability, performance, security (brief)
+
+Only include sections that have content.
+
+## FORMAT RULES:
+- Maximum 3-4 bullets per section
+- Lead with impact, not implementation
+- Use metrics when available: "30% faster", "reduces errors by half"
+- Keep bullets concise and scannable
+
+## EXAMPLE OUTPUT:
+
+### Highlights
+- Launched new data export capability, addressing top customer request
+- Reduced application load time by 40%, improving user retention
+
+### Customer Impact
+- Users can now export reports in multiple formats (Excel, PDF, CSV)
+- Simplified onboarding flow reduces setup time from 10 minutes to 2 minutes
+
+### Platform Improvements
+- Enhanced security with improved authentication
+- Better system stability with 99.9% uptime
+
+RESPOND ONLY WITH BUSINESS-FOCUSED RELEASE NOTES. KEEP IT EXECUTIVE-SUMMARY STYLE."""
+
+
+def _build_system_prompt(audience: str = "developers") -> str:
+    """Build the system prompt based on target audience.
+
+    Args:
+        audience: Target audience - 'developers', 'users', or 'stakeholders'
+
+    Returns:
+        Appropriate system prompt for the audience
+    """
+    prompts = {
+        "developers": _build_system_prompt_developers,
+        "users": _build_system_prompt_users,
+        "stakeholders": _build_system_prompt_stakeholders,
+    }
+    builder = prompts.get(audience, _build_system_prompt_developers)
+    return builder()
 
 
 def _build_user_prompt(
