@@ -24,6 +24,7 @@ from kittylog.output import get_output_manager
 from kittylog.release_cli import release as release_cli
 from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
+from kittylog.ui.banner import print_banner
 from kittylog.utils.logging import setup_command_logging
 
 # No need for lazy loading - breaking compatibility for cleaner code
@@ -381,6 +382,13 @@ def cli(ctx, version):
         output = get_output_manager()
         output.echo(f"kittylog version: {__version__}")
         sys.exit(0)
+
+    # Print banner on startup
+    # We check for quiet flag manually in sys.argv to avoid printing in quiet mode
+    # before the command options are parsed and logging is set up.
+    if "-q" not in sys.argv and "--quiet" not in sys.argv:
+        print_banner(get_output_manager())
+
     # If no subcommand was invoked, run the add command by default
     if ctx.invoked_subcommand is None:
         ctx.invoke(
