@@ -215,11 +215,13 @@ def handle_missing_entries_mode(
             version_section = f"## [{version_name}] - {version_date}\n\n{entry}"
 
             # Collect the entry for later insertion
-            boundary_entries.append({
-                'boundary_id': boundary_id,
-                'version_section': version_section,
-                'index': i  # For progress tracking
-            })
+            boundary_entries.append(
+                {
+                    "boundary_id": boundary_id,
+                    "version_section": version_section,
+                    "index": i,  # For progress tracking
+                }
+            )
 
         except (GitError, AIError, OSError, TimeoutError, ValueError, KeyError) as e:
             output.warning(f"Failed to process boundary {boundary_id}: {e}")
@@ -232,9 +234,9 @@ def handle_missing_entries_mode(
             # For tags mode, use original logic as semantic versions should work correctly
             lines = updated_content.split("\n")
             for entry_data in reversed(boundary_entries):
-                insert_point = find_insertion_point_by_version(updated_content, entry_data['boundary_id'])
-                version_section = str(entry_data['version_section'])
-                for j, line in enumerate(version_section.split('\n')):
+                insert_point = find_insertion_point_by_version(updated_content, entry_data["boundary_id"])
+                version_section = str(entry_data["version_section"])
+                for j, line in enumerate(version_section.split("\n")):
                     lines.insert(insert_point + j, line)
 
                 updated_content = "\n".join(lines)
@@ -246,17 +248,17 @@ def handle_missing_entries_mode(
                         output.success(f"✓ Saved changelog entry for {entry_data['boundary_id']} {progress}")
         else:
             # For dates and gaps modes, use direct insertion (like in boundary.py)
-            lines = updated_content.split('\n')
+            lines = updated_content.split("\n")
 
             # Find the insertion point (after Unreleased section, before first version)
             insert_point = len(lines)  # Default to end
 
             # Look for unreleased section and insert after it
             for line_num, line in enumerate(lines):
-                if line.strip().startswith('## [Unreleased]'):
+                if line.strip().startswith("## [Unreleased]"):
                     # Find the end of unreleased section
                     for j in range(line_num + 1, len(lines)):
-                        if lines[j].strip().startswith('## [') and 'Unreleased' not in lines[j]:
+                        if lines[j].strip().startswith("## [") and "Unreleased" not in lines[j]:
                             insert_point = j
                             break
                         elif j == len(lines) - 1:  # End of file after unreleased
@@ -266,13 +268,13 @@ def handle_missing_entries_mode(
             else:
                 # No unreleased section found, find first version section
                 for line_num, line in enumerate(lines):
-                    if line.strip().startswith('## [') and 'Unreleased' not in line:
+                    if line.strip().startswith("## [") and "Unreleased" not in line:
                         insert_point = line_num
                         break
 
             # Insert all entries in reverse chronological order (newest first)
             for entry_data in reversed(boundary_entries):
-                version_lines = str(entry_data['version_section']).split('\n')
+                version_lines = str(entry_data["version_section"]).split("\n")
 
                 # Insert at the correct position
                 for line in version_lines:
@@ -281,16 +283,16 @@ def handle_missing_entries_mode(
 
                 # Add spacing between entries
                 if insert_point < len(lines) and lines[insert_point].strip():
-                    lines.insert(insert_point, '')
+                    lines.insert(insert_point, "")
                     insert_point += 1
 
                 if incremental_save and not dry_run:
-                    write_changelog(changelog_file, '\n'.join(lines))
+                    write_changelog(changelog_file, "\n".join(lines))
                     if not quiet:
                         progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
                         output.success(f"✓ Saved changelog entry for {entry_data['boundary_id']} {progress}")
 
             # Reconstruct the content
-            updated_content = '\n'.join(lines)
+            updated_content = "\n".join(lines)
 
     return success, updated_content

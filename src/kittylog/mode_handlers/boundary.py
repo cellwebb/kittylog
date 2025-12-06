@@ -285,11 +285,13 @@ def handle_update_all_mode(
             version_section = (
                 f"## [{format_version_for_changelog(boundary_name, existing_content)}] - {boundary_date}\n\n{entry}"
             )
-            boundary_entries.append({
-                'boundary_name': boundary_name,
-                'version_section': version_section,
-                'index': i  # For progress tracking
-            })
+            boundary_entries.append(
+                {
+                    "boundary_name": boundary_name,
+                    "version_section": version_section,
+                    "index": i,  # For progress tracking
+                }
+            )
 
         except (AIError, OSError, TimeoutError, ValueError) as e:
             output.warning(f"Failed to generate entry for boundary {boundary_name}: {e}")
@@ -301,17 +303,17 @@ def handle_update_all_mode(
         output.info(f"Inserting {len(boundary_entries)} boundary entries in reverse chronological order")
 
         # For date boundaries, use direct insertion to ensure correct order
-        lines = existing_content.split('\n')
+        lines = existing_content.split("\n")
 
         # Find the insertion point (after Unreleased section, before first version)
         insert_point = len(lines)  # Default to end
 
         # Look for unreleased section and insert after it
         for i, line in enumerate(lines):
-            if line.strip().startswith('## [Unreleased]'):
+            if line.strip().startswith("## [Unreleased]"):
                 # Find the end of unreleased section
                 for j in range(i + 1, len(lines)):
-                    if lines[j].strip().startswith('## [') and 'Unreleased' not in lines[j]:
+                    if lines[j].strip().startswith("## [") and "Unreleased" not in lines[j]:
                         insert_point = j
                         break
                     elif j == len(lines) - 1:  # End of file after unreleased
@@ -321,14 +323,14 @@ def handle_update_all_mode(
         else:
             # No unreleased section found, find first version section
             for i, line in enumerate(lines):
-                if line.strip().startswith('## [') and 'Unreleased' not in line:
+                if line.strip().startswith("## [") and "Unreleased" not in line:
                     insert_point = i
                     break
 
         # Insert all entries in reverse chronological order (newest first)
         for entry_data in reversed(boundary_entries):
             # Split the version section into lines
-            version_lines = entry_data['version_section'].split('\n')
+            version_lines = entry_data["version_section"].split("\n")
 
             # Insert at the correct position
             for line in version_lines:
@@ -337,7 +339,7 @@ def handle_update_all_mode(
 
             # Add spacing between entries
             if insert_point < len(lines) and lines[insert_point].strip():
-                lines.insert(insert_point, '')
+                lines.insert(insert_point, "")
                 insert_point += 1
 
             if not quiet:
@@ -345,7 +347,7 @@ def handle_update_all_mode(
                 output.success(f"✓ Inserted changelog entry for {entry_data['boundary_name']} {progress}")
 
         # Reconstruct the content
-        existing_content = '\n'.join(lines)
+        existing_content = "\n".join(lines)
 
     # Final save if enabled and not in dry run mode
     if boundary_entries and incremental_save and not dry_run:
