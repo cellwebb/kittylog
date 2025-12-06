@@ -1,130 +1,80 @@
-"""AI provider implementations for changelog generation."""
+"""AI provider implementations for changelog generation.
 
-from .anthropic import call_anthropic_api
-from .azure_openai import call_azure_openai_api
-from .cerebras import call_cerebras_api
-from .chutes import call_chutes_api
-from .claude_code import call_claude_code_api
-from .custom_anthropic import call_custom_anthropic_api
-from .custom_openai import call_custom_openai_api
-from .deepseek import call_deepseek_api
-from .fireworks import call_fireworks_api
-from .gemini import call_gemini_api
-from .groq import call_groq_api
-from .kimi_coding import call_kimi_coding_api
-from .lmstudio import call_lmstudio_api
-from .minimax import call_minimax_api
-from .mistral import call_mistral_api
-from .moonshot import call_moonshot_api
-from .ollama import call_ollama_api
-from .openai import call_openai_api
-from .openrouter import call_openrouter_api
-from .protocol import ProviderFunction, ProviderProtocol, validate_provider
-from .qwen import call_qwen_api
-from .replicate import call_replicate_api
-from .streamlake import call_streamlake_api
-from .synthetic import call_synthetic_api
-from .together import call_together_api
-from .zai import call_zai_api, call_zai_coding_api
+This module provides a unified interface to all AI providers. Provider classes
+are registered and wrapper functions are auto-generated with error handling.
 
-# Provider registry - single source of truth for all providers
-PROVIDER_REGISTRY = {
-    "anthropic": call_anthropic_api,
-    "azure-openai": call_azure_openai_api,
-    "cerebras": call_cerebras_api,
-    "chutes": call_chutes_api,
-    "claude-code": call_claude_code_api,
-    "custom-anthropic": call_custom_anthropic_api,
-    "custom-openai": call_custom_openai_api,
-    "deepseek": call_deepseek_api,
-    "fireworks": call_fireworks_api,
-    "gemini": call_gemini_api,
-    "groq": call_groq_api,
-    "kimi-coding": call_kimi_coding_api,
-    "lm-studio": call_lmstudio_api,
-    "minimax": call_minimax_api,
-    "mistral": call_mistral_api,
-    "moonshot": call_moonshot_api,
-    "ollama": call_ollama_api,
-    "openai": call_openai_api,
-    "openrouter": call_openrouter_api,
-    "qwen": call_qwen_api,
-    "replicate": call_replicate_api,
-    "streamlake": call_streamlake_api,
-    "synthetic": call_synthetic_api,
-    "together": call_together_api,
-    "zai": call_zai_api,
-    "zai-coding": call_zai_coding_api,
-}
+Usage:
+    from kittylog.providers import PROVIDER_REGISTRY
+
+    # Get the function for a provider
+    func = PROVIDER_REGISTRY["openai"]
+    result = func(model="gpt-4", messages=[...], temperature=0.7, max_tokens=1000)
+"""
+
+# Import provider classes for registration
+from .anthropic import AnthropicProvider
+from .azure_openai import AzureOpenAIProvider
+from .cerebras import CerebrasProvider
+from .chutes import ChutesProvider
+from .claude_code import ClaudeCodeProvider
+from .custom_anthropic import CustomAnthropicProvider
+from .custom_openai import CustomOpenAIProvider
+from .deepseek import DeepSeekProvider
+from .fireworks import FireworksProvider
+from .gemini import GeminiProvider
+from .groq import GroqProvider
+from .kimi_coding import KimiCodingProvider
+from .lmstudio import LMStudioProvider
+from .minimax import MiniMaxProvider
+from .mistral import MistralProvider
+from .moonshot import MoonshotProvider
+from .ollama import OllamaProvider
+from .openai import OpenAIProvider
+from .openrouter import OpenRouterProvider
+from .qwen import QwenProvider
+from .registry import (
+    PROVIDER_REGISTRY,
+    register_provider,
+)
+from .replicate import ReplicateProvider
+from .streamlake import StreamLakeProvider
+from .synthetic import SyntheticProvider
+from .together import TogetherProvider
+from .zai import ZAICodingProvider, ZAIProvider
+
+# Register all providers - this populates PROVIDER_REGISTRY automatically
+register_provider("anthropic", AnthropicProvider)
+register_provider("azure-openai", AzureOpenAIProvider)
+register_provider("cerebras", CerebrasProvider)
+register_provider("chutes", ChutesProvider)
+register_provider("claude-code", ClaudeCodeProvider)
+register_provider("custom-anthropic", CustomAnthropicProvider)
+register_provider("custom-openai", CustomOpenAIProvider)
+register_provider("deepseek", DeepSeekProvider)
+register_provider("fireworks", FireworksProvider)
+register_provider("gemini", GeminiProvider)
+register_provider("groq", GroqProvider)
+register_provider("kimi-coding", KimiCodingProvider)
+register_provider("lm-studio", LMStudioProvider)
+register_provider("minimax", MiniMaxProvider)
+register_provider("mistral", MistralProvider)
+register_provider("moonshot", MoonshotProvider)
+register_provider("ollama", OllamaProvider)
+register_provider("openai", OpenAIProvider)
+register_provider("openrouter", OpenRouterProvider)
+register_provider("qwen", QwenProvider)
+register_provider("replicate", ReplicateProvider)
+register_provider("streamlake", StreamLakeProvider)
+register_provider("synthetic", SyntheticProvider)
+register_provider("together", TogetherProvider)
+register_provider("zai", ZAIProvider)
+register_provider("zai-coding", ZAICodingProvider)
 
 # List of supported provider names - derived from registry keys
 SUPPORTED_PROVIDERS = sorted(PROVIDER_REGISTRY.keys())
 
-# API keys and environment variables for all providers - single source of truth
-PROVIDER_ENV_VARS = {
-    "anthropic": ["ANTHROPIC_API_KEY"],
-    "azure-openai": ["AZURE_OPENAI_API_KEY"],
-    "cerebras": ["CEREBRAS_API_KEY"],
-    "chutes": ["CHUTES_API_KEY", "CHUTES_BASE_URL"],
-    "claude-code": ["CLAUDE_CODE_ACCESS_TOKEN"],
-    "custom-anthropic": ["CUSTOM_ANTHROPIC_API_KEY", "CUSTOM_ANTHROPIC_BASE_URL", "CUSTOM_ANTHROPIC_VERSION"],
-    "custom-openai": ["CUSTOM_OPENAI_API_KEY", "CUSTOM_OPENAI_BASE_URL"],
-    "deepseek": ["DEEPSEEK_API_KEY"],
-    "fireworks": ["FIREWORKS_API_KEY"],
-    "gemini": ["GEMINI_API_KEY"],
-    "groq": ["GROQ_API_KEY"],
-    "kimi-coding": ["KIMI_CODING_API_KEY"],
-    "lm-studio": ["LMSTUDIO_API_KEY", "LMSTUDIO_API_URL"],
-    "minimax": ["MINIMAX_API_KEY"],
-    "mistral": ["MISTRAL_API_KEY"],
-    "moonshot": ["MOONSHOT_API_KEY"],
-    "ollama": ["OLLAMA_API_URL", "OLLAMA_HOST"],
-    "openai": ["OPENAI_API_KEY"],
-    "openrouter": ["OPENROUTER_API_KEY"],
-    "qwen": ["QWEN_API_KEY"],
-    "replicate": ["REPLICATE_API_KEY", "REPLICATE_API_TOKEN"],
-    "streamlake": ["STREAMLAKE_API_KEY", "VC_API_KEY"],
-    "synthetic": ["SYNTHETIC_API_KEY", "SYN_API_KEY"],
-    "together": ["TOGETHER_API_KEY"],
-    "zai": ["ZAI_API_KEY"],
-    "zai-coding": ["ZAI_API_KEY"],
-}
-
-# All API keys that should be exported to environment
-ALL_API_KEYS = sorted({var for vars_list in PROVIDER_ENV_VARS.values() for var in vars_list})
-
 __all__ = [
-    "ALL_API_KEYS",
-    "PROVIDER_ENV_VARS",
     "PROVIDER_REGISTRY",
     "SUPPORTED_PROVIDERS",
-    "ProviderFunction",
-    "ProviderProtocol",
-    "call_anthropic_api",
-    "call_azure_openai_api",
-    "call_cerebras_api",
-    "call_chutes_api",
-    "call_claude_code_api",
-    "call_custom_anthropic_api",
-    "call_custom_openai_api",
-    "call_deepseek_api",
-    "call_fireworks_api",
-    "call_gemini_api",
-    "call_groq_api",
-    "call_kimi_coding_api",
-    "call_lmstudio_api",
-    "call_minimax_api",
-    "call_mistral_api",
-    "call_moonshot_api",
-    "call_ollama_api",
-    "call_openai_api",
-    "call_openrouter_api",
-    "call_qwen_api",
-    "call_replicate_api",
-    "call_streamlake_api",
-    "call_synthetic_api",
-    "call_together_api",
-    "call_zai_api",
-    "call_zai_coding_api",
-    "validate_provider",
+    "register_provider",
 ]
