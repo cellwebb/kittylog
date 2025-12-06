@@ -15,7 +15,6 @@ from kittylog.config import ChangelogOptions, WorkflowOptions
 from kittylog.config import config as config_cli
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
-from kittylog.init_changelog_cli import init_changelog
 from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
@@ -416,7 +415,6 @@ def cli(ctx, version):
 cli.add_command(config_cli)
 cli.add_command(init_cli)
 cli.add_command(language_cli)
-cli.add_command(init_changelog)
 cli.add_command(add_cli)
 cli.add_command(update_version, "update")
 cli.add_command(release_cli, "release")
