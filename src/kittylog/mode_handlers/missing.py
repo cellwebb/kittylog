@@ -145,19 +145,37 @@ def handle_missing_entries_mode(
         try:
             boundary = boundary_map[boundary_id]
 
+            # Find the previous boundary to use as a starting point
+            boundary_idx = -1
+            for idx, b in enumerate(all_boundaries):
+                # Calculate identifier for comparison matches how boundary_map specific keys were created
+                b_id = (
+                    b.get("identifier")
+                    or b.get("name")
+                    or b.get("display_name")
+                    or str(b.get("date", "unknown"))
+                )
+                if b_id == boundary_id:
+                    boundary_idx = idx
+                    break
+            
+            prev_boundary = all_boundaries[boundary_idx - 1] if boundary_idx > 0 else None
+
             # Get commits for this boundary
             if mode == "tags":
                 # For tags mode, use the existing tag-based function
                 tag_name = boundary.get("name", boundary_id)
+                from_tag_name = prev_boundary.get("name", prev_boundary.get("identifier")) if prev_boundary else None
+                
                 commits = get_commits_between_tags(
-                    from_tag=None,  # From beginning
+                    from_tag=from_tag_name,  # From previous tag
                     to_tag=tag_name,
                 )
                 tag = tag_name
             else:
                 # For dates and gaps modes, use the boundary-aware function
                 commits = get_commits_between_boundaries(
-                    from_boundary=None,  # From beginning
+                    from_boundary=prev_boundary,  # From previous boundary
                     to_boundary=boundary,
                     mode=mode,
                 )
