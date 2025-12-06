@@ -6,7 +6,8 @@ based on commit patterns and time gaps.
 
 import logging
 import subprocess
-from datetime import timedelta
+from datetime import date, timedelta
+from typing import Any
 
 import git
 from git import InvalidGitRepositoryError
@@ -17,6 +18,10 @@ from kittylog.tag_operations import get_repo
 from kittylog.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
+
+# Type aliases for better readability
+CommitDict = dict[str, Any]
+BoundaryDict = dict[str, Any]
 
 
 @cached
@@ -117,7 +122,7 @@ def get_commits_by_date_boundaries(date_grouping: str = "daily") -> list[dict]:
         return []
 
     # Group commits by date
-    grouped_commits: dict = {}
+    grouped_commits: dict[date, list[CommitDict]] = {}
     for commit in commits:
         commit_date = commit["date"]
 
@@ -279,7 +284,9 @@ def get_commits_between_tags(from_tag: str | None, to_tag: str | None) -> list[d
         ) from e
 
 
-def get_commits_between_boundaries(from_boundary: dict | None, to_boundary: dict | None, mode: str) -> list[dict]:
+def get_commits_between_boundaries(
+    from_boundary: BoundaryDict | None, to_boundary: BoundaryDict | None, mode: str
+) -> list[CommitDict]:
     """Get commits between two boundaries based on the specified mode.
 
     Args:

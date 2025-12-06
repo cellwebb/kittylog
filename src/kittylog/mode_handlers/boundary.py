@@ -1,20 +1,29 @@
 """Boundary mode handlers for kittylog."""
 
+from collections.abc import Callable
+from typing import Any
+
 from kittylog.commit_analyzer import get_commits_between_boundaries
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries
 from kittylog.utils.text import format_version_for_changelog
 
+# Type alias for the entry generator function
+EntryGeneratorFunc = Callable[..., str]
+
+# Type alias for boundary dictionaries
+BoundaryDict = dict[str, Any]
+
 
 def handle_single_boundary_mode(
     changelog_file: str,
-    boundary: dict,
-    generate_entry_func,
+    boundary: BoundaryDict,
+    generate_entry_func: EntryGeneratorFunc,
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[bool, str]:
     """Handle single boundary mode workflow.
 
@@ -95,14 +104,14 @@ def handle_single_boundary_mode(
 
 def handle_boundary_range_mode(
     changelog_file: str,
-    from_boundary: dict | None,
-    to_boundary: dict,
-    generate_entry_func,
+    from_boundary: BoundaryDict | None,
+    to_boundary: BoundaryDict,
+    generate_entry_func: EntryGeneratorFunc,
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[bool, str]:
     """Handle boundary range mode workflow.
 
@@ -188,13 +197,13 @@ def handle_boundary_range_mode(
 
 def handle_update_all_mode(
     changelog_file: str,
-    generate_entry_func,
+    generate_entry_func: EntryGeneratorFunc,
     mode: str,
     quiet: bool = False,
     yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[bool, str]:
     """Handle update all mode workflow.
 

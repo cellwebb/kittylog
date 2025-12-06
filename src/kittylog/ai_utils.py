@@ -5,6 +5,7 @@ This module contains retry logic and other AI utilities.
 
 import logging
 import time
+from collections.abc import Callable
 
 import httpx
 
@@ -13,9 +14,12 @@ from kittylog.providers import SUPPORTED_PROVIDERS
 
 logger = logging.getLogger(__name__)
 
+# Type alias for provider functions (uses ... for flexible kwargs)
+ProviderFunc = Callable[..., str]
+
 
 def generate_with_retries(
-    provider_funcs: dict,
+    provider_funcs: dict[str, ProviderFunc],
     model: str,
     system_prompt: str,
     user_prompt: str,
