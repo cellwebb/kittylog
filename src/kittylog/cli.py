@@ -11,7 +11,7 @@ import click
 
 from kittylog import __version__
 from kittylog.auth_cli import auth as auth_cli
-from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
+from kittylog.config import ChangelogOptions, WorkflowOptions
 from kittylog.config import config as config_cli
 from kittylog.constants import Audiences, DateGrouping, EnvDefaults, GroupingMode, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
@@ -20,11 +20,11 @@ from kittylog.init_cli import init as init_cli
 from kittylog.language_cli import language as language_cli
 from kittylog.main import main_business_logic
 from kittylog.model_cli import model as model_cli
-from kittylog.output import get_output_manager, set_output_mode
+from kittylog.output import get_output_manager
 from kittylog.release_cli import release as release_cli
 from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
-from kittylog.utils import setup_logging
+from kittylog.utils.logging import setup_command_logging
 
 # No need for lazy loading - breaking compatibility for cleaner code
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 def workflow_options(f: Callable) -> Callable:
     """Decorator for workflow control options.
-    
+
     Adds options for controlling the changelog update workflow including:
     dry-run mode, auto-confirmation, processing scope, and save behavior.
     """
@@ -53,7 +53,7 @@ def workflow_options(f: Callable) -> Callable:
 
 def changelog_options(f: Callable) -> Callable:
     """Decorator for changelog file and content options.
-    
+
     Adds options for specifying changelog file location, tag ranges, language/audience,
     and content generation parameters.
     """
@@ -117,7 +117,7 @@ def changelog_options(f: Callable) -> Callable:
 
 def model_options(f: Callable) -> Callable:
     """Decorator for AI model selection options.
-    
+
     Adds options for overriding the default AI model used for changelog generation.
     """
     f = click.option("--model", "-m", default=None, help="Override default model")(f)
@@ -126,7 +126,7 @@ def model_options(f: Callable) -> Callable:
 
 def logging_options(f: Callable) -> Callable:
     """Decorator for logging and output control options.
-    
+
     Adds options for controlling output verbosity, log levels, and quiet mode.
     """
     f = click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")(f)
@@ -146,19 +146,6 @@ def common_options(f: Callable) -> Callable:
     f = model_options(f)
     f = logging_options(f)
     return f
-
-
-def setup_command_logging(log_level: str | None, verbose: bool, quiet: bool) -> None:
-    """Set up logging for CLI commands with consistent logic."""
-    effective_log_level = log_level or load_config().log_level or EnvDefaults.LOG_LEVEL
-    if verbose and effective_log_level not in ("DEBUG", "INFO"):
-        effective_log_level = "INFO"
-    if quiet:
-        effective_log_level = "ERROR"
-    setup_logging(effective_log_level)
-
-    # Configure output manager mode
-    set_output_mode(quiet=quiet, verbose=verbose)
 
 
 def _validate_cli_options(

@@ -6,12 +6,12 @@ import sys
 import click
 
 from kittylog.changelog.io import prepare_release, read_changelog
-from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
+from kittylog.config import ChangelogOptions, WorkflowOptions
 from kittylog.constants import EnvDefaults, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.main import main_business_logic
-from kittylog.output import get_output_manager, set_output_mode
-from kittylog.utils import setup_logging
+from kittylog.output import get_output_manager
+from kittylog.utils.logging import setup_command_logging
 
 logger = logging.getLogger(__name__)
 
@@ -59,16 +59,8 @@ def release(
         kittylog release v2.3.0 --dry-run   # Preview what would happen
     """
     try:
-        config = load_config()
-
-        # Set up logging
-        effective_log_level = log_level or config.log_level or EnvDefaults.LOG_LEVEL
-        if verbose and effective_log_level not in ("DEBUG", "INFO"):
-            effective_log_level = "INFO"
-        if quiet:
-            effective_log_level = "ERROR"
-        setup_logging(effective_log_level)
-        set_output_mode(quiet=quiet, verbose=verbose)
+        # Set up logging using shared utility
+        setup_command_logging(log_level, verbose, quiet)
 
         output = get_output_manager()
 

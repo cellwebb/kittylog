@@ -8,7 +8,9 @@ import sys
 from collections.abc import MutableMapping
 from typing import Any
 
-from kittylog.constants import Logging
+from kittylog.config import load_config
+from kittylog.constants import EnvDefaults, Logging
+from kittylog.output import set_output_mode
 
 
 def get_safe_encodings() -> list[str]:
@@ -134,6 +136,25 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
 
         kwargs["extra"] = extra
         return msg, kwargs
+
+
+def setup_command_logging(log_level: str | None, verbose: bool, quiet: bool) -> None:
+    """Set up logging for CLI commands with consistent logic.
+
+    Args:
+        log_level: Optional log level override
+        verbose: Whether to enable verbose output
+        quiet: Whether to suppress non-error output
+    """
+    effective_log_level = log_level or load_config().log_level or EnvDefaults.LOG_LEVEL
+    if verbose and effective_log_level not in ("DEBUG", "INFO"):
+        effective_log_level = "INFO"
+    if quiet:
+        effective_log_level = "ERROR"
+    setup_logging(effective_log_level)
+
+    # Configure output manager mode
+    set_output_mode(quiet=quiet, verbose=verbose)
 
 
 # Convenience functions for common log levels

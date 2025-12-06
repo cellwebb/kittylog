@@ -14,7 +14,7 @@ from kittylog.constants import Audiences, EnvDefaults, Languages, Logging
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.main import main_business_logic
 from kittylog.tag_operations import generate_boundary_identifier
-from kittylog.utils import setup_logging
+from kittylog.utils.logging import setup_command_logging
 
 logger = logging.getLogger(__name__)
 config = load_config()
@@ -75,13 +75,8 @@ def update_version(
     Example: kittylog update v0.1.0
     """
     try:
-        # Set up logging
-        effective_log_level = log_level or config.log_level
-        if verbose and effective_log_level not in ("DEBUG", "INFO"):
-            effective_log_level = "INFO"
-        if quiet:
-            effective_log_level = "ERROR"
-        setup_logging(effective_log_level)
+        # Set up logging using shared utility
+        setup_command_logging(log_level, verbose, quiet)
 
         logger.info("Starting kittylog update")
 
