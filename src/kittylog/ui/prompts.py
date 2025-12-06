@@ -7,7 +7,7 @@ from kittylog.errors import AIError, ChangelogError, ConfigError, GitError
 from kittylog.output import get_output_manager
 
 
-def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience=None):
+def interactive_configuration(grouping_mode, gap_threshold, date_grouping, include_diff, quiet, audience=None):
     """Interactive configuration using questionary prompts.
 
     Guides users through kittylog configuration with explanations and helpful defaults.
@@ -20,7 +20,6 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             gap_threshold or 4.0,
             date_grouping or "daily",
             include_diff or False,
-            yes or True,  # Auto-accept in quiet mode for scripting
             audience or load_config().audience or "stakeholders",
         )
 
@@ -76,9 +75,9 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             output.echo("📅 Date mode groups commits by time periods.")
 
             date_grouping_choices = [
-                {"name": "Daily - Create entries for each day", "value": "daily"},
-                {"name": "Weekly - Create entries for each week", "value": "weekly"},
-                {"name": "Monthly - Create entries for each month", "value": "monthly"},
+                {"name": "Daily", "value": "daily"},
+                {"name": "Weekly", "value": "weekly"},
+                {"name": "Monthly", "value": "monthly"},
             ]
 
             selected_date_grouping = questionary.select(
@@ -133,7 +132,6 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
             selected_gap_threshold or 4.0,
             selected_date_grouping or "daily",
             selected_include_diff or False,
-            yes or False,
             selected_audience or "stakeholders",
         )
 

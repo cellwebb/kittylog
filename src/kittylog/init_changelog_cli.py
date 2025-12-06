@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option("--yes", "-y", is_flag=True, help="Automatically create changelog and fill missing tags without prompts")
+@click.option("--yes", "-y", is_flag=True, help="Auto-create changelog and fill missing tags without prompts")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 def init_changelog(yes, file):
     """Initialize changelog if missing and offer to fill missing tag entries."""
