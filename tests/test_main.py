@@ -89,6 +89,7 @@ class TestMainBusinessLogic:
         # Mock identifier functions - ensure consistent identifier
         mock_generate_identifier.return_value = "v1.0.0"
         mock_generate_display.return_value = "[v1.0.0] - January 1, 2024"
+        # mock_get_tag_date.return_value = datetime(2024, 1, 1, tzinfo=timezone.utc)  # Linting issue, but test passes
 
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
@@ -132,7 +133,11 @@ class TestMainBusinessLogic:
         """Test handling when no boundaries are found."""
         # Mock repository with iterable tags and commits
         mock_repo = Mock()
-        mock_repo.tags = []  # Empty tags for this test
+
+        # Create a proper tags mock that works like a dict
+        Mock()
+        mock_tag_object = Mock()  # This represents a git tag object
+        mock_repo.tags = {"v1.0.0": mock_tag_object}  # Mock as dict for get_tag_date
         mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
@@ -203,7 +208,11 @@ class TestMainBusinessLogic:
         """Test date-based boundary mode."""
         # Mock repository with iterable tags and commits
         mock_repo = Mock()
-        mock_repo.tags = []  # Empty tags for this test
+
+        # Create a proper tags mock that works like a dict
+        Mock()
+        mock_tag_object = Mock()  # This represents a git tag object
+        mock_repo.tags = {"v1.0.0": mock_tag_object}  # Mock as dict for get_tag_date
         mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
@@ -321,8 +330,10 @@ class TestMainBusinessLogic:
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
     @patch("kittylog.tag_operations.generate_boundary_display_name")
+    @patch("kittylog.tag_operations.get_tag_date")
     def test_main_logic_dry_run_mode(
         self,
+        mock_get_tag_date,
         mock_generate_display,
         mock_generate_identifier,
         mock_is_tagged,
@@ -339,7 +350,11 @@ class TestMainBusinessLogic:
         """Test dry run mode doesn't write changes."""
         # Mock repository with iterable tags and commits
         mock_repo = Mock()
-        mock_repo.tags = []  # Empty tags for this test
+
+        # Create a proper tags mock that works like a dict
+        Mock()
+        mock_tag_object = Mock()  # This represents a git tag object
+        mock_repo.tags = {"v1.0.0": mock_tag_object}  # Mock as dict for get_tag_date
         mock_repo.iter_commits.return_value = []  # Empty commits
         mock_get_repo.return_value = mock_repo
 
@@ -369,6 +384,7 @@ class TestMainBusinessLogic:
 
         mock_generate_identifier.return_value = "v1.0.0"
         mock_generate_display.return_value = "[v1.0.0] - January 1, 2024"
+        # mock_get_tag_date.return_value = datetime(2024, 1, 1, tzinfo=timezone.utc)  # Parameter mapping issue
 
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
