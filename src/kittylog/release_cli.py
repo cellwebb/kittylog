@@ -23,6 +23,19 @@ logger = logging.getLogger(__name__)
 @click.option("--skip-generate", is_flag=True, help="Skip changelog generation, only finalize release")
 @click.option("--model", "-m", default=None, help="Override default model for generation")
 @click.option("--hint", "-h", default="", help="Additional context for the prompt")
+@click.option(
+    "--language",
+    "-l",
+    default=None,
+    help="Override the language for changelog entries (e.g., 'Spanish', 'es', 'zh-CN')",
+)
+@click.option(
+    "--audience",
+    "-u",
+    type=click.Choice(["developers", "users", "stakeholders"], case_sensitive=False),
+    default=None,
+    help="Target audience for changelog tone (developers, users, stakeholders)",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
 @click.option(
@@ -37,6 +50,8 @@ def release(
     skip_generate,
     model,
     hint,
+    language,
+    audience,
     quiet,
     verbose,
     log_level,
@@ -80,8 +95,8 @@ def release(
             workflow_opts = WorkflowOptions(
                 quiet=quiet,
                 dry_run=dry_run,
-                language=EnvDefaults.LANGUAGE,
-                audience=EnvDefaults.AUDIENCE,
+                language=language or EnvDefaults.LANGUAGE,
+                audience=audience or EnvDefaults.AUDIENCE,
                 no_unreleased=False,
                 interactive=False,
             )
