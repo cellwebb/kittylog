@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.10.2] - 2025-12-06
+
+### Bug Fixes
+
+- Fixed incorrect ordering of entries in changelogs to show newest items first
+- Corrected how updates are saved to prevent losing progress during long operations
+- Improved tracking of date-based and time-gap boundaries in your changelog generation
+
 ## [2.10.1] - 2025-12-06
 
 ### What's New
