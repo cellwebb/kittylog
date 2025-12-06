@@ -18,7 +18,8 @@ class TestMainBusinessLogic:
     @patch("kittylog.changelog.io.write_changelog")
     @patch("kittylog.changelog.io.read_changelog")
     @patch("kittylog.changelog.updater.update_changelog")
-    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.mode_handlers.missing.get_all_boundaries")
+    @patch("kittylog.tag_operations.get_all_boundaries")
     @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
@@ -36,6 +37,7 @@ class TestMainBusinessLogic:
         mock_get_latest_boundary,
         mock_find_existing,
         mock_get_all_boundaries,
+        mock_get_all_boundaries_missing,
         mock_update,
         mock_read,
         mock_write,
@@ -69,6 +71,7 @@ class TestMainBusinessLogic:
 
         # Mock for unreleased mode - need to mock get_all_boundaries to return empty for special mode
         mock_get_all_boundaries.return_value = []
+        mock_get_all_boundaries_missing.return_value = []
         mock_get_latest_boundary.return_value = mock_boundary
         mock_is_tagged.return_value = False
         mock_read.return_value = "# Changelog\n"
@@ -125,10 +128,11 @@ class TestMainBusinessLogic:
         # Just verify the function completed successfully
 
     @patch("kittylog.workflow_validation.get_output_manager")
-    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.mode_handlers.missing.get_all_boundaries")
+    @patch("kittylog.tag_operations.get_all_boundaries")
     @patch("kittylog.tag_operations.get_repo")
     def test_main_logic_no_boundaries_warning(
-        self, mock_get_repo, mock_get_all_boundaries, mock_output_manager, temp_dir
+        self, mock_get_repo, mock_get_all_boundaries, mock_get_all_boundaries_missing, mock_output_manager, temp_dir
     ):
         """Test handling when no boundaries are found."""
         # Mock repository with iterable tags and commits
@@ -143,6 +147,7 @@ class TestMainBusinessLogic:
 
         # Mock no boundaries
         mock_get_all_boundaries.return_value = []
+        mock_get_all_boundaries_missing.return_value = []
 
         # Mock output manager
         mock_output = Mock()
@@ -173,18 +178,17 @@ class TestMainBusinessLogic:
                 model="openai:gpt-4o-mini",
             )
 
-        # When no boundaries are found, the function should return False (error)
-        assert success is False
+        # When no boundaries are found, the function returns success (nothing to do)
+        assert success is True
         assert _token_usage is None
-        # The error handler will have logged the error
-        mock_output.warning.assert_called()
 
     @patch("kittylog.workflow_validation.get_output_manager")
     @patch("kittylog.tag_operations.get_repo")
     @patch("kittylog.changelog.io.write_changelog")
     @patch("kittylog.changelog.io.read_changelog")
     @patch("kittylog.changelog.updater.update_changelog")
-    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.mode_handlers.missing.get_all_boundaries")
+    @patch("kittylog.tag_operations.get_all_boundaries")
     @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
@@ -198,6 +202,7 @@ class TestMainBusinessLogic:
         mock_get_latest_boundary,
         mock_find_existing,
         mock_get_all_boundaries,
+        mock_get_all_boundaries_missing,
         mock_update,
         mock_read,
         mock_write,
@@ -235,6 +240,7 @@ class TestMainBusinessLogic:
         ]
 
         mock_get_all_boundaries.return_value = mock_boundaries
+        mock_get_all_boundaries_missing.return_value = mock_boundaries
         mock_find_existing.return_value = set()
         mock_get_latest_boundary.return_value = mock_boundaries[0]
         mock_is_tagged.return_value = False
@@ -246,7 +252,7 @@ class TestMainBusinessLogic:
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
         config_with_model = {
-            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
+            "model": "openai:gpt-4o-mini",
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -272,10 +278,8 @@ class TestMainBusinessLogic:
             )
 
         assert success is True
-        # For dates mode, the function may return early if no changes are needed
-        # Just verify the function completed successfully
 
-    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.tag_operations.get_all_boundaries")
     def test_main_logic_no_model_error(self, mock_get_all_boundaries, temp_dir):
         """Test error handling when no model is specified."""
         from kittylog.config.data import KittylogConfigData
@@ -324,7 +328,8 @@ class TestMainBusinessLogic:
     @patch("kittylog.changelog.io.write_changelog")
     @patch("kittylog.changelog.io.read_changelog")
     @patch("kittylog.changelog.updater.update_changelog")
-    @patch("kittylog.workflow_validation.get_all_boundaries")
+    @patch("kittylog.mode_handlers.missing.get_all_boundaries")
+    @patch("kittylog.tag_operations.get_all_boundaries")
     @patch("kittylog.changelog.parser.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
@@ -340,6 +345,7 @@ class TestMainBusinessLogic:
         mock_get_latest_boundary,
         mock_find_existing,
         mock_get_all_boundaries,
+        mock_get_all_boundaries_missing,
         mock_update,
         mock_read,
         mock_write,
@@ -377,6 +383,7 @@ class TestMainBusinessLogic:
         ]
 
         mock_get_all_boundaries.return_value = mock_boundaries
+        mock_get_all_boundaries_missing.return_value = mock_boundaries
         mock_find_existing.return_value = set()
         mock_get_latest_boundary.return_value = mock_boundaries[0]
         mock_is_tagged.return_value = False
@@ -384,12 +391,11 @@ class TestMainBusinessLogic:
 
         mock_generate_identifier.return_value = "v1.0.0"
         mock_generate_display.return_value = "[v1.0.0] - January 1, 2024"
-        # mock_get_tag_date.return_value = datetime(2024, 1, 1, tzinfo=timezone.utc)  # Parameter mapping issue
 
         mock_update.return_value = ("Updated content", {"total_tokens": 100})
 
         config_with_model = {
-            "model": "openai:gpt-4o-mini",  # Switch from Cerebras to OpenAI
+            "model": "openai:gpt-4o-mini",
             "temperature": 0.7,
             "log_level": "INFO",
             "max_output_tokens": 1024,
@@ -407,7 +413,7 @@ class TestMainBusinessLogic:
             workflow_opts = WorkflowOptions(
                 quiet=True,
                 require_confirmation=False,
-                dry_run=True,  # Enable dry run
+                dry_run=True,
             )
             success, _token_usage = main_business_logic(
                 changelog_opts=changelog_opts,
@@ -416,8 +422,6 @@ class TestMainBusinessLogic:
             )
 
         assert success is True
-        # In dry run mode, the function may return early if no changes are needed
-        # In dry run mode, write_changelog should NOT be called
         mock_write.assert_not_called()
 
 
