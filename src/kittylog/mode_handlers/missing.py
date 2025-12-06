@@ -1,7 +1,7 @@
 """Missing entries mode handler for kittylog."""
 
 from kittylog.changelog.parser import find_existing_boundaries, find_insertion_point_by_version
-from kittylog.commit_analyzer import get_commits_between_tags, get_commits_between_boundaries
+from kittylog.commit_analyzer import get_commits_between_boundaries, get_commits_between_tags
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries, get_tag_date
 from kittylog.utils.text import format_version_for_changelog
@@ -33,21 +33,40 @@ def determine_missing_entries(changelog_file: str, mode: str = "tags", **kwargs)
     # Get all boundaries based on mode
     all_boundaries = get_all_boundaries(mode=mode, **kwargs)
 
+    # Debug logging
+    from kittylog.utils.logging import get_logger
+
+    logger = get_logger(__name__)
+    logger.debug(f"Found {len(all_boundaries)} total boundaries in {mode} mode")
+    for i, boundary in enumerate(all_boundaries[:5]):  # Log first 5 for brevity
+        logger.debug(f"Boundary {i}: {boundary}")
+    logger.debug(f"Existing versions: {existing_versions}")
+
     # Extract boundary identifiers and find missing ones
     if mode == "tags":
         # For tags mode, normalize by stripping 'v' prefix for comparison since
         # find_existing_boundaries normalizes changelog versions the same way
-        missing_boundaries = [
-            boundary["name"] for boundary in all_boundaries 
-            if boundary["name"].lstrip("v") not in existing_versions
-        ]
+        missing_boundaries = []
+        for boundary in all_boundaries:
+            # Use the same identifier logic as the rest of the function
+            identifier = boundary.get("identifier") or boundary.get("name") or boundary.get("display_name") or "unknown"
+            if identifier.lstrip("v") not in existing_versions:
+                missing_boundaries.append(identifier)
     else:
         # For dates and gaps modes, use the boundary identifier directly
-        missing_boundaries = [
-            boundary["identifier"] for boundary in all_boundaries 
-            if boundary["identifier"] not in existing_versions
-        ]
+        missing_boundaries = []
+        for boundary in all_boundaries:
+            # Try multiple keys that might represent the boundary identifier
+            identifier = (
+                boundary.get("identifier")
+                or boundary.get("name")
+                or boundary.get("display_name")
+                or str(boundary.get("date", "unknown"))
+            )
+            if identifier not in existing_versions:
+                missing_boundaries.append(identifier)
 
+    logger.debug(f"Missing boundaries determined: {missing_boundaries}")
     return missing_boundaries
 
 
@@ -64,6 +83,8 @@ def handle_missing_entries_mode(
     **kwargs,
 ) -> tuple[bool, str]:
     """Handle missing entries mode workflow.
+
+    DEBUG: This function is being called!
 
     Args:
         changelog_file: Path to changelog file
@@ -83,7 +104,9 @@ def handle_missing_entries_mode(
     output = get_output_manager()
 
     # Determine which boundaries need entries
-    missing_boundaries = determine_missing_entries(changelog_file, mode=mode, date_grouping=date_grouping, gap_threshold_hours=gap_threshold)
+    missing_boundaries = determine_missing_entries(
+        changelog_file, mode=mode, date_grouping=date_grouping, gap_threshold_hours=gap_threshold
+    )
 
     if not missing_boundaries:
         output.info("No missing changelog entries found")
@@ -102,25 +125,35 @@ def handle_missing_entries_mode(
 
     # Get all boundaries to find the ones we need to process
     all_boundaries = get_all_boundaries(mode=mode, date_grouping=date_grouping, gap_threshold_hours=gap_threshold)
-    
+
     # Create a mapping from identifier to boundary dict
-    boundary_map = {boundary["identifier"]: boundary for boundary in all_boundaries}
-    
+    boundary_map = {}
+    for boundary in all_boundaries:
+        # Use the same identifier logic as determine_missing_entries
+        identifier = (
+            boundary.get("identifier")
+            or boundary.get("name")
+            or boundary.get("display_name")
+            or str(boundary.get("date", "unknown"))
+        )
+        boundary_map[identifier] = boundary
+
     # Process each missing boundary in chronological order (oldest first)
     # This ensures the AI has historical context from previously generated entries
     # Note: Insertion point logic handles correct changelog placement regardless of processing order
     for i, boundary_id in enumerate(missing_boundaries):
         try:
             boundary = boundary_map[boundary_id]
-            
+
             # Get commits for this boundary
             if mode == "tags":
                 # For tags mode, use the existing tag-based function
+                tag_name = boundary.get("name", boundary_id)
                 commits = get_commits_between_tags(
                     from_tag=None,  # From beginning
-                    to_tag=boundary["name"],
+                    to_tag=tag_name,
                 )
-                tag = boundary["name"]
+                tag = tag_name
             else:
                 # For dates and gaps modes, use the boundary-aware function
                 commits = get_commits_between_boundaries(
@@ -128,7 +161,7 @@ def handle_missing_entries_mode(
                     to_boundary=boundary,
                     mode=mode,
                 )
-                tag = boundary["identifier"]
+                tag = boundary_id
 
             if not commits:
                 output.info(f"No commits found for {boundary_id}, skipping")
@@ -153,8 +186,12 @@ def handle_missing_entries_mode(
                 version_name = format_version_for_changelog(tag, updated_content)
             else:
                 # For dates and gaps modes, use boundary date
-                version_date = boundary["date"].strftime("%Y-%m-%d")
-                version_name = boundary["identifier"]
+                boundary_date = boundary.get("date")
+                if boundary_date:
+                    version_date = boundary_date.strftime("%Y-%m-%d")
+                else:
+                    version_date = datetime.now().strftime("%Y-%m-%d")
+                version_name = boundary_id
 
             # Create version section
             version_section = f"## [{version_name}] - {version_date}\n\n{entry}"
