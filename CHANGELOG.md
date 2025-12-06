@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.9.0] - 2025-12-06
+
+### Highlights
+
+- Streamlined provider architecture, reducing code complexity and improving maintainability
+- Enhanced configuration system with automated provider registry for better extensibility
+- Improved security with pattern-based API key detection instead of predefined lists
+
+### Changed
+
+- Modernized provider registry system with auto-generated functions from provider classes
+- Simplified authentication handling for local providers (LMStudio, Ollama) with optional API key support
+- Streamlined secure configuration to use generic API key pattern matching instead of environment variable mappings
+
 ## [2.8.2] - 2025-12-05
 
 ### Changed
