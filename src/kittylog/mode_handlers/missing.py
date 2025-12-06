@@ -219,8 +219,7 @@ def handle_missing_entries_mode(
                 insert_point = find_insertion_point_by_version(updated_content, boundary_id)
 
             # Insert the new section at the correct position
-            new_lines = ["", *version_section.split("\n")]
-            for j, line in enumerate(new_lines):
+            for j, line in enumerate(version_section.split("\n")):
                 lines.insert(insert_point + j, line)
 
             updated_content = "\n".join(lines)

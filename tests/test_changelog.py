@@ -19,6 +19,7 @@ from kittylog.changelog.parser import (
     find_insertion_point_by_version,
 )
 from kittylog.changelog.updater import (
+    _update_version_section,
     update_changelog,
 )
 from kittylog.errors import ChangelogError
@@ -1203,3 +1204,476 @@ class TestVersionStripping:
         assert "V1.0.0".lstrip("v") == "V1.0.0"
         # Mixed case
         assert "vV1.0.0".lstrip("v") == "V1.0.0"
+
+
+class TestTwoBlankLinesSpacing:
+    """Test the two blank lines spacing functionality for changelog entries.
+
+    This test class verifies that version sections are properly formatted with
+    exactly two blank lines between them, ensuring consistent and readable
+    changelog formatting.
+    """
+
+    def test_add_new_version_with_two_blanks_simple(self):
+        """Test inserting a new version with proper two blank lines spacing (simple case)."""
+        existing_content = """# Changelog
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Older feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Added\n- New feature"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # Find version sections
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        # Should have 3 version sections in correct order
+        assert len(version_sections) == 3
+        assert "## [1.1.0]" in version_sections[0][1]
+        assert "## [1.0.0]" in version_sections[1][1]
+        assert "## [0.9.0]" in version_sections[2][1]
+
+        # Check spacing between sections
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between sections, got {blank_lines}"
+
+    def test_add_new_version_at_beginning(self):
+        """Test inserting newest version at the beginning with proper spacing."""
+        existing_content = """# Changelog
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Older feature"""
+
+        version_section = "## [2.0.0] - 2025-02-01\n\n### Added\n- Major new feature"
+        result = _update_version_section(existing_content, version_section, "2.0.0")
+
+        lines = result.split("\n")
+
+        # Should start with new version
+        assert lines[2] == "## [2.0.0] - 2025-02-01"
+
+        # Check spacing after new version
+        next_version_line = None
+        for i in range(3, len(lines)):
+            if lines[i].startswith("## [1.0.0]"):
+                next_version_line = i
+                break
+
+        assert next_version_line is not None
+        blank_lines = 0
+        for i in range(3, next_version_line):
+            if lines[i].strip() == "":
+                blank_lines += 1
+        assert blank_lines == 2
+
+    def test_add_new_version_at_end(self):
+        """Test inserting oldest version at the end with proper spacing."""
+        existing_content = """# Changelog
+
+## [1.2.0] - 2025-01-20
+
+### Added
+- Latest feature
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature"""
+
+        version_section = "## [0.9.0] - 2024-12-01\n\n### Added\n- Older feature"
+        result = _update_version_section(existing_content, version_section, "0.9.0")
+
+        lines = result.split("\n")
+
+        # New version should be at the end
+        assert "## [0.9.0] - 2024-12-01" in lines
+        last_version_line = lines.index("## [0.9.0] - 2024-12-01")
+
+        # Find the previous version (1.0.0)
+        prev_version_line = None
+        for i in range(last_version_line - 1, -1, -1):
+            if lines[i].startswith("## [1.0.0]"):
+                prev_version_line = i
+                break
+
+        assert prev_version_line is not None
+        blank_lines = 0
+        for i in range(prev_version_line + 1, last_version_line):
+            if lines[i].strip() == "":
+                blank_lines += 1
+        assert blank_lines == 2
+
+    def test_replace_existing_version_maintains_spacing(self):
+        """Test replacing existing version maintains proper spacing."""
+        existing_content = """# Changelog
+
+## [1.1.0] - 2025-01-15
+
+### Added
+- Old feature description
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Older feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Changed\n- Updated feature description"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # Should still have exactly 2 blank lines between all sections
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        # Check spacing between all sections
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between sections, got {blank_lines}"
+
+        # Verify content was updated
+        assert "### Changed" in result
+        assert "Updated feature description" in result
+        assert "Old feature description" not in result
+
+    def test_normalize_existing_inconsistent_spacing(self):
+        """Test that existing inconsistent spacing is normalized to 2 blank lines."""
+        # Existing content with inconsistent spacing (3 blanks, then 1 blank)
+        existing_content = """# Changelog
+
+## [1.2.0] - 2025-01-20
+
+### Added
+- Latest feature
+
+
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Older feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Added\n- Middle feature"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # All spacing should be normalized to exactly 2 blank lines
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        # Check spacing between all sections
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between sections, got {blank_lines}"
+
+    def test_empty_changelog_with_first_version(self):
+        """Test adding first version to empty changelog."""
+        existing_content = """# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+"""
+
+        version_section = "## [1.0.0] - 2025-01-01\n\n### Added\n- Initial release"
+        result = _update_version_section(existing_content, version_section, "1.0.0")
+
+        lines = result.split("\n")
+
+        # Should have header, then version (no extra blank lines at top)
+        assert lines[0] == "# Changelog"
+        assert "## [1.0.0] - 2025-01-01" in lines
+
+        # Should have content after header
+        assert "### Added" in result
+        assert "Initial release" in result
+
+    def test_single_existing_version_add_new_one(self):
+        """Test adding new version to changelog with single existing version."""
+        existing_content = """# Changelog
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Added\n- New feature"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # Should have exactly 2 blank lines between the two versions
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        assert len(version_sections) == 2
+        blank_lines = 0
+        for i in range(version_sections[0][0] + 1, version_sections[1][0]):
+            if lines[i].strip() == "":
+                blank_lines += 1
+        assert blank_lines == 2
+
+    def test_version_with_complex_content_structure(self):
+        """Test spacing with complex version content (multiple sections)."""
+        existing_content = """# Changelog
+
+## [1.2.0] - 2025-01-20
+
+### Added
+- New API endpoints
+- Performance improvements
+
+### Changed
+- Updated dependencies
+- Refactored core module
+
+### Fixed
+- Memory leak in数据处理
+
+### Deprecated
+- Old API methods
+
+## [1.1.0] - 2025-01-10
+
+### Added
+- User authentication
+"""
+
+        version_section = (
+            "## [1.1.5] - 2025-01-15\n\n### Fixed\n- Critical security fix\n\n### Security\n- Updated SSL certificates"
+        )
+        result = _update_version_section(existing_content, version_section, "1.1.5")
+
+        lines = result.split("\n")
+
+        # Should maintain 2 blank lines between all sections
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        # All sections should have 2 blank lines between them
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between sections, got {blank_lines}"
+
+    def test_multiple_insertions_consistent_spacing(self):
+        """Test multiple sequential insertions maintain consistent spacing."""
+        # Start with basic changelog
+        existing_content = """# Changelog
+
+## [1.2.0] - 2025-01-20
+
+### Added
+- Latest feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Oldest feature"""
+
+        # Insert first version
+        version_section1 = "## [1.1.0] - 2025-01-15\n\n### Added\n- Middle feature"
+        result1 = _update_version_section(existing_content, version_section1, "1.1.0")
+
+        # Insert another version
+        version_section2 = "## [1.0.0] - 2025-01-01\n\n### Added\n- Another feature"
+        result2 = _update_version_section(result1, version_section2, "1.0.0")
+
+        lines = result2.split("\n")
+
+        # All four versions should have 2 blank lines between them
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        assert len(version_sections) == 4
+
+        # Check spacing between all sections
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between sections, got {blank_lines}"
+
+    def test_edge_case_version_with_no_content(self):
+        """Test handling version section with minimal content."""
+        existing_content = """# Changelog
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Old feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Fixed\n- Quick fix"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # Should still maintain 2 blank lines
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2
+
+    def test_preserve_unreleased_section_spacing(self):
+        """Test that unreleased section spacing is preserved when adding versions."""
+        existing_content = """# Changelog
+
+## [Unreleased]
+
+### Added
+- Unreleased feature
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Released feature
+
+## [0.9.0] - 2024-12-01
+
+### Added
+- Older feature"""
+
+        version_section = "## [1.1.0] - 2025-01-15\n\n### Added\n- New feature"
+        result = _update_version_section(existing_content, version_section, "1.1.0")
+
+        lines = result.split("\n")
+
+        # Unreleased section should be at top
+        unreleased_line = None
+        for i, line in enumerate(lines):
+            if line.startswith("## [Unreleased]"):
+                unreleased_line = i
+                break
+
+        assert unreleased_line is not None
+
+        # Check spacing between version sections (unreleased doesn't count)
+        version_sections = []
+        for i, line in enumerate(lines):
+            if line.startswith("## [") and not line.startswith("## [Unreleased]"):
+                version_sections.append((i, line))
+
+        # All version sections should have 2 blank lines between them
+        for i in range(1, len(version_sections)):
+            prev_line = version_sections[i - 1][0]
+            curr_line = version_sections[i][0]
+            blank_lines = 0
+            for j in range(prev_line + 1, curr_line):
+                if lines[j].strip() == "":
+                    blank_lines += 1
+            assert blank_lines == 2, f"Expected 2 blank lines between version sections, got {blank_lines}"
+
+    def test_no_excessive_blank_lines_accumulation(self):
+        """Test that repeated insertions don't cause excessive blank line accumulation."""
+        content = """# Changelog
+
+## [1.0.0] - 2025-01-01
+
+### Added
+- Initial feature"""
+
+        # Insert multiple versions sequentially
+        for i in range(5):
+            version = f"1.{5 - i}.0"
+            date = f"2025-01-{15 - i:02d}"
+            version_section = f"## [{version}] - {date}\n\n### Added\n- Feature {i}"
+            content = _update_version_section(content, version_section, version)
+
+        lines = content.split("\n")
+
+        # Count maximum consecutive blank lines
+        max_consecutive = 0
+        current_consecutive = 0
+
+        for line in lines:
+            if line.strip() == "":
+                current_consecutive += 1
+                max_consecutive = max(max_consecutive, current_consecutive)
+            else:
+                current_consecutive = 0
+
+        # Should not have more than 2 consecutive blank lines
+        assert max_consecutive <= 2, f"Found {max_consecutive} consecutive blank lines, should be ≤ 2"
+
+        # Count total blank lines (should be reasonable)
+        total_blanks = sum(1 for line in lines if line.strip() == "")
+        # Should have approximately 2 blank lines per interval between versions
+        # For 6 versions total, should have around 5 intervals * 2 blanks = 10 blanks (roughly)
+        assert total_blanks < 20, f"Too many blank lines: {total_blanks}"

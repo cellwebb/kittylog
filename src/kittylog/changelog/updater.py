@@ -304,14 +304,85 @@ def _update_version_section(
     else:
         # Insert new version section at the appropriate position
         insert_point = find_insertion_point_by_version(existing_content, tag_name)
-        new_lines = ["", *version_section.split("\n")]  # Add blank line before
 
-        for line in reversed(new_lines):
+        # Insert the version section
+        for line in reversed(version_section.split("\n")):
             lines.insert(insert_point, line)
 
         logger.debug(f"Inserted new version section for {tag_name} at line {insert_point}")
 
-    return "\n".join(lines)
+    # Post-process: normalize spacing to have exactly 2 blank lines between version sections
+
+    # Parse all sections first
+    header_lines = []
+    version_sections = []
+    unreleased_section = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        if line.startswith("## [Unreleased]"):
+            # Extract unreleased section
+            unreleased_section.append(line)
+            i += 1
+            while i < len(lines) and not lines[i].startswith("## ["):
+                unreleased_section.append(lines[i])
+                i += 1
+        elif line.startswith("## ["):
+            # Extract version section
+            section_content = [line]
+            i += 1
+            while i < len(lines) and not lines[i].startswith("## ["):
+                section_content.append(lines[i])
+                i += 1
+            version_sections.append(section_content)
+        else:
+            # Header content
+            header_lines.append(line)
+            i += 1
+
+    # Rebuild with exact 2 blank lines between version sections
+    result_lines = header_lines.copy() if header_lines else ["# Changelog"]
+
+    # Add unreleased section if it exists (preserving its structure but normalizing trailing blanks)
+    if unreleased_section:
+        clean_unreleased = unreleased_section.copy()
+        while clean_unreleased and clean_unreleased[-1].strip() == "":
+            clean_unreleased.pop()
+        result_lines.extend(clean_unreleased)
+        if version_sections:
+            result_lines.append("")
+            result_lines.append("")  # 2 blanks before first version
+
+    # Add version sections with exactly 2 blank lines between them
+    for j, section in enumerate(version_sections):
+        # Clean section: normalize internal blanks but preserve one blank between subsections
+        clean_section = []
+        i = 0
+        while i < len(section):
+            line = section[i]
+            clean_section.append(line)
+            i += 1
+
+            # Collapse consecutive blanks to single blanks (except keep one blank after headers)
+            while i < len(section) and section[i].strip() == "":
+                # Skip additional consecutive blanks
+                i += 1
+
+        # Strip trailing blanks completely
+        while clean_section and clean_section[-1].strip() == "":
+            clean_section.pop()
+
+        # Add the section
+        result_lines.extend(clean_section)
+
+        # Add exactly 2 blank lines after each version section except the last one
+        if j < len(version_sections) - 1:
+            result_lines.append("")
+            result_lines.append("")
+
+    return "\n".join(result_lines)
 
 
 def _remove_unreleased_section_if_empty(existing_content: str, unreleased_commits: list) -> str:
