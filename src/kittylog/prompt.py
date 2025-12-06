@@ -18,6 +18,7 @@ def build_changelog_prompt(
     translate_headings: bool = False,
     audience: str | None = None,
     context_entries: str = "",
+    detail_level: str = "normal",
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
 
@@ -31,13 +32,14 @@ def build_changelog_prompt(
         translate_headings: Whether to translate section headings into the selected language
         audience: Target audience slug controlling tone and emphasis
         context_entries: Pre-formatted string of preceding changelog entries for style reference
+        detail_level: Output detail level - 'concise', 'normal', or 'detailed'
 
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
     # Resolve audience to canonical slug
     resolved_audience = Audiences.resolve(audience) if audience else "developers"
-    system_prompt = _build_system_prompt(audience=resolved_audience)
+    system_prompt = _build_system_prompt(audience=resolved_audience, detail_level=detail_level)
     user_prompt = _build_user_prompt(
         commits,
         tag,

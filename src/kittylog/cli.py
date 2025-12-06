@@ -112,6 +112,12 @@ def changelog_options(f: Callable) -> Callable:
         default=None,
         help="Date grouping period for date-based grouping (default: daily)",
     )(f)
+    f = click.option(
+        "--detail",
+        type=click.Choice(["concise", "normal", "detailed"], case_sensitive=False),
+        default="normal",
+        help="Output detail level: concise (brief, ~6 bullets), normal (default, ~10), detailed (~15)",
+    )(f)
     return f
 
 
@@ -211,6 +217,7 @@ def add(
     grouping_mode,
     gap_threshold,
     date_grouping,
+    detail,
 ):
     """Add missing changelog entries or update a specific tag entry.
 
@@ -272,6 +279,7 @@ def add(
             show_prompt=show_prompt,
             context_entries_count=context_entries,
             incremental_save=incremental_save,
+            detail_level=detail,
         )
 
         changelog_opts = ChangelogOptions(
@@ -350,6 +358,7 @@ def cli(ctx, version):
             grouping_mode=None,
             gap_threshold=None,
             date_grouping=None,
+            detail="normal",
         )
 
 

@@ -362,6 +362,7 @@ class TestAIIntegration:
             translate_headings=False,
             audience=None,
             context_entries="",
+            detail_level="normal",
         )
 
         # Verify AI client was called

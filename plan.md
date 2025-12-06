@@ -9,7 +9,7 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 - **Phase 3** ⏳ **NEXT** - Medium refactors (1-2hr each)  
 - **Phase 4** ⏳ **PENDING** - Major refactors (4+hr each)
 
-**Total Completed:** 11/14 tasks (79%)
+**Total Completed:** 12/15 tasks (80%)
 **Impact:** 1 critical bug fixed, 1 unused dependency removed, code quality significantly improved, test failures resolved, robust boundary handling implemented
 
 ---
@@ -258,7 +258,82 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
 
 **Verify:** `uvx kittylog --audience users` produces no technical jargon
 
-### 3.1 Refactor CLI Parameter Object Construction
+### ✅ 3.1 Add Verbosity/Detail Level Control - **COMPLETED**
+- **Symptom:** Single entries can have 20+ bullets across sections, too wordy
+- **Root cause:** Prompts had soft limits ("Maximum 4 bullets") that LLMs ignore
+- **Status:** ✅ Implemented `--detail` option with hard enforced limits
+
+**Solution: Add `--detail` CLI option with presets**
+
+```
+--detail concise    # 1-2 bullets per section, max 6 total
+--detail normal     # 2-3 bullets per section, max 10 total (default)
+--detail detailed   # 4-5 bullets per section, max 15 total
+```
+
+**Implementation:**
+
+1. **Add CLI option** in `cli.py`:
+   ```python
+   @click.option(
+       "--detail",
+       type=click.Choice(["concise", "normal", "detailed"], case_sensitive=False),
+       default="normal",
+       help="Output detail level: concise (brief), normal (default), detailed (comprehensive)",
+   )
+   ```
+
+2. **Add to WorkflowOptions** in `config/options.py`:
+   ```python
+   @dataclass
+   class WorkflowOptions:
+       detail_level: str = "normal"
+       ...
+   ```
+
+3. **Update system prompts** with HARD limits based on detail level:
+   ```python
+   def _build_system_prompt_developers(detail_level: str = "normal") -> str:
+       limits = {
+           "concise": "HARD LIMIT: Maximum 2 bullets per section. Maximum 6 bullets TOTAL. Be extremely brief.",
+           "normal": "HARD LIMIT: Maximum 3 bullets per section. Maximum 10 bullets TOTAL.",
+           "detailed": "HARD LIMIT: Maximum 5 bullets per section. Maximum 15 bullets TOTAL.",
+       }
+       # Insert limits into prompt...
+   ```
+
+4. **Make limits more emphatic** in prompts:
+   ```
+   ## ⚠️ CRITICAL OUTPUT LIMITS - STRICTLY ENFORCED
+
+   YOU MUST NOT EXCEED THESE LIMITS:
+   - Maximum bullets per section: 3
+   - Maximum bullets in entire response: 10
+   - If you have more changes, COMBINE related items
+   - Prioritize the most important changes
+
+   VIOLATION OF THESE LIMITS WILL CAUSE YOUR RESPONSE TO BE REJECTED.
+   ```
+
+5. **Pass through the call chain:**
+   - `cli.py` → `WorkflowOptions.detail_level`
+   - `workflow.py` → `_create_entry_generator()`
+   - `ai.py` → `build_changelog_prompt()`
+   - `prompt.py` → `_build_system_prompt(detail_level=...)`
+
+**Files to modify:**
+- `src/kittylog/cli.py` - add `--detail` option
+- `src/kittylog/config/options.py` - add `detail_level` field
+- `src/kittylog/prompt_templates.py` - add detail_level parameter to all prompts
+- `src/kittylog/prompt.py` - pass detail_level through
+- `src/kittylog/ai.py` - pass detail_level through
+- `src/kittylog/workflow.py` - pass detail_level through
+
+**Verify:** `uvx kittylog --detail concise` produces ≤6 bullets total
+
+---
+
+### 3.2 Refactor CLI Parameter Object Construction
 - **File:** `src/kittylog/cli.py:252-277`
 - **Issue:** Manual construction of WorkflowOptions/ChangelogOptions from 26 raw parameters
 - **Action:** Move parameter object construction into decorator layer:
@@ -275,7 +350,7 @@ Based on fresh code review (2025-12-05). Ordered by effort - low-hanging fruit f
       return wrapper
   ```
 
-### 3.2 Add Type Hints to Weak Areas
+### 3.3 Add Type Hints to Weak Areas
 - **Files:**
   - `src/kittylog/ai_utils.py:15-24` - use `dict[str, Callable[..., str]]`
   - `src/kittylog/mode_handlers/boundary.py` - add type hints throughout
@@ -363,8 +438,9 @@ uv run mypy src/
 
 ### Phase 3: Medium Refactors
 - [x] 3.0 - Create separate system prompts per audience (HIGH PRIORITY)
-- [ ] 3.1 - Refactor CLI parameter object construction
-- [ ] 3.2 - Add type hints to weak areas
+- [x] 3.1 - Add verbosity/detail level control (`--detail concise|normal|detailed`)
+- [ ] 3.2 - Refactor CLI parameter object construction
+- [ ] 3.3 - Add type hints to weak areas
 
 ### Phase 4: Major Refactors
 - [ ] 4.1 - Provider factory to eliminate duplication

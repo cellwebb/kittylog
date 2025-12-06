@@ -36,6 +36,7 @@ def generate_changelog_entry(
     translate_headings: bool = False,
     audience: str | None = None,
     context_entries: str = "",
+    detail_level: str = "normal",
 ) -> tuple[str, dict[str, int]]:
     """Generate a changelog entry using AI.
 
@@ -85,6 +86,7 @@ def generate_changelog_entry(
         translate_headings=translate_headings,
         audience=audience,
         context_entries=context_entries,
+        detail_level=detail_level,
     )
 
     # Add diff content to user prompt if available, but limit its size to prevent timeouts

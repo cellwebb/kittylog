@@ -28,6 +28,7 @@ class WorkflowOptions:
     verbose: bool = False
     context_entries_count: int = field(default_factory=lambda: EnvDefaults.CONTEXT_ENTRIES)
     incremental_save: bool = True
+    detail_level: str = "normal"  # concise, normal, or detailed
 
 
 @dataclass

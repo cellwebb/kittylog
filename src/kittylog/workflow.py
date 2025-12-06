@@ -31,6 +31,7 @@ def _create_entry_generator(
     audience: str | None,
     changelog_file: str = "",
     context_entries_count: int = 0,
+    detail_level: str = "normal",
 ):
     """Create a changelog entry generator function with captured parameters.
 
@@ -65,6 +66,7 @@ def _create_entry_generator(
             translate_headings=translate_headings,
             audience=audience,
             context_entries=context_entries,
+            detail_level=detail_level,
         )
         return entry
 
@@ -121,6 +123,7 @@ def process_workflow_modes(
         audience=effective_audience,
         changelog_file=changelog_file,
         context_entries_count=context_entries_count,
+        detail_level=workflow_opts.detail_level,
     )
 
     # Handle special unreleased mode

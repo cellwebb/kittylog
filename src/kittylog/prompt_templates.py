@@ -7,9 +7,69 @@ to generate changelog entries from git commit data.
 from kittylog.constants import Audiences
 
 
-def _build_system_prompt_developers() -> str:
+def _get_detail_limits(detail_level: str) -> dict[str, int | str]:
+    """Get bullet limits based on detail level.
+
+    Args:
+        detail_level: One of 'concise', 'normal', or 'detailed'
+
+    Returns:
+        Dictionary with 'per_section', 'total', and 'instruction' keys
+    """
+    limits: dict[str, dict[str, int | str]] = {
+        "concise": {
+            "per_section": 2,
+            "total": 6,
+            "instruction": "Be extremely brief. Only mention the most critical changes.",
+        },
+        "normal": {
+            "per_section": 3,
+            "total": 10,
+            "instruction": "Balance completeness with brevity. Combine related changes.",
+        },
+        "detailed": {
+            "per_section": 5,
+            "total": 15,
+            "instruction": "Be comprehensive but still prioritize important changes.",
+        },
+    }
+    return limits.get(detail_level, limits["normal"])
+
+
+def _build_detail_limit_section(detail_level: str) -> str:
+    """Build the detail limit section for prompts.
+
+    Args:
+        detail_level: One of 'concise', 'normal', or 'detailed'
+
+    Returns:
+        Formatted string with strict bullet limits
+    """
+    limits = _get_detail_limits(detail_level)
+    return f"""
+## ⚠️ CRITICAL OUTPUT LIMITS - STRICTLY ENFORCED
+
+YOU MUST NOT EXCEED THESE LIMITS - THIS IS MANDATORY:
+- Maximum bullets PER SECTION: {limits["per_section"]}
+- Maximum bullets in ENTIRE RESPONSE: {limits["total"]}
+- {limits["instruction"]}
+
+If you have more changes than allowed:
+1. COMBINE related items into single bullets
+2. PRIORITIZE the most important/impactful changes
+3. DROP trivial changes (typos, minor refactors, formatting)
+
+VIOLATION OF THESE LIMITS WILL CAUSE YOUR RESPONSE TO BE REJECTED.
+COUNT YOUR BULLETS BEFORE RESPONDING.
+
+"""
+
+
+def _build_system_prompt_developers(detail_level: str = "normal") -> str:
     """Build system prompt for DEVELOPER audience - technical focus."""
-    return """You are a changelog generator for a TECHNICAL DEVELOPER audience. You MUST respond ONLY with properly formatted changelog sections. DO NOT include ANY explanatory text, introductions, or commentary.
+    detail_limits = _build_detail_limit_section(detail_level)
+    return f"""You are a changelog generator for a TECHNICAL DEVELOPER audience. You MUST respond ONLY with properly formatted changelog sections. DO NOT include ANY explanatory text, introductions, or commentary.
+{detail_limits}
 
 ## CRITICAL RULES - FOLLOW EXACTLY
 
@@ -61,11 +121,11 @@ def _build_system_prompt_developers() -> str:
 ❌ Any change appearing in multiple sections
 
 ## Content Rules:
-- Maximum 4 bullets per section (prefer 2-3)
 - Use present tense action verbs ("Add feature" not "Added feature")
 - Be specific and user-focused
 - Group related changes together
 - Omit trivial changes (typos, formatting)
+- RESPECT THE BULLET LIMITS ABOVE - combine or drop items if needed
 
 ## Formatting Requirements:
 - Use bullet points (- ) for changes
@@ -107,10 +167,11 @@ def _build_system_prompt_developers() -> str:
 RESPOND ONLY WITH VALID CHANGELOG SECTIONS. NO OTHER TEXT."""
 
 
-def _build_system_prompt_users() -> str:
+def _build_system_prompt_users(detail_level: str = "normal") -> str:
     """Build system prompt for END USER audience - non-technical, benefit-focused."""
-    return """You are writing release notes for END USERS who are NOT technical. They don't know programming, APIs, or software architecture. Write like you're explaining to a friend.
-
+    detail_limits = _build_detail_limit_section(detail_level)
+    return f"""You are writing release notes for END USERS who are NOT technical. They don't know programming, APIs, or software architecture. Write like you're explaining to a friend.
+{detail_limits}
 ## STRICT RULES - NO TECHNICAL LANGUAGE
 
 FORBIDDEN WORDS (NEVER use these - this is critical):
@@ -153,7 +214,7 @@ Use ONLY these sections (not Added/Changed/Fixed):
 Only include sections that have content. Skip empty sections entirely.
 
 ## FORMAT RULES:
-- Maximum 4 bullets per section
+- RESPECT THE BULLET LIMITS ABOVE - this is critical
 - Keep each bullet to 1-2 short sentences
 - Start bullets with action words: "Added", "Fixed", "Improved", "New"
 - Focus on user benefit in every bullet
@@ -175,10 +236,11 @@ Only include sections that have content. Skip empty sections entirely.
 RESPOND ONLY WITH RELEASE NOTES SECTIONS. NO TECHNICAL JARGON. NO EXPLANATIONS."""
 
 
-def _build_system_prompt_stakeholders() -> str:
+def _build_system_prompt_stakeholders(detail_level: str = "normal") -> str:
     """Build system prompt for STAKEHOLDER audience - business impact focus."""
-    return """You are writing release notes for BUSINESS STAKEHOLDERS (product managers, executives, investors). Focus on business impact, customer value, and strategic outcomes.
-
+    detail_limits = _build_detail_limit_section(detail_level)
+    return f"""You are writing release notes for BUSINESS STAKEHOLDERS (product managers, executives, investors). Focus on business impact, customer value, and strategic outcomes.
+{detail_limits}
 ## LANGUAGE STYLE:
 - Professional and executive-summary style
 - Quantify impact where possible (percentages, metrics)
@@ -208,7 +270,7 @@ def _build_system_prompt_stakeholders() -> str:
 Only include sections that have content.
 
 ## FORMAT RULES:
-- Maximum 3-4 bullets per section
+- RESPECT THE BULLET LIMITS ABOVE - this is critical
 - Lead with impact, not implementation
 - Use metrics when available: "30% faster", "reduces errors by half"
 - Keep bullets concise and scannable
@@ -230,14 +292,15 @@ Only include sections that have content.
 RESPOND ONLY WITH BUSINESS-FOCUSED RELEASE NOTES. KEEP IT EXECUTIVE-SUMMARY STYLE."""
 
 
-def _build_system_prompt(audience: str = "developers") -> str:
-    """Build the system prompt based on target audience.
+def _build_system_prompt(audience: str = "developers", detail_level: str = "normal") -> str:
+    """Build the system prompt based on target audience and detail level.
 
     Args:
         audience: Target audience - 'developers', 'users', or 'stakeholders'
+        detail_level: Output detail level - 'concise', 'normal', or 'detailed'
 
     Returns:
-        Appropriate system prompt for the audience
+        Appropriate system prompt for the audience with detail limits applied
     """
     prompts = {
         "developers": _build_system_prompt_developers,
@@ -245,7 +308,7 @@ def _build_system_prompt(audience: str = "developers") -> str:
         "stakeholders": _build_system_prompt_stakeholders,
     }
     builder = prompts.get(audience, _build_system_prompt_developers)
-    return builder()
+    return builder(detail_level=detail_level)
 
 
 def _build_user_prompt(
