@@ -31,9 +31,7 @@ def create_provider_func(provider_class: type["BaseConfiguredProvider"]) -> Call
 
     @handle_provider_errors(provider_name)
     @wraps(provider_class.generate)
-    def provider_func(
-        model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int, **kwargs
-    ) -> str:
+    def provider_func(model: str, messages: list[dict[str, Any]], temperature: float, max_tokens: int, **kwargs) -> str:
         provider = provider_class(provider_class.config)
         return provider.generate(
             model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, **kwargs

@@ -46,14 +46,7 @@ class AzureOpenAIProvider(OpenAICompatibleProvider):
         return data
 
     def _get_api_url(self, model: str | None = None) -> str:
-        """Construct full API URL with version.
-
-        Args:
-            model: The deployment name to use in the URL
-
-        Returns:
-            Full Azure OpenAI API URL
-        """
+        """Build Azure-specific URL with deployment name and API version."""
         if not model:
             raise ValueError("Model is required for Azure OpenAI")
         endpoint = self.api_endpoint

@@ -69,21 +69,17 @@ class SecureConfig:
 
     def _extract_provider_keys(self) -> dict[str, str]:
         """Extract provider-specific API keys from configuration."""
-        provider_keys = {}
-
         # Handle both dict and KittylogConfigData
-        if isinstance(self._config, dict):
-            config_dict = self._config
-        else:
-            config_dict = self._config.to_dict()
+        config_dict = self._config if isinstance(self._config, dict) else self._config.to_dict()
 
         # Look for any keys ending in _API_KEY or _API_TOKEN
-        for key, value in config_dict.items():
-            if value and isinstance(value, str):
-                if key.endswith("_API_KEY") or key.endswith("_API_TOKEN") or key.endswith("_ACCESS_TOKEN"):
-                    provider_keys[key] = value
-
-        return provider_keys
+        return {
+            key: value
+            for key, value in config_dict.items()
+            if value
+            and isinstance(value, str)
+            and (key.endswith("_API_KEY") or key.endswith("_API_TOKEN") or key.endswith("_ACCESS_TOKEN"))
+        }
 
     @contextmanager
     def inject_for_provider(self, provider: str):
@@ -96,9 +92,7 @@ class SecureConfig:
             None
         """
         # Map env var names to actual key values from our extracted keys
-        key_mapping = {}
-        for env_var, value in self._provider_keys.items():
-            key_mapping[env_var] = value
+        key_mapping = dict(self._provider_keys)
 
         with inject_provider_keys(provider, key_mapping):
             yield

@@ -18,8 +18,5 @@ class ChutesProvider(OpenAICompatibleProvider):
     def _get_api_url(self, model: str | None = None) -> str:
         """Get Chutes API URL, allowing override via environment."""
         env_url = os.getenv("CHUTES_BASE_URL")
-        if env_url:
-            base_url = env_url.rstrip("/")
-        else:
-            base_url = self.config.base_url.rstrip("/")
+        base_url = env_url.rstrip("/") if env_url else self.config.base_url.rstrip("/")
         return f"{base_url}{self.default_path}"
