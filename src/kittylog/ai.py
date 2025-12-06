@@ -155,7 +155,28 @@ def generate_changelog_entry(
         }
         return cleaned_content, token_usage
 
-    except (AIError, ValueError, TypeError, AttributeError, RuntimeError, Exception) as e:
+    except (AIError, ValueError, TypeError, RuntimeError) as e:
+        log_error(
+            logger,
+            "Changelog generation failed",
+            tag=tag or "unreleased",
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
+        raise AIError.generation_error(f"Failed to generate changelog entry: {e}") from e
+    except Exception as e:
+        # Re-raise system exceptions that should never be caught
+        if isinstance(e, (KeyboardInterrupt, SystemExit, GeneratorExit)):
+            raise
+        # Wrap other unexpected exceptions
+        log_error(
+            logger,
+            "Changelog generation failed",
+            tag=tag or "unreleased",
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
+        raise AIError.generation_error(f"Unexpected error: {e}") from e
         log_error(
             logger,
             "Changelog generation failed",

@@ -6,6 +6,8 @@ This module contains retry logic and other AI utilities.
 import logging
 import time
 
+import httpx
+
 from kittylog.errors import AIError
 from kittylog.providers import SUPPORTED_PROVIDERS
 
@@ -38,7 +40,7 @@ def generate_with_retries(
         {"role": "user", "content": user_prompt},
     ]
 
-    last_exception = None
+    last_exception: Exception | None = None
 
     for attempt in range(max_retries):
         try:
@@ -58,9 +60,18 @@ def generate_with_retries(
             else:
                 raise AIError.generation_error("Empty response from AI model")
 
-        except Exception as e:
+        except (AIError, httpx.HTTPError, TimeoutError, ValueError, TypeError, RuntimeError) as e:
             last_exception = e
             # Import classify_error from errors module
+            from kittylog.errors import classify_error
+
+            error_type = classify_error(e)
+        except Exception as e:
+            # Re-raise system exceptions that should never be caught
+            if isinstance(e, (KeyboardInterrupt, SystemExit, GeneratorExit)):
+                raise
+            # Use classify_error for unknown exceptions
+            last_exception = e
             from kittylog.errors import classify_error
 
             error_type = classify_error(e)
