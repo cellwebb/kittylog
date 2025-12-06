@@ -23,7 +23,6 @@ config = load_config()
 @click.command()
 @click.argument("version", required=False)
 @click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--from-tag", "-s", default=None, help="Start from specific tag")
@@ -55,7 +54,6 @@ config = load_config()
 def update_version(
     version,
     dry_run,
-    yes,
     file,
     model,
     hint,
@@ -83,7 +81,7 @@ def update_version(
         # Check if changelog exists, create if not
         changelog_path = Path(file)
         if not changelog_path.exists():
-            if yes or click.confirm(f"No changelog found. Create {file} with standard header?"):
+            if click.confirm(f"No changelog found. Create {file} with standard header?"):
                 header_content = create_changelog_header()
                 write_changelog(file, header_content)
                 click.echo(f"Created {file} with standard header")
@@ -107,10 +105,8 @@ def update_version(
             )
             workflow_opts = WorkflowOptions(
                 quiet=quiet,
-                require_confirmation=not yes,
                 dry_run=dry_run,
                 update_all_entries=update_all_entries,
-                yes=yes,
                 language=resolved_language,
                 audience=resolved_audience,
             )
@@ -159,9 +155,7 @@ def update_version(
         )
         workflow_opts = WorkflowOptions(
             quiet=quiet,
-            require_confirmation=not yes,
             dry_run=dry_run,
-            yes=yes,
             language=resolved_language,
             audience=resolved_audience,
         )

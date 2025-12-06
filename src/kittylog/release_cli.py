@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 @click.argument("version", required=True)
 @click.option("--file", "-f", default="CHANGELOG.md", help="Path to changelog file")
 @click.option("--dry-run", "-d", is_flag=True, help="Show what would be done without making changes")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--skip-generate", is_flag=True, help="Skip changelog generation, only finalize release")
 @click.option("--model", "-m", default=None, help="Override default model for generation")
 @click.option("--hint", "-h", default="", help="Additional context for the prompt")
@@ -35,7 +34,6 @@ def release(
     version,
     file,
     dry_run,
-    yes,
     skip_generate,
     model,
     hint,
@@ -81,9 +79,7 @@ def release(
             )
             workflow_opts = WorkflowOptions(
                 quiet=quiet,
-                require_confirmation=False,  # Don't prompt during release
                 dry_run=dry_run,
-                yes=True,  # Auto-confirm
                 language=EnvDefaults.LANGUAGE,
                 audience=EnvDefaults.AUDIENCE,
                 no_unreleased=False,

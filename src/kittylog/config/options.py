@@ -13,13 +13,11 @@ class WorkflowOptions:
     """Options for workflow control."""
 
     dry_run: bool = False
-    yes: bool = False
     all: bool = False
     no_unreleased: bool = False
     interactive: bool = True
     include_diff: bool = False
     quiet: bool = False
-    require_confirmation: bool = True
     update_all_entries: bool = False
     language: str | None = None
     audience: str | None = None

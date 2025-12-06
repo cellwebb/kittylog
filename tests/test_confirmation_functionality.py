@@ -14,10 +14,8 @@ from kittylog.cli import cli
 class TestConfirmationFunctionality:
     """Test confirmation prompts in CLI workflow."""
 
-    @patch("httpx.post")
-    @patch("os.getenv")
-    def test_yes_flag_bypasses_confirmation(self, mock_getenv, mock_post, temp_dir):
-        """Test CLI workflow with --yes flag bypasses confirmation."""
+    def test_dry_run_works_without_yes_flag(self, temp_dir):
+        """Test that dry-run mode works without --yes flag (removed functionality)."""
         # Create git repo with tags
         repo = Repo.init(temp_dir)
         repo.config_writer().set_value("user", "name", "Test User").release()
@@ -37,16 +35,9 @@ class TestConfirmationFunctionality:
         commit2 = repo.index.commit("Second commit")
         repo.create_tag("v0.2.0", commit2)
 
-        # Mock API key and response
-        mock_getenv.return_value = "sk-test-key"
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"choices": [{"message": {"content": "### Added\n- New feature"}}]}
-        mock_post.return_value = mock_response
-
         # Create config
         config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=openai:gpt-4o-mini\n")
+        config_file.write_text("KITTYLOG_MODEL=test\n")
 
         # Create changelog file to avoid prompt
         changelog_file = temp_dir / "CHANGELOG.md"
@@ -61,7 +52,7 @@ class TestConfirmationFunctionality:
             clear_git_cache()
             runner = CliRunner()
 
-            # Test update command with --yes flag
+            # Test update command with --dry-run flag
             result = runner.invoke(
                 cli,
                 [
@@ -70,85 +61,45 @@ class TestConfirmationFunctionality:
                     "v0.1.0",
                     "--to-tag",
                     "v0.2.0",
-                    "--yes",  # Should bypass confirmation
+                    "--dry-run",  # Should show preview but not save
                 ],
             )
 
-            # Should succeed without requiring interaction
+            # Should succeed and show preview
             assert result.exit_code == 0
-            # Should not contain confirmation prompts in output
-            assert "Proceed with generating changelog entry? [Y/n]:" not in result.output
+            # Verify --yes flag is not available in help output
+            help_result = runner.invoke(cli, ["update", "--help"])
+            assert "--yes" not in help_result.output
+            assert "--dry-run" in help_result.output
 
         finally:
             os.chdir(original_cwd)
 
-    def test_confirmation_shows_when_yes_not_used(self, temp_dir):
-        """Test that confirmation prompt appears when --yes flag is not used."""
-        # Create git repo with tags
-        repo = Repo.init(temp_dir)
-        repo.config_writer().set_value("user", "name", "Test User").release()
-        repo.config_writer().set_value("user", "email", "test@example.com").release()
+    def test_no_yes_flag_in_commands(self, temp_dir):
+        """Test that --yes flag has been removed from all commands."""
+        runner = CliRunner()
 
-        # Create commits and tags
-        test_file = temp_dir / "file.py"
-        test_file.write_text("# Test file")
-        repo.index.add(["file.py"])
-        commit = repo.index.commit("Initial commit")
-        repo.create_tag("v0.1.0", commit)
+        # Check that --yes flag is removed from main commands
+        commands_to_check = [
+            ["add-cli", "--help"],
+            ["update", "--help"],
+            ["release", "--help"],
+        ]
 
-        test_file2 = temp_dir / "file2.py"
-        test_file2.write_text("# Test file 2")
-        repo.index.add(["file2.py"])
-        commit2 = repo.index.commit("Second commit")
-        repo.create_tag("v0.2.0", commit2)
+        for command in commands_to_check:
+            result = runner.invoke(cli, command)
+            assert result.exit_code == 0
+            # --yes flag should not be in help (except for init-changelog which keeps it)
+            assert "Skip confirmation" not in result.output
+            assert "Auto-accept" not in result.output
 
-        # Create changelog file with only the first version entry
-        # (the second version will be generated)
-        changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text("""# Changelog
+        # init-changelog should still have --yes but for different purpose
+        result = runner.invoke(cli, ["init-changelog", "--help"])
+        assert result.exit_code == 0
+        assert "--yes" in result.output  # Should be there for changelog creation
 
-All notable changes will be documented in this file.
-
-## [v0.1.0] - 2024-01-01
-
-### Added
-- Initial release
-""")
-
-        # Create config
-        config_file = temp_dir / ".kittylog.env"
-        config_file.write_text("KITTYLOG_MODEL=openai:gpt-4o-mini\n")
-
-        original_cwd = str(Path.cwd())
-        try:
-            os.chdir(temp_dir)
-            # Clear git cache to ensure we're working with the right repo
-            from kittylog.tag_operations import clear_git_cache
-
-            clear_git_cache()
-            runner = CliRunner()
-
-            # Test update command without --yes flag, provide "y" to confirmation
-            result = runner.invoke(
-                cli,
-                [
-                    "update",
-                    "--from-tag",
-                    "v0.1.0",
-                    "--to-tag",
-                    "v0.2.0",
-                ],
-                input="y\n",  # Confirm the prompt
-            )
-
-            # Should show confirmation prompt - save confirmation
-            assert "Save the updated changelog?" in result.output or "[Y/n]" in result.output
-
-        finally:
-            os.chdir(original_cwd)
-
-    def test_cancellation_no_save_prompt(self, temp_dir):
-        """Test that canceling confirmation doesn't trigger save confirmation."""
+    def test_incremental_save_no_confirmation(self, temp_dir):
+        """Test that changelog is saved incrementally without confirmation."""
         # Create git repo with tags
         repo = Repo.init(temp_dir)
         repo.config_writer().set_value("user", "name", "Test User").release()
@@ -169,7 +120,7 @@ All notable changes will be documented in this file.
 
         # Create changelog file with only the first version entry
         changelog_file = temp_dir / "CHANGELOG.md"
-        changelog_file.write_text("""# Changelog
+        original_content = """# Changelog
 
 All notable changes will be documented in this file.
 
@@ -177,7 +128,8 @@ All notable changes will be documented in this file.
 
 ### Added
 - Initial release
-""")
+"""
+        changelog_file.write_text(original_content)
 
         # Create config
         config_file = temp_dir / ".kittylog.env"
@@ -192,7 +144,7 @@ All notable changes will be documented in this file.
             clear_git_cache()
             runner = CliRunner()
 
-            # Test update command and provide "n" to confirmation
+            # Test update command (no confirmation needed for incremental save)
             result = runner.invoke(
                 cli,
                 [
@@ -202,13 +154,21 @@ All notable changes will be documented in this file.
                     "--to-tag",
                     "v0.2.0",
                 ],
-                input="n\n",  # Cancel the confirmation
             )
 
-            # Should succeed (exit code 0) even when cancelled
+            # Should succeed (exit code 0)
             assert result.exit_code == 0
-            # Cancelling save confirmation should result in cancel message
-            assert "cancelled" in result.output.lower() or "No changes made to changelog" in result.output
+            # Should not show save confirmation prompt
+            assert "Save the updated changelog?" not in result.output
+            # Should show success message about incremental update
+            assert (
+                "Changelog updated incrementally:" in result.output
+                or "Successfully updated changelog:" in result.output
+            )
+            # Verify changelog was actually updated
+            updated_content = changelog_file.read_text()
+            assert updated_content != original_content
+            assert "v0.2.0" in updated_content
 
         finally:
             os.chdir(original_cwd)
@@ -315,7 +275,7 @@ All notable changes will be documented in this file.
 
             # Should succeed without requiring interaction
             assert result.exit_code == 0
-            # In quiet mode, should not ask for save confirmation
+            # Should not ask for save confirmation (auto-saved incrementally)
             assert "Save the updated changelog?" not in result.output
 
         finally:
@@ -373,7 +333,7 @@ All notable changes will be documented in this file.
             assert (
                 "missing changelog entries" in result.output
                 or "Processing missing tag" in result.output
-                or "Save the updated changelog?" in result.output
+                or "Updated changelog preview:" in result.output
             )
 
         finally:

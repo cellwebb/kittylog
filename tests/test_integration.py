@@ -53,7 +53,6 @@ All notable changes to this project will be documented in this file.
                 "update",
                 "--file",
                 "CHANGELOG.md",
-                "--yes",  # Auto-confirm
                 "--quiet",
                 "--all",  # Update all entries
             ],
@@ -109,7 +108,6 @@ All notable changes to this project will be documented in this file.
                 "update",
                 "--file",
                 "CHANGELOG.md",
-                "--yes",
                 "--quiet",
                 "--all",  # Update all entries
             ],
@@ -124,9 +122,11 @@ All notable changes to this project will be documented in this file.
         assert "## [v0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.update_cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
-    def test_dry_run_workflow(self, mock_getenv, git_repo_with_tags, temp_dir):
+    def test_dry_run_workflow(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
@@ -146,7 +146,6 @@ All notable changes to this project will be documented in this file.
                 "--to-tag",
                 "v0.2.0",
                 "--dry-run",
-                "--yes",
             ],
         )
 
@@ -235,8 +234,10 @@ class TestConfigIntegration:
 class TestErrorHandlingIntegration:
     """Integration tests for error handling."""
 
-    def test_not_git_repository_error(self, temp_dir):
+    @patch("kittylog.update_cli.click.confirm")
+    def test_not_git_repository_error(self, mock_confirm, temp_dir):
         """Test error when not in a git repository."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         runner = CliRunner()
         os.chdir(temp_dir)  # temp_dir is not a git repo
 
@@ -245,7 +246,6 @@ class TestErrorHandlingIntegration:
             [
                 "update",
                 "--quiet",
-                "--yes",
             ],
         )
 
@@ -382,7 +382,6 @@ class TestMultiTagIntegration:
                 cli,
                 [
                     "add-cli",  # Use add-cli command for missing entries
-                    "--yes",  # Skip confirmation
                     "--no-interactive",  # Skip interactive wizard
                 ],
             )
@@ -447,7 +446,6 @@ All notable changes to this project will be documented in this file.
                     "--all",  # Process all entries
                     "--hint",
                     "Focus on breaking changes",
-                    "--yes",
                     "--quiet",
                 ],
             )
@@ -511,7 +509,6 @@ All notable changes to this project will be documented in this file.
                     "--all",  # Process all entries
                     "--model",
                     "openai:gpt-4",
-                    "--yes",
                     "--quiet",
                 ],
             )
@@ -531,9 +528,11 @@ class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.update_cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
-    def test_custom_changelog_path(self, mock_getenv, git_repo_with_tags, temp_dir):
+    def test_custom_changelog_path(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config in the git repo directory
@@ -572,9 +571,8 @@ All notable changes to this project will be documented in this file.
                     "update",
                     "--file",
                     "docs/CHANGES.md",
-                    "--all",  # Process all entries
-                    "--yes",
                     "--quiet",
+                    "--all",  # Update all entries
                 ],
             )
         finally:
@@ -594,9 +592,11 @@ All notable changes to this project will be documented in this file.
         assert "Test feature" in content or "Test bug fix" in content
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
+    @patch("kittylog.update_cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
-    def test_relative_path_handling(self, mock_getenv, git_repo_with_tags, temp_dir):
+    def test_relative_path_handling(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
@@ -624,7 +624,6 @@ All notable changes to this project will be documented in this file.
                     "v0.1.0",
                     "--to-tag",
                     "v0.2.0",
-                    "--yes",
                     "--quiet",
                 ],
             )
@@ -700,7 +699,6 @@ All notable changes to this project will be documented in this file.
                 cli,
                 [
                     "add",
-                    "--yes",  # Skip confirmation
                     "--quiet",
                 ],
             )
@@ -816,7 +814,6 @@ All notable changes to this project will be documented in this file.
                 cli,
                 [
                     "add",
-                    "--yes",  # Skip confirmation
                     "--quiet",
                 ],
             )

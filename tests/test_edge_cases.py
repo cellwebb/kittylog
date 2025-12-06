@@ -45,7 +45,6 @@ class TestEdgeCases:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                yes=True,  # Auto-accept to avoid interaction
             )
             success, token_usage = main_business_logic(
                 changelog_opts=changelog_opts,
@@ -95,7 +94,6 @@ class TestEdgeCases:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                yes=True,  # Auto-accept to avoid interaction
             )
             success, token_usage = main_business_logic(
                 changelog_opts=changelog_opts,
@@ -146,7 +144,6 @@ class TestEdgeCases:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                yes=True,  # Auto-accept to avoid interaction
             )
             success, token_usage = main_business_logic(
                 changelog_opts=changelog_opts,

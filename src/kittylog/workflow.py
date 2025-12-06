@@ -14,7 +14,7 @@ from kittylog.mode_handlers import (
     handle_unreleased_mode,
 )
 from kittylog.utils.logging import get_logger, log_debug, log_info
-from kittylog.workflow_ui import handle_dry_run_and_confirmation
+from kittylog.workflow_ui import handle_dry_run_and_save
 from kittylog.workflow_validation import validate_and_setup_workflow
 
 logger = get_logger(__name__)
@@ -107,7 +107,7 @@ def process_workflow_modes(
     dry_run = workflow_opts.dry_run
     update_all_entries = workflow_opts.update_all_entries
     no_unreleased = workflow_opts.no_unreleased
-    yes = workflow_opts.yes
+
     include_diff = workflow_opts.include_diff
     context_entries_count = workflow_opts.context_entries_count
 
@@ -133,7 +133,6 @@ def process_workflow_modes(
             generate_entry_func=generate_entry_func,
             no_unreleased=no_unreleased,
             quiet=quiet,
-            yes=yes,
             dry_run=dry_run,
             incremental_save=incremental_save,
         )
@@ -162,7 +161,6 @@ def process_workflow_modes(
             to_boundary=to_boundary,
             generate_entry_func=generate_entry_func,
             quiet=quiet,
-            yes=yes,
             dry_run=dry_run,
             incremental_save=incremental_save,
         )
@@ -177,7 +175,6 @@ def process_workflow_modes(
             generate_entry_func=generate_entry_func,
             mode=grouping_mode,
             quiet=quiet,
-            yes=yes,
             dry_run=dry_run,
             incremental_save=incremental_save,
         )
@@ -194,7 +191,6 @@ def process_workflow_modes(
             date_grouping=changelog_opts.date_grouping,  # ADD THIS for dates mode
             gap_threshold=changelog_opts.gap_threshold_hours,  # ADD THIS for gaps mode
             quiet=quiet,
-            yes=yes,
             dry_run=dry_run,
             incremental_save=incremental_save,
         )
@@ -217,7 +213,6 @@ def process_workflow_modes(
         boundary=boundary,
         generate_entry_func=generate_entry_func,
         quiet=quiet,
-        yes=yes,
         dry_run=dry_run,
         incremental_save=incremental_save,
     )
@@ -315,15 +310,13 @@ def main_business_logic(
         handle_error(ChangelogError(f"Unexpected error writing changelog: {e}"))
         return False, None
 
-    # Handle dry run, confirmation, and saving
-    return handle_dry_run_and_confirmation(
+    # Handle dry run and saving
+    return handle_dry_run_and_save(
         changelog_file=changelog_file,
         existing_content=existing_content,
         original_content=original_content,
         token_usage=token_usage,
         dry_run=workflow_opts.dry_run,
-        require_confirmation=workflow_opts.require_confirmation,
         quiet=workflow_opts.quiet,
-        yes=workflow_opts.yes,
         incremental_save=workflow_opts.incremental_save,
     )

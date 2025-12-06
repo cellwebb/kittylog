@@ -57,14 +57,15 @@ class TestUpdateCommand:
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
         assert workflow_opts.dry_run is False
-        assert workflow_opts.require_confirmation is True
         assert workflow_opts.quiet is False
         assert workflow_opts.language == "English"  # Uses default
         assert workflow_opts.audience == "stakeholders"  # Uses default
 
+    @patch("kittylog.update_cli.click.confirm")
     @patch("kittylog.update_cli.main_business_logic")
-    def test_update_with_all_options(self, mock_main_logic):
+    def test_update_with_all_options(self, mock_main_logic, mock_confirm):
         """Test update command with all options."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
@@ -86,7 +87,6 @@ class TestUpdateCommand:
                 "--hint",
                 "Focus on breaking changes",
                 "--dry-run",
-                "--yes",
                 "--show-prompt",
                 "--quiet",
             ],
@@ -107,8 +107,6 @@ class TestUpdateCommand:
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
         assert workflow_opts.dry_run is True
-        assert workflow_opts.require_confirmation is False
-        assert workflow_opts.yes is True
         assert workflow_opts.quiet is True
         assert workflow_opts.language == "Spanish"
         assert workflow_opts.audience == "users"
@@ -119,9 +117,11 @@ class TestUpdateCommand:
         if Path("CHANGES.md").exists():
             Path("CHANGES.md").unlink()
 
+    @patch("kittylog.update_cli.click.confirm")
     @patch("kittylog.update_cli.main_business_logic")
-    def test_update_short_options(self, mock_main_logic):
+    def test_update_short_options(self, mock_main_logic, mock_confirm):
         """Test update command with short options."""
+        mock_confirm.return_value = True  # Always confirm to create changelog
         mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
@@ -138,7 +138,6 @@ class TestUpdateCommand:
                 "stakeholders",
                 "-h",
                 "Test hint",
-                "-y",
                 "-q",
             ],
         )
@@ -153,9 +152,7 @@ class TestUpdateCommand:
 
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
-        assert workflow_opts.require_confirmation is False  # --yes flag sets this to False
         assert workflow_opts.quiet is True
-        assert workflow_opts.yes is True
         assert workflow_opts.language == "French"
         assert workflow_opts.audience == "stakeholders"
 

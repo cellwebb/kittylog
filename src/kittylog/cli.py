@@ -22,9 +22,9 @@ from kittylog.main import main_business_logic
 from kittylog.model_cli import model as model_cli
 from kittylog.output import get_output_manager
 from kittylog.release_cli import release as release_cli
+from kittylog.ui.banner import print_banner
 from kittylog.ui.prompts import interactive_configuration
 from kittylog.update_cli import update_version
-from kittylog.ui.banner import print_banner
 from kittylog.utils.logging import setup_command_logging
 
 # No need for lazy loading - breaking compatibility for cleaner code
@@ -38,7 +38,6 @@ def _build_cli_options(
     dry_run: bool,
     quiet: bool,
     verbose: bool,
-    yes: bool,
     all_entries: bool,
     no_unreleased: bool,
     include_diff: bool,
@@ -70,12 +69,10 @@ def _build_cli_options(
         dry_run=dry_run,
         quiet=quiet,
         verbose=verbose,
-        require_confirmation=not yes,
         update_all_entries=all_entries,
         no_unreleased=no_unreleased,
         include_diff=include_diff,
         interactive=interactive,
-        yes=yes,
         audience=audience or EnvDefaults.AUDIENCE,
         language=language or EnvDefaults.LANGUAGE,
         hint=hint or "",
@@ -105,10 +102,9 @@ def workflow_options(f: Callable) -> Callable:
     """Decorator for workflow control options.
 
     Adds options for controlling the changelog update workflow including:
-    dry-run mode, auto-confirmation, processing scope, and save behavior.
+    dry-run mode, processing scope, and save behavior.
     """
     f = click.option("--dry-run", "-d", is_flag=True, help="Dry run the changelog update workflow")(f)
-    f = click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")(f)
     f = click.option("--all", "-a", is_flag=True, help="Update all entries (not just missing ones)")(f)
     f = click.option(
         "--incremental-save/--no-incremental-save",
@@ -288,7 +284,6 @@ def add_cli(tag: str | None = None, **kwargs) -> None:
     gap_threshold = kwargs.get("gap_threshold")
     date_grouping = kwargs.get("date_grouping")
     include_diff = kwargs.get("include_diff", False)
-    yes = kwargs.get("yes", False)
     audience = kwargs.get("audience")
 
     try:
@@ -298,10 +293,8 @@ def add_cli(tag: str | None = None, **kwargs) -> None:
         # Interactive mode configuration
         selected_audience = audience  # Initialize with CLI-provided audience
         if interactive and not quiet:
-            grouping_mode, gap_threshold, date_grouping, include_diff, yes, selected_audience = (
-                interactive_configuration(
-                    grouping_mode, gap_threshold, date_grouping, include_diff, yes, quiet, audience
-                )
+            grouping_mode, gap_threshold, date_grouping, include_diff, selected_audience = interactive_configuration(
+                grouping_mode, gap_threshold, date_grouping, include_diff, quiet, audience
             )
         elif quiet:
             # In quiet mode, apply same defaults as interactive_configuration would
@@ -312,7 +305,7 @@ def add_cli(tag: str | None = None, **kwargs) -> None:
             gap_threshold = gap_threshold or 4.0
             date_grouping = date_grouping or "daily"
             include_diff = include_diff or False
-            yes = yes or True  # Auto-accept in quiet mode for scripting
+
             selected_audience = audience or config.audience or "stakeholders"
 
         # Early validation of option combinations - fail fast instead of warnings
@@ -325,7 +318,6 @@ def add_cli(tag: str | None = None, **kwargs) -> None:
             dry_run=kwargs.get("dry_run", False),
             quiet=quiet,
             verbose=verbose,
-            yes=yes,
             all_entries=kwargs.get("all", False),
             no_unreleased=kwargs.get("no_unreleased", False),
             include_diff=include_diff,

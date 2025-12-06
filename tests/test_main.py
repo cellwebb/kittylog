@@ -124,7 +124,6 @@ class TestMainBusinessLogic:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                require_confirmation=False,
             )
             success, _token_usage = main_business_logic(
                 changelog_opts=changelog_opts,
@@ -290,7 +289,6 @@ class TestMainBusinessLogic:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                require_confirmation=False,
             )
             success, _token_usage = main_business_logic(
                 changelog_opts=changelog_opts,
@@ -443,7 +441,6 @@ class TestMainBusinessLogic:
             )
             workflow_opts = WorkflowOptions(
                 quiet=True,
-                require_confirmation=False,
                 dry_run=True,
             )
             success, _token_usage = main_business_logic(
@@ -522,7 +519,6 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
         grouping_mode="dates",
         gap_threshold_hours=12.0,
         date_grouping="weekly",
-        yes=True,
         include_diff=False,
         language=None,
         translate_headings=False,
@@ -601,7 +597,6 @@ def test_main_logic_passes_language_preferences(monkeypatch):
     )
     workflow_opts = WorkflowOptions(
         quiet=True,
-        require_confirmation=False,
         update_all_entries=True,
         language="Spanish",
         audience="stakeholders",
