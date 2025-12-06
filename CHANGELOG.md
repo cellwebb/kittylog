@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.10.1] - 2025-12-06
+
+### What's New
+
+- Improved handling of missing entries with better organization and insertion logic
+- Better chronological ordering when adding new entries to your changelog
+- Updated visuals showing how to use the app
+
+### Improvements
+
+- Entries now appear in the correct order when added
+- Consistent date formatting for better readability
+- Cleaner spacing between changelog entries
+
 ## [2.10.0] - 2025-12-06
 
 ### What's New
