@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.7.0] - 2025-12-05
+
+### Added
+
+- Introduced configurable output verbosity with new `--detail` CLI option (concise, normal, detailed) to tailor changelog length for different stakeholder needs
+
 ## [2.6.0] - 2025-12-05
 
 ### Added
