@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.9.1] - 2025-12-06
+
+### Platform Improvements
+
+- Enhanced test coverage with comprehensive mocking for mode handlers and boundary operations, improving system reliability and reducing potential bugs in production
+
 ## [2.9.0] - 2025-12-06
 
 ### Highlights
