@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.6.0] - 2025-12-05
+
+### Added
+
+- Implemented audience-specific system prompts to tailor communication for developers, users, and business stakeholders, improving clarity and relevance of generated content.
+
+### Changed
+
+- Updated project completion status to 79%, reflecting progress on core functionality and strategic milestones.
+
 ## [2.5.2] - 2025-12-05
 
 ### Fixed
