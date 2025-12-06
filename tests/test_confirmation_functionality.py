@@ -89,14 +89,10 @@ class TestConfirmationFunctionality:
         for command in commands_to_check:
             result = runner.invoke(cli, command)
             assert result.exit_code == 0
-            # --yes flag should not be in help (except for init-changelog which keeps it)
+            # --yes flag should not be in help
             assert "Skip confirmation" not in result.output
             assert "Auto-accept" not in result.output
-
-        # init-changelog should still have --yes but for different purpose
-        result = runner.invoke(cli, ["init-changelog", "--help"])
-        assert result.exit_code == 0
-        assert "--yes" in result.output  # Should be there for changelog creation
+            assert "--yes" not in result.output  # --yes flag completely removed
 
     def test_incremental_save_no_confirmation(self, temp_dir):
         """Test that changelog is saved incrementally without confirmation."""
