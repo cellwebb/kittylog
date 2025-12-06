@@ -56,7 +56,6 @@ def handle_unreleased_mode(
     generate_entry_func,
     no_unreleased: bool,
     quiet: bool = False,
-    yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
     **kwargs,
@@ -68,7 +67,7 @@ def handle_unreleased_mode(
         generate_entry_func: Function to generate changelog entry
         no_unreleased: Skip unreleased section
         quiet: Suppress non-error output
-        yes: Skip confirmation prompts
+        yes: Auto-accept without previews
         dry_run: Preview changes without saving
         incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation

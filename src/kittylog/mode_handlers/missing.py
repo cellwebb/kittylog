@@ -77,7 +77,6 @@ def handle_missing_entries_mode(
     date_grouping: str = "daily",  # ADD
     gap_threshold: float = 4.0,  # ADD
     quiet: bool = False,
-    yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
     **kwargs,
@@ -90,7 +89,7 @@ def handle_missing_entries_mode(
         changelog_file: Path to changelog file
         generate_entry_func: Function to generate changelog entry
         quiet: Suppress non-error output
-        yes: Skip confirmation prompts
+        yes: Auto-accept without previews
         dry_run: Preview changes without saving
         incremental_save: Save after each entry is generated instead of all at once
         **kwargs: Additional arguments for entry generation

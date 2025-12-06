@@ -20,7 +20,6 @@ def handle_single_boundary_mode(
     boundary: BoundaryDict,
     generate_entry_func: EntryGeneratorFunc,
     quiet: bool = False,
-    yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
     **kwargs: Any,
@@ -32,7 +31,7 @@ def handle_single_boundary_mode(
         boundary: Boundary dictionary
         generate_entry_func: Function to generate changelog entry
         quiet: Suppress non-error output
-        yes: Skip confirmation prompts
+        yes: Auto-accept without previews
         dry_run: Preview changes without saving
         incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation
@@ -108,7 +107,6 @@ def handle_boundary_range_mode(
     to_boundary: BoundaryDict,
     generate_entry_func: EntryGeneratorFunc,
     quiet: bool = False,
-    yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
     **kwargs: Any,
@@ -121,7 +119,7 @@ def handle_boundary_range_mode(
         to_boundary: Ending boundary (inclusive)
         generate_entry_func: Function to generate changelog entry
         quiet: Suppress non-error output
-        yes: Skip confirmation prompts
+        yes: Auto-accept without previews
         dry_run: Preview changes without saving
         incremental_save: Save immediately after generating the entry
         **kwargs: Additional arguments for entry generation
@@ -200,7 +198,6 @@ def handle_update_all_mode(
     generate_entry_func: EntryGeneratorFunc,
     mode: str,
     quiet: bool = False,
-    yes: bool = False,
     dry_run: bool = False,
     incremental_save: bool = True,
     **kwargs: Any,
@@ -212,7 +209,7 @@ def handle_update_all_mode(
         generate_entry_func: Function to generate changelog entry
         mode: Boundary mode (tags, dates, gaps)
         quiet: Suppress non-error output
-        yes: Skip confirmation prompts
+        yes: Auto-accept without previews
         dry_run: Preview changes without saving
         incremental_save: Save after each entry is generated instead of all at once
         **kwargs: Additional arguments for entry generation
