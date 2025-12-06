@@ -259,48 +259,37 @@ def _validate_cli_options(
 @click.command(context_settings={"ignore_unknown_options": True})
 @common_options
 @click.argument("tag", required=False)
-def add(
-    file,
-    from_tag,
-    to_tag,
-    show_prompt,
-    quiet,
-    yes,
-    hint,
-    language,
-    audience,
-    model,
-    dry_run,
-    verbose,
-    log_level,
-    all,
-    incremental_save,
-    tag,
-    no_unreleased,
-    include_diff,
-    context_entries,
-    interactive,
-    grouping_mode,
-    gap_threshold,
-    date_grouping,
-    detail,
-):
+def add(tag: str | None = None, **kwargs) -> None:
     """Add missing changelog entries or update a specific tag entry.
 
-    Modern CLI using parameter objects internally for clean, maintainable code.
-    No backward compatibility constraints - can evolve freely.
+    Modern CLI using **kwargs to reduce parameter count from 26 to 2.
+    Click passes all decorated options as keyword arguments.
 
     Args:
-        file: Changelog file path
-        from_tag: Starting tag
-        to_tag: Ending tag
-        ... other CLI args
+        tag: Optional specific tag to update
+        **kwargs: All CLI options from decorators (file, from_tag, model, etc.)
 
     Examples:
         kittylog                           # Update missing entries
         kittylog v1.2.0                   # Update specific tag
         kittylog --grouping-mode dates     # Date-based grouping
     """
+    # Extract options from kwargs with defaults
+    quiet = kwargs.get("quiet", False)
+    verbose = kwargs.get("verbose", False)
+    log_level = kwargs.get("log_level")
+    interactive = kwargs.get("interactive", True)
+    model = kwargs.get("model")
+    hint = kwargs.get("hint", "")
+
+    # Mutable options that may be modified by interactive mode
+    grouping_mode = kwargs.get("grouping_mode")
+    gap_threshold = kwargs.get("gap_threshold")
+    date_grouping = kwargs.get("date_grouping")
+    include_diff = kwargs.get("include_diff", False)
+    yes = kwargs.get("yes", False)
+    audience = kwargs.get("audience")
+
     try:
         setup_command_logging(log_level, verbose, quiet)
         logger.info("Starting kittylog")
@@ -326,26 +315,28 @@ def add(
             selected_audience = audience or config.audience or "stakeholders"
 
         # Early validation of option combinations - fail fast instead of warnings
+        from_tag = kwargs.get("from_tag")
+        to_tag = kwargs.get("to_tag")
         _validate_cli_options(grouping_mode, from_tag, to_tag, gap_threshold, date_grouping)
 
         # Build parameter objects using helper
         workflow_opts, changelog_opts = _build_cli_options(
-            dry_run=dry_run,
+            dry_run=kwargs.get("dry_run", False),
             quiet=quiet,
             verbose=verbose,
             yes=yes,
-            all_entries=all,
-            no_unreleased=no_unreleased,
+            all_entries=kwargs.get("all", False),
+            no_unreleased=kwargs.get("no_unreleased", False),
             include_diff=include_diff,
             interactive=interactive,
             audience=selected_audience,
-            language=language,
+            language=kwargs.get("language"),
             hint=hint,
-            show_prompt=show_prompt,
-            context_entries=context_entries,
-            incremental_save=incremental_save,
-            detail=detail,
-            file=file,
+            show_prompt=kwargs.get("show_prompt", False),
+            context_entries=kwargs.get("context_entries", 0),
+            incremental_save=kwargs.get("incremental_save", True),
+            detail=kwargs.get("detail", "normal"),
+            file=kwargs.get("file", "CHANGELOG.md"),
             from_tag=from_tag,
             to_tag=to_tag,
             grouping_mode=grouping_mode,
