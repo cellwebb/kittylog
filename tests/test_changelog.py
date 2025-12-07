@@ -32,20 +32,9 @@ class TestChangelogHeader:
     """Test changelog header creation."""
 
     def test_create_changelog_header_default(self):
-        """Test default changelog header creation."""
+        """Test minimal changelog header creation."""
         header = create_changelog_header()
-        assert "# Changelog" in header
-        assert "All notable changes" in header
-        assert "Keep a Changelog" in header
-        assert "Unreleased" in header
-
-    def test_create_changelog_header_no_unreleased(self):
-        """Test changelog header creation without unreleased section."""
-        header = create_changelog_header(include_unreleased=False)
-        assert "# Changelog" in header
-        assert "All notable changes" in header
-        assert "Keep a Changelog" in header
-        assert "[Unreleased]" not in header
+        assert header == "# Changelog\n\n"
 
 
 class TestFindEndOfUnreleasedSection:

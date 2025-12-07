@@ -12,26 +12,13 @@ from kittylog.errors import ChangelogError
 logger = logging.getLogger(__name__)
 
 
-def create_changelog_header(include_unreleased: bool = True) -> str:
-    """Create a standard changelog header.
-
-    Args:
-        include_unreleased: Whether to include an unreleased section
+def create_changelog_header() -> str:
+    """Create a minimal changelog header.
 
     Returns:
         String containing the changelog header
     """
-    header = "# Changelog\n\n"
-    header += "All notable changes to this project will be documented in this file.\n\n"
-    header += "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).\n\n"
-
-    if include_unreleased:
-        header += "## [Unreleased]\n\n"
-        header += "### Added\n\n"
-        header += "### Changed\n\n"
-        header += "### Fixed\n\n"
-
-    return header
+    return "# Changelog\n\n"
 
 
 def read_changelog(file_path: str) -> str:
@@ -68,22 +55,22 @@ def write_changelog(file_path: str, content: str) -> None:
         ) from e
 
 
-def ensure_changelog_exists(file_path: str, no_unreleased: bool = False) -> str:
+def ensure_changelog_exists(file_path: str) -> str:
     """Ensure a changelog file exists, creating it with a header if needed.
 
     Args:
         file_path: Path to the changelog file
-        no_unreleased: Whether to include an unreleased section in new files
 
     Returns:
         The content of the changelog file (original or newly created)
     """
     existing_content = read_changelog(file_path)
 
-    # If changelog doesn't exist, create header
+    # If changelog doesn't exist, create it with just the header
     if not existing_content.strip():
-        changelog_content = create_changelog_header(include_unreleased=not no_unreleased)
-        logger.info("Created new changelog header")
+        changelog_content = create_changelog_header()
+        write_changelog(file_path, changelog_content)
+        logger.info("Created new changelog file with header")
         return changelog_content
     else:
         return existing_content
