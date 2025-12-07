@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from kittylog.changelog.io import read_changelog
-from kittylog.changelog.parser import limit_bullets_in_sections
+from kittylog.changelog.content import limit_bullets_in_sections
 from kittylog.changelog.updater import _insert_unreleased_entry
 from kittylog.commit_analyzer import get_commits_between_tags
 from kittylog.errors import AIError, GitError

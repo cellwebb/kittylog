@@ -8,12 +8,12 @@ import logging
 import re
 
 from kittylog.ai import generate_changelog_entry
-from kittylog.changelog.parser import (
+from kittylog.changelog.content import limit_bullets_in_sections
+from kittylog.changelog.insertion import (
     find_end_of_unreleased_section,
     find_insertion_point,
     find_insertion_point_by_version,
     find_unreleased_section,
-    limit_bullets_in_sections,
 )
 from kittylog.commit_analyzer import get_commits_between_tags, get_git_diff
 from kittylog.errors import AIError

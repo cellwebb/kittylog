@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from kittylog.changelog.parser import find_existing_boundaries, find_insertion_point_by_version
+from kittylog.changelog.boundaries import find_existing_boundaries
+from kittylog.changelog.insertion import find_insertion_point_by_version
 from kittylog.commit_analyzer import get_commits_between_boundaries, get_commits_between_tags
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_all_boundaries, get_tag_date

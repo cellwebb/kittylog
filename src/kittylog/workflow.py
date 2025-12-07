@@ -6,7 +6,7 @@ workflow including mode selection, boundary processing, and coordination.
 
 from kittylog.ai import generate_changelog_entry
 from kittylog.changelog.io import read_changelog
-from kittylog.changelog.parser import extract_preceding_entries
+from kittylog.changelog.content import extract_preceding_entries
 from kittylog.config import ChangelogOptions, WorkflowOptions, load_config
 from kittylog.errors import AIError, ChangelogError, ConfigError, GitError, handle_error
 from kittylog.mode_handlers import (
