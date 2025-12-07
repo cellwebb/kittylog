@@ -6,6 +6,106 @@ This module builds the user prompt with commit data and context.
 from kittylog.constants import Audiences
 
 
+def _build_instructions(audience: str) -> str:
+    """Build audience-specific instructions for the user prompt."""
+    if audience == "users":
+        return """## Instructions:
+
+Generate ONLY the release notes sections for the above commits.
+
+Focus on:
+1. New features users can try
+2. Improvements to existing functionality
+3. Bug fixes that affected users
+
+CRITICAL: OMIT SECTIONS WITHOUT CONTENT
+- Only include sections where you have actual changes to report
+- Skip empty sections entirely
+
+USE ONLY THESE SECTIONS (in this order):
+1. ### What's New
+2. ### Improvements
+3. ### Bug Fixes
+
+DO NOT use "Added", "Changed", "Fixed", or any other section names.
+
+ANTI-DUPLICATION RULES:
+- Each change goes in EXACTLY ONE section
+- If something is both new and improved, pick the most important aspect
+- Never mention the same feature in multiple sections
+
+REMEMBER: Respond with ONLY release notes sections. No explanations or commentary.
+REMEMBER: Use ONLY "What's New", "Improvements", "Bug Fixes" as section headers."""
+
+    elif audience == "stakeholders":
+        return """## Instructions:
+
+Generate ONLY the release notes sections for the above commits.
+
+Focus on:
+1. Key business outcomes and customer value
+2. Impact on users and customers
+3. Platform stability and improvements
+
+CRITICAL: OMIT SECTIONS WITHOUT CONTENT
+- Only include sections where you have actual changes to report
+- Skip empty sections entirely
+
+USE ONLY THESE SECTIONS (in this order):
+1. ### Highlights
+2. ### Customer Impact
+3. ### Platform Improvements
+
+DO NOT use "Added", "Changed", "Fixed", or any other section names.
+
+ANTI-DUPLICATION RULES:
+- Each change goes in EXACTLY ONE section
+- Lead with business impact, not technical details
+- Never mention the same outcome in multiple sections
+
+REMEMBER: Respond with ONLY release notes sections. No explanations or commentary.
+REMEMBER: Use ONLY "Highlights", "Customer Impact", "Platform Improvements" as section headers."""
+
+    else:  # developers (default)
+        return """## Instructions:
+
+Generate ONLY the changelog sections for the above commits.
+
+Focus on:
+1. User-facing changes and their impact
+2. Important technical improvements
+3. Bug fixes and their effects
+4. Breaking changes
+
+CRITICAL: OMIT SECTIONS WITHOUT CONTENT
+- If there are no bug fixes, DO NOT include the "### Fixed" section at all
+- If there are no security updates, DO NOT include the "### Security" section at all
+- DO NOT write placeholder text like "No bug fixes implemented"
+- ONLY include sections where you have actual changes to report
+
+CRITICAL ANTI-DUPLICATION RULES:
+- Each change goes in EXACTLY ONE section - never duplicate across sections
+- Choose the PRIMARY impact of each change and ignore secondary effects
+- CROSS-VERSION DEDUPLICATION: If a feature already exists in context entries, put updates in Changed, not Added
+
+MANDATORY SECTION ORDER (use only these, in this order):
+1. ### Added (first)
+2. ### Changed (second)
+3. ### Deprecated (third)
+4. ### Removed (fourth)
+5. ### Fixed (fifth)
+6. ### Security (sixth)
+
+CLASSIFICATION RULES:
+- "Refactor X" = Always Changed (never Added + Removed + Fixed)
+- "Replace X with Y" = Always Changed (never Added + Removed)
+- "Update/Upgrade X" = Always Changed
+- Only use "Fixed" for actual bugs/broken behavior
+
+REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, or commentary.
+REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
+
+
 def build_user_prompt(
     commits: list[dict],
     tag: str | None,
@@ -99,9 +199,8 @@ def build_user_prompt(
             "---\n\n"
             "⚠️ MANDATORY DEDUPLICATION RULE:\n"
             "- If ANY feature, improvement, or fix in the above entries is related to the commits you're analyzing, "
-            "DO NOT announce it as a brand new feature in the 'Added' section\n"
-            "- If a feature from the context appears in current commits, it's an UPDATE/IMPROVEMENT to that feature, "
-            "so put it in 'Changed' instead\n"
+            "do NOT announce it as brand new\n"
+            "- If a feature from the context appears in current commits, treat it as an update/improvement\n"
             "- NEVER re-announce something already documented above as if it's new\n"
             "- Use the above entries as a reference for formatting, tone, and level of detail\n"
             "- Maintain consistency with the existing changelog style\n\n"
@@ -123,55 +222,8 @@ def build_user_prompt(
 
         commits_section += "\n"
 
-    # Instructions
-    instructions = """## Instructions:
-
-Generate ONLY the changelog sections for the above commits.
-
-Focus on:
-1. User-facing changes and their impact
-2. Important technical improvements
-3. Bug fixes and their effects
-4. Breaking changes
-
-CRITICAL: OMIT SECTIONS WITHOUT CONTENT
-- If there are no bug fixes, DO NOT include the "### Fixed" section at all
-- If there are no security updates, DO NOT include the "### Security" section at all
-- DO NOT write placeholder text like "No bug fixes implemented" or "No security vulnerabilities addressed"
-- ONLY include sections where you have actual changes to report
-
-CRITICAL ANTI-DUPLICATION RULES:
-- Each change goes in EXACTLY ONE section - never duplicate across sections
-- NO ARCHITECTURAL SPLITS: "Modular architecture" cannot appear in both Added AND Changed
-- NO DEPENDENCY SPLITS: Don't put version updates in multiple sections
-- NO FILE OPERATION SPLITS: "Remove file X" and "Add modular X" for the same refactor = ONE change in Changed
-- Choose the PRIMARY impact of each change and ignore secondary effects
-- CROSS-VERSION DEDUPLICATION: Check the context entries above (if provided). If a feature already exists there, do NOT announce it as brand new/Added in this version. If the feature is being improved or modified, use Changed instead.
-- MANDATORY SECTION ORDER: You MUST output sections in this exact order when present:
-  1. ### Added (first)
-  2. ### Changed (second)
-  3. ### Deprecated (third)
-  4. ### Removed (fourth)
-  5. ### Fixed (fifth)
-  6. ### Security (sixth)
-- "Refactor X" = Always Changed (never Added + Removed + Fixed)
-- "Replace X with Y" = Always Changed (never Added + Removed)
-- "Update/Upgrade X" = Always Changed
-- Only use "Fixed" for actual bugs/broken behavior
-
-ZERO TOLERANCE FOR REDUNDANCY: If you mention ANY concept once, you cannot mention it again using different words. Also check context entries - never re-announce features that already exist.
-
-ABSOLUTE FORBIDDEN PATTERNS FOR THIS SPECIFIC PROJECT:
-❌ NEVER mention "modular", "modules", "separate", "granular", "architecture" in multiple sections
-❌ NEVER mention "provider", "AI provider", "Cerebras" in multiple sections
-❌ NEVER mention "dependencies", "versions", "update", "upgrade" in multiple sections
-❌ NEVER mention "bumpversion", "version management" in multiple sections
-
-SINGLE DECISION RULE: Pick the ONE most important change and put it in ONE section only.
-
-REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, or commentary.
-REMEMBER: Always follow the exact section order: Added, Changed, Deprecated, Removed, Fixed, Security.
-REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
+    # Instructions - audience-specific
+    instructions = _build_instructions(resolved_audience)
 
     return (
         version_context
