@@ -33,6 +33,31 @@ def read_changelog(file_path: str) -> str:
         raise
 
 
+def _ensure_spacing_between_entries(content: str) -> str:
+    """Ensure exactly 2 blank lines between version entries.
+
+    Args:
+        content: Changelog content
+
+    Returns:
+        Content with proper spacing between ## [version] entries
+    """
+    import re
+
+    # Find version headers preceded by bullet points and ensure 2 blank lines before them
+    # This adds spacing between actual changelog content and the next version header
+    # Pattern matches: bullet point line (starts with -) followed by newlines, then ## [version]
+    # We want: bullet line + \n\n\n + ## [version] (3 newlines = 2 blank lines)
+    content = re.sub(
+        r"(^- [^\n]*)\n+(?=## \[)",  # Bullet point line followed by newlines before ## [
+        r"\1\n\n\n",  # Replace with 2 blank lines
+        content,
+        flags=re.MULTILINE,
+    )
+
+    return content
+
+
 def write_changelog(file_path: str, content: str) -> None:
     """Write content to a changelog file.
 
@@ -43,6 +68,9 @@ def write_changelog(file_path: str, content: str) -> None:
     try:
         # Create directory if it doesn't exist
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+        # Ensure proper spacing between version entries
+        content = _ensure_spacing_between_entries(content)
 
         Path(file_path).write_text(content, encoding="utf-8")
 
