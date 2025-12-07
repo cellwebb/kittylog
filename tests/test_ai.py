@@ -372,6 +372,7 @@ class TestAIIntegration:
             translate_headings=False,
             audience=None,
             context_entries="",
+            session_context="",
             detail_level="normal",
         )
 

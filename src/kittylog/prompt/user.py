@@ -106,6 +106,7 @@ def build_user_prompt(
     translate_headings: bool = False,
     audience: str | None = None,
     context_entries: str = "",
+    session_context: str = "",
 ) -> str:
     """Build the user prompt with commit data."""
 
@@ -201,6 +202,17 @@ def build_user_prompt(
             "that goes in 'improvements' as 'Enhanced audience options' NOT in 'whats_new' as 'New audience options'\n\n"
         )
 
+    # Add session context (items already generated in this kittylog run)
+    session_section = ""
+    if session_context.strip():
+        session_section = (
+            "⚠️ ITEMS ALREADY WRITTEN IN THIS SESSION ⚠️\n"
+            "These items were just generated for OTHER versions in this same kittylog run.\n"
+            "DO NOT repeat these items - they are already in the changelog:\n\n"
+            f"{session_context}\n\n"
+            "If you see similar content in the commits, either SKIP IT or describe a different aspect.\n\n"
+        )
+
     # Format commits
     commits_section = "## Commits to analyze:\n\n"
 
@@ -226,6 +238,7 @@ def build_user_prompt(
         + language_section
         + audience_section
         + context_section
+        + session_section
         + commits_section
         + instructions
     )

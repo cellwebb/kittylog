@@ -28,6 +28,7 @@ def build_changelog_prompt(
     translate_headings: bool = False,
     audience: str | None = None,
     context_entries: str = "",
+    session_context: str = "",
     detail_level: str = "normal",
 ) -> tuple[str, str]:
     """Build prompts for AI changelog generation.
@@ -42,6 +43,7 @@ def build_changelog_prompt(
         translate_headings: Whether to translate section headings into the selected language
         audience: Target audience slug controlling tone and emphasis
         context_entries: Pre-formatted string of preceding changelog entries for style reference
+        session_context: Cumulative list of items already generated in this session
         detail_level: Output detail level - 'concise', 'normal', or 'detailed'
 
     Returns:
@@ -59,6 +61,7 @@ def build_changelog_prompt(
         translate_headings=translate_headings,
         audience=audience,
         context_entries=context_entries,
+        session_context=session_context,
     )
 
     return system_prompt, user_prompt

@@ -20,6 +20,23 @@ from kittylog.workflow_validation import validate_and_setup_workflow
 logger = get_logger(__name__)
 
 
+def _extract_bullet_points(entry: str) -> list[str]:
+    """Extract bullet points from a generated changelog entry.
+
+    Args:
+        entry: Generated changelog entry text
+
+    Returns:
+        List of bullet point strings (without the leading "- ")
+    """
+    bullets = []
+    for line in entry.split("\n"):
+        line = line.strip()
+        if line.startswith("- "):
+            bullets.append(line[2:])  # Remove "- " prefix
+    return bullets
+
+
 def _create_entry_generator(
     model: str,
     hint: str,
@@ -37,6 +54,8 @@ def _create_entry_generator(
 
     Returns a function that can be passed to mode handlers as generate_entry_func.
     """
+    # Track what's been generated in this session to prevent duplicates
+    session_generated_items: list[str] = []
 
     def generator(commits: list[dict], tag: str, from_boundary: str | None = None, **kwargs) -> str:
         # Extract context entries fresh each time to include recently generated entries
@@ -57,6 +76,14 @@ def _create_entry_generator(
                 # No existing changelog, so no context to extract
                 pass
 
+        # Build cumulative session context from previously generated items
+        session_context = ""
+        if session_generated_items:
+            session_context = (
+                "ITEMS ALREADY GENERATED IN THIS SESSION:\n"
+                + "\n".join(f"- {item}" for item in session_generated_items)
+            )
+
         entry, _usage = generate_changelog_entry(
             commits=commits,
             tag=tag,
@@ -69,8 +96,21 @@ def _create_entry_generator(
             translate_headings=translate_headings,
             audience=audience,
             context_entries=context_entries,
+            session_context=session_context,
             detail_level=detail_level,
         )
+
+        # Extract and accumulate bullet points from this entry for future reference
+        new_items = _extract_bullet_points(entry)
+        session_generated_items.extend(new_items)
+        if new_items and not quiet:
+            log_debug(
+                logger,
+                "Added items to session context",
+                count=len(new_items),
+                tag=tag,
+            )
+
         return entry
 
     return generator
