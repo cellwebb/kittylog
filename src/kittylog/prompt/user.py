@@ -33,12 +33,13 @@ def _build_instructions(audience: str) -> str:
     json_keys_str = ", ".join(f'"{k}"' for k in keys)
 
     if audience == "users":
-        focus_items = """1. New features users can try
+        focus_items = """1. New features users can try (ONLY if not in previous changelog entries)
 2. Improvements to existing functionality
 3. Bug fixes that affected users"""
-        classification_rules = """- New capabilities or features go in "whats_new"
-- Enhancements to existing features go in "improvements"
-- Resolved issues go in "bug_fixes\""""
+        classification_rules = """- ONLY brand new capabilities go in "whats_new" (check context first!)
+- Enhancements/refinements to EXISTING features go in "improvements"
+- Resolved issues go in "bug_fixes"
+- If a feature was mentioned in previous versions, it's NOT new - use "improvements\""""
 
     elif audience == "stakeholders":
         focus_items = """1. Key business outcomes and customer value
@@ -53,14 +54,15 @@ def _build_instructions(audience: str) -> str:
 2. Important technical improvements
 3. Bug fixes and their effects
 4. Breaking changes"""
-        classification_rules = """- New features/capabilities go in "added"
-- Modifications to existing features go in "changed"
+        classification_rules = """- ONLY brand new features/capabilities go in "added" (check context first!)
+- Modifications/refinements to EXISTING features go in "changed"
 - Soon-to-be-removed features go in "deprecated"
 - Removed features go in "removed"
 - Bug fixes go in "fixed"
 - Security patches go in "security"
 - "Refactor X" = Always "changed" (never split across sections)
-- "Replace X with Y" = Always "changed\""""
+- "Replace X with Y" = Always "changed"
+- If a feature was mentioned in previous versions, it's NOT new - use "changed\""""
 
     return f"""## Instructions:
 
@@ -182,18 +184,21 @@ def build_user_prompt(
     context_section = ""
     if context_entries.strip():
         context_section = (
-            "CRITICAL CONTEXT - WHAT'S ALREADY IN THE CHANGELOG:\n"
-            "These are the most recent changelog entries from previous versions. "
-            "They represent features and changes that have ALREADY BEEN ANNOUNCED:\n\n"
+            "🚨 CRITICAL: FEATURES ALREADY ANNOUNCED IN PREVIOUS VERSIONS 🚨\n"
+            "The following changelog entries are from PREVIOUS versions. "
+            "These features ALREADY EXIST and have ALREADY BEEN ANNOUNCED:\n\n"
             f"{context_entries}\n\n"
             "---\n\n"
-            "⚠️ MANDATORY DEDUPLICATION RULE:\n"
-            "- If ANY feature, improvement, or fix in the above entries is related to the commits you're analyzing, "
-            "do NOT announce it as brand new\n"
-            "- If a feature from the context appears in current commits, treat it as an update/improvement\n"
-            "- NEVER re-announce something already documented above as if it's new\n"
-            "- Use the above entries as a reference for formatting, tone, and level of detail\n"
-            "- Maintain consistency with the existing changelog style\n\n"
+            "⛔ STRICT DEDUPLICATION RULES (MUST FOLLOW):\n\n"
+            "1. SCAN THE ABOVE ENTRIES FIRST before writing anything\n"
+            "2. If a feature appears above (audience options, JSON output, spacing, etc.), "
+            "it is NOT NEW - do NOT put it in 'whats_new' or 'added'\n"
+            "3. Work on existing features = 'improvements' or 'changed', NEVER 'whats_new' or 'added'\n"
+            "4. Bug fixes to existing features = 'bug_fixes' or 'fixed', NEVER 'whats_new' or 'added'\n"
+            "5. Only genuinely NEW capabilities that don't exist above go in 'whats_new' or 'added'\n"
+            "6. When in doubt, put it in 'improvements' NOT 'whats_new'\n\n"
+            "EXAMPLE: If 'audience options' appears above and commits mention audience features, "
+            "that goes in 'improvements' as 'Enhanced audience options' NOT in 'whats_new' as 'New audience options'\n\n"
         )
 
     # Format commits
