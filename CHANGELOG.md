@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [3.0.0] - 2025-12-06
+
+### Changed
+
+- Simplified the command structure by combining add and update actions into a single update command
+- Made the update command the default action for a smoother workflow
+- Removed unnecessary code to make the app more reliable and easier to maintain
+
 ## [2.11.0] - 2025-12-06
 
 ### Changed
