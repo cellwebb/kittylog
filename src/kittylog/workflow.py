@@ -79,9 +79,8 @@ def _create_entry_generator(
         # Build cumulative session context from previously generated items
         session_context = ""
         if session_generated_items:
-            session_context = (
-                "ITEMS ALREADY GENERATED IN THIS SESSION:\n"
-                + "\n".join(f"- {item}" for item in session_generated_items)
+            session_context = "ITEMS ALREADY GENERATED IN THIS SESSION:\n" + "\n".join(
+                f"- {item}" for item in session_generated_items
             )
 
         entry, _usage = generate_changelog_entry(
