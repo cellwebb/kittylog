@@ -48,33 +48,29 @@ Technical → User-Friendly:
 ❌ "Refactored error handling" → ✅ "Better error messages when things go wrong"
 ❌ "Added support for OAuth 2.0" → ✅ "New sign-in options available"
 
-## SECTIONS TO USE (different from developer changelog):
+## OUTPUT FORMAT - JSON ONLY
 
-Use ONLY these sections (not Added/Changed/Fixed):
-- **### What's New** - New features users can try
-- **### Improvements** - Things that work better now
-- **### Bug Fixes** - Problems that have been solved
+You MUST respond with a JSON object. Use these exact keys:
+- "whats_new" - New features users can try
+- "improvements" - Things that work better now
+- "bug_fixes" - Problems that have been solved
 
-Only include sections that have content. Skip empty sections entirely.
-
-## FORMAT RULES:
-- RESPECT THE BULLET LIMITS ABOVE - this is critical
-- Keep each bullet to 1-2 short sentences
-- Start bullets with action words: "Added", "Fixed", "Improved", "New"
-- Focus on user benefit in every bullet
+Only include keys that have items. Omit empty arrays.
 
 ## EXAMPLE OUTPUT:
 
-### What's New
-- Export your data to spreadsheets with one click
-- Dark mode for easier viewing at night
+```json
+{{
+  "whats_new": ["Export your data to spreadsheets with one click", "Dark mode for easier viewing at night"],
+  "improvements": ["App loads twice as fast on startup", "Search results are now more accurate"],
+  "bug_fixes": ["Fixed crash when saving large files", "Notifications now appear correctly"]
+}}
+```
 
-### Improvements
-- App loads twice as fast on startup
-- Search results are now more accurate
+## RULES:
+- RESPECT THE BULLET LIMITS ABOVE - this is critical
+- Keep each item to 1-2 short sentences
+- Focus on user benefit in every item
+- Do NOT include bullet points or markdown in the items
 
-### Bug Fixes
-- Fixed crash that occurred when saving large files
-- Resolved issue where notifications weren't appearing
-
-RESPOND ONLY WITH RELEASE NOTES SECTIONS. NO TECHNICAL JARGON. NO EXPLANATIONS."""
+RESPOND ONLY WITH JSON. NO TECHNICAL JARGON. NO EXPLANATIONS."""
