@@ -2,22 +2,20 @@
 
 This package provides functions to build system and user prompts for AI models
 to generate changelog entries from git commit data.
+
+Submodules:
+- **detail_limits**: Detail level configuration (concise/normal/detailed)
+- **system**: System prompt dispatcher
+- **system_developers**: Developer audience system prompt
+- **system_users**: End user audience system prompt
+- **system_stakeholders**: Stakeholder audience system prompt
+- **user**: User prompt builder with commit data
 """
 
 from kittylog.constants import Audiences
-from kittylog.prompt.detail_limits import build_detail_limit_section, get_detail_limits
 from kittylog.prompt.system import build_system_prompt
-from kittylog.prompt.system_developers import build_system_prompt_developers
-from kittylog.prompt.system_stakeholders import build_system_prompt_stakeholders
-from kittylog.prompt.system_users import build_system_prompt_users
 from kittylog.prompt.user import build_user_prompt
-from kittylog.prompt_cleaning import categorize_commit_by_message, clean_changelog_content
-
-# Backward compatibility aliases (prefixed with underscore as in original)
-_build_system_prompt = build_system_prompt
-_build_user_prompt = build_user_prompt
-_get_detail_limits = get_detail_limits
-_build_detail_limit_section = build_detail_limit_section
+from kittylog.prompt_cleaning import clean_changelog_content
 
 
 def build_changelog_prompt(
@@ -49,7 +47,6 @@ def build_changelog_prompt(
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
-    # Resolve audience to canonical slug
     resolved_audience = Audiences.resolve(audience) if audience else "developers"
     system_prompt = build_system_prompt(audience=resolved_audience, detail_level=detail_level)
     user_prompt = build_user_prompt(
@@ -68,18 +65,6 @@ def build_changelog_prompt(
 
 
 __all__ = [
-    "_build_detail_limit_section",
-    "_build_system_prompt",
-    "_build_user_prompt",
-    "_get_detail_limits",
     "build_changelog_prompt",
-    "build_detail_limit_section",
-    "build_system_prompt",
-    "build_system_prompt_developers",
-    "build_system_prompt_stakeholders",
-    "build_system_prompt_users",
-    "build_user_prompt",
-    "categorize_commit_by_message",
     "clean_changelog_content",
-    "get_detail_limits",
 ]
