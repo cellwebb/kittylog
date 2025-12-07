@@ -1,6 +1,21 @@
 # Changelog
 
 
+## [3.0.3] - 2025-12-06
+
+### What's New
+
+- Generate release notes tailored for different audiences (users, stakeholders, or developers)
+- New audience options with more flexible aliases
+- Automatic consistent spacing between version entries
+
+### Improvements
+
+- Better organization of changelog features for improved performance
+- More accurate version boundary detection and content handling
+- Refined changelog format for better readability
+
+
 ## [3.0.2] - 2025-12-06
 
 ### Improvements
