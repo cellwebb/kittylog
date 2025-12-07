@@ -18,4 +18,4 @@ class EnvDefaults:
     AUDIENCE: str = "stakeholders"
     LOG_LEVEL: str = "WARNING"
     LANGUAGE: str = "English"
-    CONTEXT_ENTRIES: int = 0  # Number of preceding entries for AI context (0 = disabled)
+    CONTEXT_ENTRIES: int = 5  # Number of preceding entries for AI context (0 = disabled)
