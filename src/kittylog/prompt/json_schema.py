@@ -112,6 +112,57 @@ def parse_json_response(content: str) -> dict[str, list[str]] | None:
     return None
 
 
+# Mapping from developer keys to audience keys
+KEY_REMAPPING: dict[str, dict[str, str]] = {
+    "users": {
+        "added": "whats_new",
+        "changed": "improvements",
+        "fixed": "bug_fixes",
+        "deprecated": "bug_fixes",
+        "removed": "improvements",
+        "security": "bug_fixes",
+    },
+    "stakeholders": {
+        "added": "highlights",
+        "changed": "platform_improvements",
+        "fixed": "platform_improvements",
+        "deprecated": "platform_improvements",
+        "removed": "platform_improvements",
+        "security": "platform_improvements",
+    },
+}
+
+
+def _remap_json_keys(data: dict[str, list[str]], audience: str) -> dict[str, list[str]]:
+    """Remap developer JSON keys to audience-specific keys.
+
+    If the AI returns developer keys (added, changed, fixed) when we asked for
+    user keys (whats_new, improvements, bug_fixes), this remaps them.
+    """
+    if audience not in KEY_REMAPPING:
+        return data
+
+    remapping = KEY_REMAPPING[audience]
+    result: dict[str, list[str]] = {}
+
+    for key, items in data.items():
+        if key in remapping:
+            # Remap developer key to audience key
+            new_key = remapping[key]
+            if new_key in result:
+                result[new_key].extend(items)
+            else:
+                result[new_key] = list(items)
+        else:
+            # Keep the key as-is (might already be an audience key)
+            if key in result:
+                result[key].extend(items)
+            else:
+                result[key] = list(items)
+
+    return result
+
+
 def json_to_markdown(data: dict[str, list[str]], audience: str) -> str:
     """Convert parsed JSON to markdown with correct section headers.
 
@@ -122,6 +173,9 @@ def json_to_markdown(data: dict[str, list[str]], audience: str) -> str:
     Returns:
         Formatted markdown string
     """
+    # First, remap any developer keys to audience keys
+    data = _remap_json_keys(data, audience)
+
     schema = AUDIENCE_SCHEMAS.get(audience, AUDIENCE_SCHEMAS["developers"])
     order = SECTION_ORDER.get(audience, SECTION_ORDER["developers"])
 
@@ -154,10 +208,16 @@ def format_changelog_from_json(content: str, audience: str) -> str | None:
         audience: Target audience for header mapping
 
     Returns:
-        Formatted markdown or None if JSON parsing failed
+        Formatted markdown or None if JSON parsing failed or resulted in empty output
     """
     parsed = parse_json_response(content)
     if parsed is None:
         return None
 
-    return json_to_markdown(parsed, audience)
+    result = json_to_markdown(parsed, audience)
+
+    # Return None if the result is empty (no matching sections found)
+    if not result or not result.strip():
+        return None
+
+    return result

@@ -5,6 +5,7 @@ import pytest
 from kittylog.prompt.json_schema import (
     AUDIENCE_SCHEMAS,
     SECTION_ORDER,
+    _remap_json_keys,
     format_changelog_from_json,
     json_to_markdown,
     parse_json_response,
@@ -162,3 +163,78 @@ class TestAudienceSchemas:
             schema_keys = set(AUDIENCE_SCHEMAS[audience].keys())
             order_keys = set(SECTION_ORDER[audience])
             assert schema_keys == order_keys, f"Mismatch for {audience}"
+
+
+class TestKeyRemapping:
+    """Tests for remapping developer keys to audience keys."""
+
+    def test_remap_developer_keys_to_users(self):
+        """Test remapping developer JSON keys to user keys."""
+        data = {"added": ["Feature A"], "changed": ["Update B"], "fixed": ["Bug C"]}
+        result = _remap_json_keys(data, "users")
+
+        assert "whats_new" in result
+        assert "improvements" in result
+        assert "bug_fixes" in result
+        assert "added" not in result
+        assert "changed" not in result
+        assert "fixed" not in result
+
+    def test_remap_developer_keys_to_stakeholders(self):
+        """Test remapping developer JSON keys to stakeholder keys."""
+        data = {"added": ["Feature"], "fixed": ["Bug"]}
+        result = _remap_json_keys(data, "stakeholders")
+
+        assert "highlights" in result
+        assert "platform_improvements" in result
+
+    def test_no_remap_for_developers(self):
+        """Test that developer keys are not remapped for developers."""
+        data = {"added": ["Feature"], "changed": ["Update"]}
+        result = _remap_json_keys(data, "developers")
+
+        assert result == data
+
+    def test_preserves_correct_audience_keys(self):
+        """Test that correct audience keys are preserved."""
+        data = {"whats_new": ["Feature"], "improvements": ["Update"]}
+        result = _remap_json_keys(data, "users")
+
+        assert "whats_new" in result
+        assert "improvements" in result
+
+    def test_merges_remapped_keys(self):
+        """Test that remapped keys are merged properly."""
+        # Both 'fixed' and 'security' map to 'bug_fixes' for users
+        data = {"fixed": ["Bug A"], "security": ["Security B"]}
+        result = _remap_json_keys(data, "users")
+
+        assert "bug_fixes" in result
+        assert len(result["bug_fixes"]) == 2
+        assert "Bug A" in result["bug_fixes"]
+        assert "Security B" in result["bug_fixes"]
+
+
+class TestJsonToMarkdownWithRemapping:
+    """Test json_to_markdown with developer keys for non-developer audiences."""
+
+    def test_developer_keys_converted_for_users(self):
+        """Test that developer keys are converted to user headers."""
+        data = {"added": ["New feature"], "fixed": ["Bug fix"]}
+        result = json_to_markdown(data, "users")
+
+        assert "### What's New" in result
+        assert "### Bug Fixes" in result
+        assert "- New feature" in result
+        assert "- Bug fix" in result
+        assert "### Added" not in result
+        assert "### Fixed" not in result
+
+    def test_developer_keys_converted_for_stakeholders(self):
+        """Test that developer keys are converted to stakeholder headers."""
+        data = {"added": ["Big win"], "changed": ["Improvement"]}
+        result = json_to_markdown(data, "stakeholders")
+
+        assert "### Highlights" in result
+        assert "### Platform Improvements" in result
+        assert "### Added" not in result
