@@ -41,22 +41,22 @@ try:
 except (OSError, PermissionError, RuntimeError):
     os.chdir(str(Path.home()))
 
-# Import cache clearing functions
-try:
-    from kittylog.commit_analyzer import clear_commit_analyzer_cache
-    from kittylog.tag_operations import clear_git_cache
-except ImportError:
-
-    def clear_git_cache():
-        pass
-
-    def clear_commit_analyzer_cache():
-        pass
-
 
 @pytest.fixture(autouse=True)
 def clear_caches_between_tests():
     """Automatically clear all git caches between tests."""
+    # Import cache clearing functions inside fixture to avoid coverage warnings
+    try:
+        from kittylog.commit_analyzer import clear_commit_analyzer_cache
+        from kittylog.tag_operations import clear_git_cache
+    except ImportError:
+
+        def clear_git_cache():
+            pass
+
+        def clear_commit_analyzer_cache():
+            pass
+
     # Save original cwd
     try:
         original_cwd = str(Path.cwd())
