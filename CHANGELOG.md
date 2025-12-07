@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [2.11.0] - 2025-12-06
+
+### Changed
+
+- Better at preventing duplicate entries when generating new changelogs
+- Changed default settings to be more suitable for developers
+
 ## [2.10.3] - 2025-12-06
 
 ### What's New
