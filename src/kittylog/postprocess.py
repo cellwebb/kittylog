@@ -55,9 +55,7 @@ def remap_headers_for_audience(content: str, audience: str) -> str:
     return content
 
 
-def clean_changelog_content(
-    content: str, preserve_version_header: bool = False, audience: str = "developers"
-) -> str:
+def clean_changelog_content(content: str, preserve_version_header: bool = False, audience: str = "developers") -> str:
     """Clean and format AI-generated changelog content.
 
     Args:

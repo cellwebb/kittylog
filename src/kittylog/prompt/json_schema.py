@@ -52,7 +52,7 @@ def get_json_schema_for_audience(audience: str) -> str:
     example = {key: ["Example item 1", "Example item 2"] for key in keys[:2]}
 
     return f"""{{
-  {', '.join(f'"{k}": ["item1", "item2", ...]' for k in keys)}
+  {", ".join(f'"{k}": ["item1", "item2", ...]' for k in keys)}
 }}
 
 Example:

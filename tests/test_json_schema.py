@@ -1,7 +1,5 @@
 """Tests for JSON schema parsing and formatting."""
 
-import pytest
-
 from kittylog.prompt.json_schema import (
     AUDIENCE_SCHEMAS,
     SECTION_ORDER,
@@ -17,12 +15,12 @@ class TestParseJsonResponse:
 
     def test_parse_json_in_code_block(self):
         """Test parsing JSON wrapped in code blocks."""
-        content = '''```json
+        content = """```json
 {
   "added": ["New feature A", "New feature B"],
   "fixed": ["Bug fix C"]
 }
-```'''
+```"""
         result = parse_json_response(content)
         assert result is not None
         assert result["added"] == ["New feature A", "New feature B"]
@@ -38,9 +36,9 @@ class TestParseJsonResponse:
 
     def test_parse_json_with_surrounding_text(self):
         """Test parsing JSON with AI preamble text."""
-        content = '''Here's the changelog:
+        content = """Here's the changelog:
 {"added": ["Something new"]}
-Let me know if you need changes.'''
+Let me know if you need changes."""
         result = parse_json_response(content)
         assert result is not None
         assert result["added"] == ["Something new"]
@@ -121,13 +119,13 @@ class TestFormatChangelogFromJson:
 
     def test_full_workflow_users(self):
         """Test complete workflow for users audience."""
-        content = '''```json
+        content = """```json
 {
   "whats_new": ["Dark mode support"],
   "improvements": ["Faster loading"],
   "bug_fixes": ["Fixed login issue"]
 }
-```'''
+```"""
         result = format_changelog_from_json(content, "users")
         assert result is not None
         assert "### What's New" in result
