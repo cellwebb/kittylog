@@ -53,42 +53,6 @@ def truncate_text(text: str, max_length: int = 100, suffix: str = "...") -> str:
     return text[:truncate_at] + suffix
 
 
-def clean_changelog_content(content: str) -> str:
-    """Clean changelog content by removing unwanted artifacts.
-
-    Args:
-        content: Raw changelog content
-
-    Returns:
-        Cleaned changelog content
-    """
-    # Handle empty or whitespace-only content
-    if not content or not content.strip():
-        return ""
-
-    # Remove markdown code blocks around the entire content
-    content = re.sub(r"^```(?:markdown)?\s*\n(.*?)\n```\s*$", r"\1", content, flags=re.MULTILINE | re.DOTALL)
-
-    # Remove AI-generated preamble (at the beginning)
-    content = re.sub(r"^Here(\'s| is) the changelog[^#]*", "", content, flags=re.IGNORECASE | re.DOTALL)
-    content = re.sub(r"^I(\'ll| will) help you.*?\n\n", "", content, flags=re.IGNORECASE | re.DOTALL)
-    content = re.sub(r"^I(\'ve| have) generated.*?\n\n", "", content, flags=re.IGNORECASE | re.DOTALL)
-
-    # Remove trailing AI chatter
-    content = re.sub(r"\n\nLet me know if you need anything.*$", "", content, flags=re.IGNORECASE)
-    content = re.sub(r"\n\nIs there anything else.*$", "", content, flags=re.IGNORECASE)
-    content = re.sub(r"\n\nThe changelog entry above.*$", "", content, flags=re.IGNORECASE)
-
-    # Remove leading/trailing whitespace
-    content = content.strip()
-
-    # Handle empty-ish content that has no real changelog sections
-    if content and not re.search(r"###\s+\w+|^-\s+", content, re.MULTILINE):
-        return ""
-
-    return content
-
-
 def is_semantic_version(version: str) -> bool:
     """Check if a version string follows semantic versioning.
 

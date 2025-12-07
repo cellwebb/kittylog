@@ -13,9 +13,9 @@ Submodules:
 """
 
 from kittylog.constants import Audiences
+from kittylog.postprocess import clean_changelog_content
 from kittylog.prompt.system import build_system_prompt
 from kittylog.prompt.user import build_user_prompt
-from kittylog.prompt_cleaning import clean_changelog_content
 
 
 def build_changelog_prompt(

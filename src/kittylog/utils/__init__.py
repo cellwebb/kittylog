@@ -4,6 +4,9 @@ This module provides a unified interface to all utility functions.
 """
 
 # Import all utility functions from specialized modules
+# Import from postprocess module
+from kittylog.postprocess import clean_changelog_content
+
 from .commit import format_commit_for_display
 from .logging import (
     StructuredLoggerAdapter,
@@ -23,7 +26,6 @@ from .system import (
     run_subprocess_with_encoding,
 )
 from .text import (
-    clean_changelog_content,
     count_tokens,
     detect_changelog_version_style,
     determine_next_version,
