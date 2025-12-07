@@ -1,6 +1,6 @@
 # kittylog Development Makefile
 
-.PHONY: help install install-dev test test-coverage lint format check clean build publish docs bump bump-patch bump-minor bump-major
+.PHONY: help install install-dev test test-cov cov lint format check clean build publish docs bump bump-patch bump-minor bump-major
 
 # Default target
 help: ## Show this help message
@@ -23,8 +23,11 @@ test: ## Run tests (excluding actual API calls)
 test-all: ## Run all tests including actual API calls
 	uv run pytest
 
-test-coverage: ## Run tests with coverage report
-	uv run pytest --cov=kittylog --cov-report=html --cov-report=term-missing
+test-cov: ## Run tests with coverage report
+	uv run pytest --cov=kittylog --cov-report=term-missing --cov-branch --cov-context=test
+
+cov: ## Generate coverage report from existing coverage data without running tests
+	uv run coverage report --show-missing
 
 test-watch: ## Run tests in watch mode
 	uv run pytest-watch
