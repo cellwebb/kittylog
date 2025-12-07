@@ -7,16 +7,16 @@ from unittest.mock import patch
 
 import pytest
 
-from kittylog.changelog.io import (
-    create_changelog_header,
-    read_changelog,
-    write_changelog,
-)
 from kittylog.changelog.boundaries import find_existing_boundaries
 from kittylog.changelog.insertion import (
     find_end_of_unreleased_section,
     find_insertion_point,
     find_insertion_point_by_version,
+)
+from kittylog.changelog.io import (
+    create_changelog_header,
+    read_changelog,
+    write_changelog,
 )
 from kittylog.changelog.updater import (
     _update_version_section,
