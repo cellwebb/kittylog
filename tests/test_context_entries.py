@@ -239,10 +239,10 @@ class TestPromptWithContextEntries:
         )
 
         # Prompt format updated to emphasize deduplication more strongly
-        assert "CRITICAL" in user_prompt and "ALREADY ANNOUNCED" in user_prompt
+        assert "EXISTING FEATURES" in user_prompt and "DO NOT RE-ANNOUNCE" in user_prompt
         assert "## [1.0.0]" in user_prompt
         assert "Feature X" in user_prompt
-        assert "DEDUPLICATION" in user_prompt
+        assert "MANDATORY" in user_prompt
 
     def test_prompt_without_context_entries(self):
         """Test that prompt works without context entries."""
