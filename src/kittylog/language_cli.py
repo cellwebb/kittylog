@@ -129,7 +129,7 @@ def _run_language_selection_flow(env_path: Path) -> str | None:
         heading_choice = questionary.select(
             "How should changelog section headings be handled?",
             choices=[
-                "Keep section headings in English (Added, Changed, etc.)",
+                "Keep section headings in English",
                 f"Translate section headings into {language_value}",
             ],
         ).ask()
@@ -228,7 +228,7 @@ def language() -> None:
     click.echo(f"  KITTYLOG_LANGUAGE={language_value}")
     if translate_headings:
         click.echo("  KITTYLOG_TRANSLATE_HEADINGS=true")
-        click.echo("\n  Section headings will be translated (e.g., '### Añadido')")
+        click.echo(f"\n  Section headings will be translated into {language_value}")
     else:
         click.echo("  KITTYLOG_TRANSLATE_HEADINGS=false")
         click.echo(f"\n  Section headings will remain in English while entries use {language_value}")

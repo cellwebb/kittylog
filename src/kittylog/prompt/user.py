@@ -6,6 +6,23 @@ This module builds the user prompt with commit data and context.
 from kittylog.constants import Audiences
 
 
+def _get_section_names_for_audience(audience: str) -> str:
+    """Get the section names used for a specific audience.
+
+    Args:
+        audience: The target audience ('developers', 'users', 'stakeholders')
+
+    Returns:
+        Comma-separated string of section names
+    """
+    if audience == "users":
+        return "What's New, Improvements, Bug Fixes"
+    elif audience == "stakeholders":
+        return "Highlights, Customer Impact, Platform Improvements"
+    else:  # developers
+        return "Added, Changed, Deprecated, Removed, Fixed, Security"
+
+
 def _build_instructions(audience: str) -> str:
     """Build audience-specific instructions for the user prompt."""
     if audience == "users":
@@ -148,23 +165,6 @@ def build_user_prompt(
     if hint.strip():
         hint_section = f"Additional context: {hint.strip()}\n\n"
 
-    language_section = ""
-    if language:
-        if translate_headings:
-            language_section = (
-                "CRITICAL LANGUAGE REQUIREMENTS:\n"
-                f"- Write the entire changelog (section headings and bullet text) in {language}.\n"
-                "- Translate the standard section names (Added, Changed, Deprecated, Removed, Fixed, Security) while preserving their order.\n"
-                "- Keep the markdown syntax (###, bullet lists) unchanged.\n\n"
-            )
-        else:
-            language_section = (
-                "CRITICAL LANGUAGE REQUIREMENTS:\n"
-                f"- Write all descriptive text and bullet points in {language}.\n"
-                "- KEEP the section headings (### Added, ### Changed, etc.) in English while translating their content.\n"
-                "- Maintain markdown syntax.\n\n"
-            )
-
     audience_instructions = {
         "developers": (
             "AUDIENCE FOCUS (Developers):\n"
@@ -187,6 +187,25 @@ def build_user_prompt(
     }
     resolved_audience = Audiences.resolve(audience)
     audience_section = audience_instructions.get(resolved_audience, audience_instructions["developers"])
+
+    # Build language section with audience-appropriate section names
+    language_section = ""
+    if language:
+        section_names = _get_section_names_for_audience(resolved_audience)
+        if translate_headings:
+            language_section = (
+                "CRITICAL LANGUAGE REQUIREMENTS:\n"
+                f"- Write the entire changelog (section headings and bullet text) in {language}.\n"
+                f"- Translate the section names ({section_names}) while preserving their order.\n"
+                "- Keep the markdown syntax (###, bullet lists) unchanged.\n\n"
+            )
+        else:
+            language_section = (
+                "CRITICAL LANGUAGE REQUIREMENTS:\n"
+                f"- Write all descriptive text and bullet points in {language}.\n"
+                f"- KEEP the section headings ({section_names}) in English while translating their content.\n"
+                "- Maintain markdown syntax.\n\n"
+            )
 
     # Add context from preceding entries if provided
     context_section = ""
