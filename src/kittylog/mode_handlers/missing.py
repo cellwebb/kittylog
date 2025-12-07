@@ -1,7 +1,5 @@
 """Missing entries mode handler for kittylog."""
 
-from typing import Any
-
 from kittylog.changelog.boundaries import find_existing_boundaries
 from kittylog.changelog.insertion import find_insertion_point_by_version
 from kittylog.commit_analyzer import get_commits_between_boundaries, get_commits_between_tags
@@ -141,12 +139,8 @@ def handle_missing_entries_mode(
         )
         boundary_map[identifier] = boundary
 
-    # Collect all boundary entries first (chronological order)
-    boundary_entries: list[dict[str, Any]] = []
-
-    # Process each missing boundary in chronological order (oldest first)
-    # This ensures the AI has historical context from previously generated entries
-    # Note: We'll insert them in reverse order for proper changelog display
+    # Process each missing boundary and save immediately after each one
+    # This ensures the changelog is updated iteratively as each entry is generated
     for i, boundary_id in enumerate(missing_boundaries):
         try:
             boundary = boundary_map[boundary_id]
@@ -212,95 +206,71 @@ def handle_missing_entries_mode(
                     version_date = datetime.now().strftime("%Y-%m-%d")
                 version_name = boundary_id
 
-            # Create version section
-            version_section = f"## [{version_name}] - {version_date}\n\n{entry}"
+            # Create version section with leading newline for spacing
+            version_section = f"\n## [{version_name}] - {version_date}\n\n{entry}"
 
-            # Collect the entry for later insertion
-            boundary_entries.append(
-                {
-                    "boundary_id": boundary_id,
-                    "version_section": version_section,
-                    "index": i,  # For progress tracking
-                }
-            )
+            # Insert and save immediately
+            if mode == "tags":
+                # For tags mode, use version-aware insertion
+                insert_point = find_insertion_point_by_version(updated_content, boundary_id)
+                lines = updated_content.split("\n")
+                for j, line in enumerate(version_section.split("\n")):
+                    lines.insert(insert_point + j, line)
+                updated_content = "\n".join(lines)
+            else:
+                # For dates and gaps modes, insert after header/unreleased section
+                lines = updated_content.split("\n")
+                insert_point = _find_insertion_point_for_dates_gaps(lines)
+
+                for j, line in enumerate(version_section.split("\n")):
+                    lines.insert(insert_point + j, line)
+
+                # Add spacing if needed
+                end_pos = insert_point + len(version_section.split("\n"))
+                if end_pos < len(lines) and lines[end_pos].strip():
+                    lines.insert(end_pos, "")
+
+                updated_content = "\n".join(lines)
+
+            # Save immediately after each entry if incremental_save is enabled
+            if incremental_save and not dry_run:
+                write_changelog(changelog_file, updated_content)
+                if not quiet:
+                    progress = f"({i + 1}/{len(missing_boundaries)})"
+                    output.success(f"✓ Saved changelog entry for {boundary_id} {progress}")
+            else:
+                if not quiet:
+                    progress = f"({i + 1}/{len(missing_boundaries)})"
+                    output.info(f"✓ Prepared changelog entry for {boundary_id} {progress}")
 
         except (GitError, AIError, OSError, TimeoutError, ValueError, KeyError) as e:
             output.warning(f"Failed to process boundary {boundary_id}: {e}")
             success = False
             continue
 
-    # Insert all boundary entries (oldest first, each at same position pushes older down)
-    if boundary_entries:
-        if mode == "tags":
-            # For tags mode, use original logic as semantic versions should work correctly
-            lines = updated_content.split("\n")
-            for entry_data in reversed(boundary_entries):
-                insert_point = find_insertion_point_by_version(updated_content, entry_data["boundary_id"])
-                version_section = str(entry_data["version_section"])
-                for j, line in enumerate(version_section.split("\n")):
-                    lines.insert(insert_point + j, line)
-
-                updated_content = "\n".join(lines)
-
-                if incremental_save and not dry_run:
-                    write_changelog(changelog_file, updated_content)
-                    if not quiet:
-                        progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
-                        output.success(f"✓ Saved changelog entry for {entry_data['boundary_id']} {progress}")
-        else:
-            # For dates and gaps modes, use direct insertion (like in boundary.py)
-            lines = updated_content.split("\n")
-
-            # Find the insertion point (after Unreleased section, before first version)
-            insert_point = len(lines)  # Default to end
-
-            # Look for unreleased section and insert after it
-            for line_num, line in enumerate(lines):
-                if line.strip().startswith("## [Unreleased]"):
-                    # Find the end of unreleased section
-                    for j in range(line_num + 1, len(lines)):
-                        if lines[j].strip().startswith("## [") and "Unreleased" not in lines[j]:
-                            insert_point = j
-                            break
-                        elif j == len(lines) - 1:  # End of file after unreleased
-                            insert_point = j + 1
-                            break
-                    break
-            else:
-                # No unreleased section found, find first version section
-                for line_num, line in enumerate(lines):
-                    if line.strip().startswith("## [") and "Unreleased" not in line:
-                        insert_point = line_num
-                        break
-
-            # Insert entries in chronological order (oldest first)
-            # Each insert at fixed position pushes older entries down, resulting in newest on top
-            for entry_data in boundary_entries:
-                version_lines = str(entry_data["version_section"]).split("\n")
-
-                # Insert at the fixed position
-                current_pos = insert_point
-                for line in version_lines:
-                    lines.insert(current_pos, line)
-                    current_pos += 1
-
-                # Add spacing between entries
-                if current_pos < len(lines) and lines[current_pos].strip():
-                    lines.insert(current_pos, "")
-                    current_pos += 1
-
-                # Save incrementally after each successful insertion
-                updated_content = "\n".join(lines)
-                if incremental_save and not dry_run:
-                    write_changelog(changelog_file, updated_content)
-                    if not quiet:
-                        progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
-                        output.success(f"✓ Saved changelog entry for {entry_data['boundary_id']} {progress}")
-                else:
-                    if not quiet:
-                        progress = f"({entry_data['index'] + 1}/{len(missing_boundaries)})"
-                        output.info(f"✓ Prepared changelog entry for {entry_data['boundary_id']} {progress}")
-
-            # Note: updated_content is already up to date from incremental saves above
-
     return success, updated_content
+
+
+def _find_insertion_point_for_dates_gaps(lines: list[str]) -> int:
+    """Find insertion point for dates/gaps mode entries.
+
+    Returns the line number where new entries should be inserted.
+    """
+    # Look for unreleased section and insert after it
+    for line_num, line in enumerate(lines):
+        if line.strip().startswith("## [Unreleased]"):
+            # Find the end of unreleased section
+            for j in range(line_num + 1, len(lines)):
+                if lines[j].strip().startswith("## [") and "Unreleased" not in lines[j]:
+                    return j
+                elif j == len(lines) - 1:  # End of file after unreleased
+                    return j + 1
+            return len(lines)
+
+    # No unreleased section found, find first version section
+    for line_num, line in enumerate(lines):
+        if line.strip().startswith("## [") and "Unreleased" not in line:
+            return line_num
+
+    # No version sections found, insert at end
+    return len(lines)
