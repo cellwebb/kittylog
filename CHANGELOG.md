@@ -1,489 +1,456 @@
 # Changelog
 
-
 ## [3.0.3] - 2025-12-06
 
 ### What's New
 
-- Generate release notes tailored for different audiences (users, stakeholders, or developers)
-- New audience options with more flexible aliases
-- Automatic consistent spacing between version entries
+- More audience options for creating changelogs
+- Changelogs now have better spacing between version sections
 
 ### Improvements
 
-- Better organization of changelog features for improved performance
-- More accurate version boundary detection and content handling
-- Refined changelog format for better readability
-
+- Audience-specific section headers now appear automatically
+- More consistent formatting for changelogs
+- Better handling of changelog entries when adding new versions
 
 ## [3.0.2] - 2025-12-06
 
+### What's New
+
+- New tools for managing version sections in your changelogs
+- Better control over bullet point limits in different sections
+
 ### Improvements
 
-- Better organization of changelog features for improved performance
-- More accurate version boundary detection and content handling
-
+- Changelog processing is now more organized and efficient
+- Improved reliability when identifying where to add new entries
 
 ## [3.0.1] - 2025-12-06
 
-### What's New
-
-- Generate targeted updates for different audiences (developers, users, or stakeholders)
-
 ### Improvements
 
-- Better organization to prevent mentioning the same feature twice
-- More accurate control over update length with detailed limits per section
-
+- Better organization for generating content tailored to different audiences
+- Added controls to manage content length and detail
+- Improved guidance to prevent repeating information from previous updates
 
 ## [3.0.0] - 2025-12-06
 
 ### What's New
 
-- Simplified command structure with a single update command
+- Simplified update command now handles both adding and updating entries
 
 ### Improvements
 
-- Better help text and guidance when updating entries
-- More reliable command processing
+- Improved help text and command structure for easier use
 
+### Bug Fixes
+
+- Removed confusing duplicate commands that caused friction
 
 ## [2.11.0] - 2025-12-06
 
+### What's New
+
+- Improved changelog generation to avoid repeating features from previous versions
+
 ### Improvements
 
-- Better change summaries that don't repeat what you've already seen
-- Improved how features are organized in updates
+- Better handling of changelog context to prevent duplicate announcements
 
+### Bug Fixes
+
+- Fixed default audience setting for better targeting
 
 ## [2.10.3] - 2025-12-06
 
 ### What's New
 
-- AI features now include 5 previous log entries for better context
-
+- AI now includes your last 5 log entries for better context by default
 
 ## [2.10.2] - 2025-12-06
 
 ### What's New
 
-- Added identifiers to boundary commits for better tracking in changelogs
+- Added better tracking for changelog entries with unique identifiers
 
 ### Improvements
 
-- Changelogs now save progressively during updates to prevent lost progress
-- Better spacing and formatting in changelog entries
+- Changelog entries now appear in correct chronological order
+- Better progress saving when updating changelogs
 
 ### Bug Fixes
 
-- Fixed incorrect ordering of entries in changelogs - newest now appear first correctly
-
+- Fixed incorrect ordering of entries in changelog generation
 
 ## [2.10.1] - 2025-12-06
 
 ### Improvements
 
-- Better handling of missing entries in your logs
-- Improved chronological ordering of changelog entries
-- Clearer date formatting and spacing in generated logs
-
+- Better handling of missing entries with improved insertion order
+- Improved chronological ordering for changelog entries
+- Updated usage screenshots for better visual clarity
 
 ## [2.10.0] - 2025-12-06
 
 ### What's New
 
-- Colorful rainbow banner now appears when starting the app
-- Generate changelogs in different languages for different audiences
+- Added colorful rainbow banner on startup
+- Generate changelogs in different languages and for different audiences
 
 ### Improvements
 
-- Removed confirmation prompts to make commands run faster
-- Changelog formatting now keeps consistent spacing between versions
+- Changelogs now have consistent spacing between versions
+- Simplified commands by removing confirmation prompts
 
+### Bug Fixes
+
+- Fixed banner display formatting issues
 
 ## [2.9.2] - 2025-12-06
 
 ### Bug Fixes
 
-- Fixed incorrect grouping of changes in generated logs
-
+- Fixed incorrect commit grouping in update history
 
 ## [2.9.1] - 2025-12-06
 
 ### Improvements
 
-- More reliable processing when handling version tags and dates
-- Better handling of empty change lists and special date ranges
-
+- Better testing coverage for different modes and date handling
+- Improved reliability of version and boundary operations
 
 ## [2.9.0] - 2025-12-06
 
 ### Improvements
 
-- Better support for optional API keys with LMStudio and Ollama providers
-- More reliable error handling across all AI providers
-- Streamlined provider detection for easier setup
-
+- More reliable sign-in for local providers
+- Smoother configuration setup
+- Better error messages when something goes wrong
 
 ## [2.8.2] - 2025-12-05
 
 ### Improvements
 
-- Cleaner changelog formatting without version headers
+- Improved changelog generation for cleaner and more consistent output
 
+### Bug Fixes
+
+- Fixed formatting issues in generated changelogs
 
 ## [2.8.1] - 2025-12-05
 
 ### Improvements
 
-- Simplified command line options for easier use
-
+- Simplified command options for easier use
 
 ## [2.8.0] - 2025-12-05
 
 ### Improvements
 
-- More reliable command processing
 - Better type safety and error prevention
-
+- Cleaner internal code structure for easier maintenance
 
 ## [2.7.0] - 2025-12-05
 
 ### What's New
 
-- New --detail option to control how much information you see in the output
-- Choose between concise, normal, or detailed output formats to fit your needs
+- New --detail option lets you choose output length (concise, normal, or detailed)
+- Control how much detail you see in your changelogs with preset verbosity levels
 
 ### Improvements
 
-- System now enforces strict limits on output length to keep notes focused and readable
-
+- Better enforcement of output length limits to keep changelogs focused
+- System prompts now adapt to your chosen detail level automatically
 
 ## [2.6.0] - 2025-12-05
 
 ### What's New
 
-- Generate changelogs tailored for different audiences: developers, users, or stakeholders
+- Generate content tailored for different audiences: developers, users, or stakeholders
 
 ### Improvements
 
-- Better content targeting based on who will read your changelog
-
+- Better explanations for non-technical users
+- More business-focused summaries for stakeholders
 
 ## [2.5.2] - 2025-12-05
 
 ### Improvements
 
-- App starts up faster and responds more quickly
-- Better error messages when things go wrong
-- Improved reliability for missing entries handling
+- Better error handling and more helpful error messages
+- Improved boundary handling for missing entries mode
+- Enhanced test reliability and isolation
+- Cleaned up changelog headers for easier reading
+- Removed unused dependencies for cleaner installation
 
 ### Bug Fixes
 
-- Fixed crashes related to boundary processing
-- Resolved test interference issues
-- Fixed exception handling to properly respond to system interruptions
-
+- Fixed crashes related to boundary key access
+- Resolved test failures in dry run mode
 
 ## [2.5.1] - 2025-12-05
 
 ### What's New
 
-- New boundary mode helps find missing entries by dates or gaps
+- Added support for new boundary modes when finding missing entries, including tags, dates, and gaps
 
 ### Bug Fixes
 
-- Fixed grouping mode being ignored when checking for missing entries
-
+- Fixed an issue where grouping mode was being ignored when checking for missing entries
 
 ## [2.5.0] - 2025-12-05
 
 ### What's New
 
-- New incremental save option that updates your changelog as you work instead of waiting until the end
+- Incremental save feature that updates your changelog as you work instead of waiting until the end
+- New workflow option to save changes progressively during entry generation
 
 ### Improvements
 
-- Better progress tracking when processing multiple entries
-- More reliable handling of changelog files
-
+- Better progress tracking when generating multiple changelog entries
+- Improved reliability when changelog files are missing
 
 ## [2.4.2] - 2025-12-05
 
 ### Improvements
 
-- Improved reliability and performance across all services
-- Better error messages when things go wrong
+- Better performance and reliability
+- More consistent error messages
+- Faster app startup
 
 ### Bug Fixes
 
-- Fixed authentication issues with Qwen service
-
+- Fixed authentication issues with Qwen provider
+- Improved error handling across all services
 
 ## [2.4.1] - 2025-12-04
 
 ### Improvements
 
-- Improved system stability and reliability
-
+- Security and stability improvements
+- Improved error message formatting
 
 ## [2.4.0] - 2025-12-04
 
 ### What's New
 
-- Added support for Qwen AI provider with easy sign-in
-- New secure token storage keeps your authentication safe
-- Enhanced authentication commands with status for all providers
+- New Qwen AI provider with easy sign-in options
+- Secure token storage for authentication
 
 ### Improvements
 
-- Better error messages when things go wrong
-- Automatic version style matching keeps changelogs consistent
-- Improved debugging with more detailed information
+- Enhanced error handling with better messages
+- Automatic version style matching for changelogs
+- Improved debugging with detailed logging information
 
 ### Bug Fixes
 
-- Fixed version prefix handling in changelogs
-- Corrected import ordering for better reliability
-
+- Fixed version formatting inconsistencies in changelogs
 
 ## [2.3.4] - 2025-12-04
 
-### What's New
-
-- Consistent version numbering in changelogs
-
 ### Improvements
 
-- Better handling of various version formats including pre-release versions
+- Improved version formatting consistency across the app
+- Better handling of various version tag formats
 
 ### Bug Fixes
 
-- Fixed incorrect reprocessing of changelog entries
-- Resolved issues with version tag recognition
-
+- Fixed issue causing incorrect reprocessing of changelog entries
 
 ## [2.3.3] - 2025-12-04
 
 ### Improvements
 
-- Cleaner changelog formatting and organization
-- Better handling of unreleased updates in the changelog
-
+- Improved how new updates are added to the changelog for better organization
 
 ## [2.3.2] - 2025-12-04
 
 ### What's New
 
-- Added unreleased mode for generating changelogs between releases
+- Generate changelogs for unreleased changes between tags
 
 ### Improvements
 
-- Updated AI models to latest versions for better results
-- Improved changelog processing to handle dates and versions more accurately
+- Updated to latest AI models for better processing
+- Improved tag recognition and version ordering
 
 ### Bug Fixes
 
-- Fixed tag recognition issues when comparing versions
-
+- Fixed issues with version tag comparison
 
 ## [2.3.1] - 2025-12-04
 
 ### What's New
 
-- Updated to latest AI models for better performance
+- Updated to use the latest AI models for better performance
+- Switched to processing entries in chronological order for smarter results
 
 ### Improvements
 
-- AI now processes entries in chronological order for better context
-
+- Better AI context understanding when analyzing your logs
+- Updated documentation to show current supported model versions
 
 ## [2.3.0] - 2025-12-04
 
 ### What's New
 
-- New release command for automated changelog preparation
-- Style reference feature to maintain consistent changelog format
+- New release command to automate changelog preparation
+- Style reference option to match existing changelog entries
 
 ### Improvements
 
-- Better performance and reliability through code improvements
-- Enhanced configuration management with clearer precedence rules
-- More accurate error messages and improved stability
+- Better error messages when things go wrong
+- App responds faster to repeated actions
+- Improved sign-in reliability
 
 ### Bug Fixes
 
-- Fixed tag recognition and changelog ordering issues
-- Resolved configuration loading and API key handling problems
-
+- Fixed crash when saving files
+- Fixed occasional freezing issue
+- Fixed crash when saving large files
 
 ## [2.2.0] - 2025-12-03
 
 ### What's New
 
-- Set project-specific settings that override your main config
-- Keyboard shortcuts now make navigating menus faster
+- Set up project-specific settings with .kittylog.env files
+- Use arrow keys for faster navigation in menus
 
 ### Improvements
 
-- App now works better on computers with different languages
-- Configuration display now hides sensitive information for privacy
-
+- Better support for international characters and non-English systems
+- View configuration settings with sensitive information automatically hidden
 
 ## [2.1.0] - 2025-12-03
 
 ### What's New
 
 - New standalone 'kittylog auth' command for easier sign-in
-- New 'kittylog model' command to configure AI providers independently
-- Support for 20+ AI providers including custom endpoints
+- New 'kittylog model' command to configure AI providers
+- Standalone 'kittylog language' command for language settings
 
 ### Improvements
 
-- Setup process is now simpler and more guided
-- Better error messages when API calls fail
-- Improved security for API key storage
+- Better security for your API keys and tokens
+- Simplified setup process with clearer steps
+- More informative error messages when things go wrong
 
 ### Bug Fixes
 
-- Fixed crashes from invalid API responses
-- Removed duplicate code that could cause inconsistencies
-- Fixed token storage to not modify system environment
-
+- Fixed crashes from unexpected API responses
+- Fixed environment pollution from token storage
+- Removed duplicate functions that could cause inconsistencies
 
 ## [2.0.0] - 2025-12-02
 
 ### What's New
 
-- New AI providers available: Azure OpenAI, Kimi Coding, Moonshot AI, and Replicate
-- Claude Code OAuth authentication for secure sign-in
-- Support for Python 3.14
-- New missing entries mode for processing skipped changelog entries
-- Re-authentication command for refreshing expired tokens
+- Added support for Claude Code OAuth authentication
+- New AI providers: Azure OpenAI, Kimi Coding, Moonshot AI, and Replicate
+- Python 3.14 support added for future compatibility
 
 ### Improvements
 
-- Better error messages with more context when things go wrong
-- More accurate token counting fallback for AI requests
-- Faster and more reliable performance with centralized caching
-- Cleaner configuration system with better validation
-- Improved changelog parsing and insertion point detection
+- Better error messages and handling across all providers
+- Improved configuration system with validation and security
+- App now runs faster with centralized cache management
+- More reliable token counting with better fallback estimation
 
 ### Bug Fixes
 
-- Fixed crash when saving files in some scenarios
-- Fixed version comparison issues with v-prefix tags
-- Resolved circular import problems
-- Fixed bullet point counting in AI-generated content
-- Corrected changelog insertion logic for edge cases
-
+- Fixed changelog parser issues with unreleased sections
+- Fixed crash when saving files with proper error handling
+- Fixed token counting to prevent complete masking failures
+- Resolved circular import issues that could cause instability
 
 ## [1.6.0] - 2025-11-01
 
 ### What's New
 
-- Create changelogs tailored for different audiences (developers, users, or stakeholders)
-- New interactive prompts help you choose the right tone for your audience
+- Choose your changelog audience - developers, end users, or stakeholders
+- Customizable tone to match your target readers
 
 ### Improvements
 
-- Better changelog customization options in settings
-- Enhanced AI generates more relevant content based on your audience
-
+- Interactive guides help select the right audience
+- Better instructions when setting up changelogs
 
 ## [1.5.0] - 2025-11-01
 
 ### What's New
 
-- Generate changelogs in 30+ languages with custom language options
-- Interactive language selection with easy-to-use commands
+- Generate changelogs in 30+ different languages
+- Quick start guide and improved documentation for easier onboarding
 
 ### Improvements
 
-- Better organized documentation with clear examples and guides
-- Enhanced help section with direct links to detailed documentation
-
+- Better visual design and organization in README
+- Enhanced configuration options for language and audience settings
 
 ## [1.4.0] - 2025-10-31
 
 ### What's New
 
-- Interactive configuration mode with guided setup
-- Automatic version detection for unreleased changes
-- Optional git diff inclusion for better context
+- Interactive guided setup makes configuration easier
+- Automatically calculates the right version number for your updates
 
 ### Improvements
 
-- Better grouping mode explanations with smart defaults
-- Environment variable support for secure API keys
-- Enhanced changelog boundary detection
+- Better changelog formatting for entries with dates
+- More reliable handling of settings throughout the app
 
 ### Bug Fixes
 
-- Fixed configuration parameter propagation issues
-- Resolved nested bracket handling in date headings
-- Fixed trailing whitespace in output
-
+- Fixed crashes that happened during setup
+- Resolved issues with passing information between different parts of the app
 
 ## [1.3.0] - 2025-10-31
 
 ### What's New
 
-- Connect with 11 new AI providers including DeepSeek, Gemini, Mistral, and Together AI
-- Use custom endpoints with OpenAI and Anthropic-compatible services
-- Local AI support for LM Studio and Ollama
+- Connect with 11 new AI providers including DeepSeek, Gemini, Mistral, and others
+- Support for custom Anthropic and OpenAI compatible endpoints
+- Interactive setup process makes it easier to configure new AI providers
 
 ### Improvements
 
-- Interactive setup makes adding new AI providers easier
-- Updated configuration system supports more AI service options
-
+- Better handling of local AI providers like LM Studio
+- Improved error messages when setting up AI connections
 
 ## [1.2.0] - 2025-10-04
 
 ### What's New
 
-- New Z.AI coding provider option available
-- Dedicated support for Z.AI coding plans
+- Added Z.AI Coding provider option for dedicated coding plans
 
 ### Improvements
 
-- Simplified provider setup with shared Z.AI key
-- Better documentation for adding new providers
-
-### Bug Fixes
-
-- Removed outdated configuration settings
-- Fixed provider selection in setup
-
+- Simplified provider selection by removing environment variable toggle
 
 ## [1.1.0] - 2025-10-03
 
 ### What's New
 
-- New Z.AI provider support with coding plan option
+- New AI provider option: Z.AI with coding plan support
+- Optional coding mode selection when setting up Z.AI
 
 ### Improvements
 
-- Better error handling for AI responses
-- Improved code style and formatting
-
-### Bug Fixes
-
-- Fixed validation for empty or missing content
-
+- Better error messages when Z.AI responses fail
+- Expanded test coverage for more reliable performance
 
 ## [1.0.2] - 2025-10-01
 
 ### What's New
 
-- Now supports OpenRouter and Z.AI as new AI options
+- New AI providers available: OpenRouter and Z.AI
+- Expanded AI options for your workflow
 
 ### Improvements
 
-- Better HTTP handling and overall stability
-- Updated configuration with improved temperature settings
-
+- Better HTTP handling and connectivity
+- Updated tool dependencies for improved stability
 
 ## [1.0.1] - 2025-09-29
 
@@ -493,9 +460,8 @@
 
 ### Improvements
 
-- Better organization and clarity of change descriptions
-- More flexible and accurate prompt generation
-
+- Better system prompt structure and clarity
+- More flexible prompt generation with adjusted settings
 
 ## [1.0.0] - 2025-09-28
 
@@ -505,289 +471,288 @@
 
 ### Improvements
 
-- Better performance and reliability with updated AI integrations
-- Security and stability improvements with updated dependencies
-
+- Better performance and reliability
+- Security and stability improvements
 
 ## [0.6.0] - 2025-09-27
 
 ### What's New
 
-- Added confirmation prompts before generating changelogs to prevent accidental API calls
-- New --yes flag to automatically skip prompts for automation
-- Improved changelog version ordering to keep versions in the right sequence
+- Added confirmation prompts before generating AI changelogs to prevent accidental API calls
+- New --yes flag to automatically skip all prompts for easy automation
 
 ### Improvements
 
-- Better handling of complex version numbers in changelogs
-
+- Changelog entries are now automatically placed in the correct version order
+- Better handling of version numbers with prefixes and special identifiers
 
 ## [0.5.1] - 2025-09-25
 
 ### Bug Fixes
 
-- Fixed issue causing all boundaries to be reprocessed instead of just missing ones
-
+- Fixed a bug that caused all version boundaries to be reprocessed unnecessarily
 
 ## [0.4.0] - 2025-09-24
 
 ### What's New
 
-- Choose from multiple AI providers (OpenAI, Anthropic, Groq, Cerebras, Ollama) for changelog generation
-- New --no-unreleased option to skip unreleased changes in your changelog
+- Now supports multiple AI providers (OpenAI, Anthropic, Groq, Cerebras, Ollama) for generating changelogs
 
 ### Improvements
 
 - Better error handling and retry logic for AI requests
-- Streamlined configuration with environment variable support
-
+- Simplified changelog header formatting
+- Updated documentation with clearer usage examples
 
 ## [0.3.3] - 2025-09-22
 
 ### What's New
 
-- Token usage tracking now shows AI operation costs
-- Smart changelog management with automatic bullet limiting
+- Track token usage during changelog generation
+- Automatic bullet point limiting keeps changelogs concise
 
 ### Improvements
 
-- Better organization of changelog sections
-- Cleaner README with simplified installation and usage guides
-
+- Simplified installation and usage documentation
+- Better error handling and validation for changelog operations
 
 ## [0.3.2] - 2025-09-22
 
 ### What's New
 
-- Added option to skip unreleased sections when managing changelogs
+- New option to skip unreleased sections in changelogs
+- Added usage diagram to help understand how the tool works
 
 ### Improvements
 
-- Better handling of unreleased sections with conditional formatting
-- Added visual usage diagram to help understand workflows
+- Better formatting when managing changelog sections
+- Cleaner handling of empty sections in documentation
 
+### Bug Fixes
+
+- Fixed issues with blank line cleanup in changelog files
 
 ## [0.3.1] - 2025-09-22
 
 ### Improvements
 
-- Changelog updates now overwrite existing entries automatically for better workflow consistency
+- Security and stability improvements with updated core components
+- Simplified version updates in changelog management
+- More accurate terminology throughout documentation
 
 ### Bug Fixes
 
-- Fixed incorrect environment variable name in error messages
-
+- Fixed inconsistency when updating existing changelog versions
 
 ## [0.3.0] - 2025-09-22
 
 ### What's New
 
-- Project renamed to kittylog with new configuration files and settings
+- Project renamed from clog to kittylog
+- Automated publishing to PyPI for tagged releases
 
 ### Improvements
 
-- Better error messages now show the correct setting names
-- Automated publishing to package manager for new releases
+- Better error messages for configuration issues
+- Enhanced test coverage across multiple Python versions
 
 ### Bug Fixes
 
 - Fixed incorrect environment variable name in error messages
 
-
 ## [0.2.3] - 2025-09-22
+
+### What's New
+
+- Unified output interface for consistent messaging
+- Global quiet/verbose mode support
 
 ### Improvements
 
-- Messages and error reports now appear more consistently throughout the app
-- Better organization of change history with cleaner formatting
-
+- Better output consistency across the app
+- Improved changelog formatting and clarity
 
 ## [0.2.2] - 2025-09-22
 
+### What's New
+
+- App now automatically finds your changelog file in more places
+- Unreleased entries are now handled more intelligently without extra settings
+
 ### Improvements
 
-- App runs faster by remembering git operations
-- Simplified changelog updates by automatically handling unreleased sections
-- Better file discovery to find your changelog in more locations
+- App runs faster by remembering git information during use
+- Simplified command options for a cleaner experience
+- Better environment setup and configuration reliability
 
+### Bug Fixes
+
+- Fixed duplicate entries in unreleased sections
+- No more leftover files after running commands
 
 ## [0.2.1] - 2025-09-22
 
 ### Improvements
 
-- Simplified the interface with removed unnecessary options
-- Better organization makes changelog updates more reliable
-
+- Removed outdated command line options to simplify usage
+- Better organization makes the app run more smoothly
 
 ## [0.2.0] - 2025-09-22
 
 ### What's New
 
-- Automatically finds your changelog file no matter what it's named
-- New documentation with detailed usage guides and examples
+- Automatically finds your changelog file in common locations
+- New documentation files for easier usage and AI agent setup
 
 ### Improvements
 
-- Simplified settings with consistent naming
-- Better organization of help documentation
-
+- Simplified configuration with consistent settings
+- Better test coverage and development tools
 
 ## [0.1.10] - 2025-09-22
 
 ### Improvements
 
-- Better reliability and accuracy when generating changelogs
-- Improved test coverage and stability
-- Cleaner codebase for better performance
-
-
-## [0.1.9] - 2025-09-22
-
-### Improvements
-
-- Better test reliability and more accurate changelog generation
+- Improved reliability of changelog processing
+- Better error handling for git operations
 
 ### Bug Fixes
 
-- Fixed issues with file path handling and git repository context
+- Fixed test failures that were dependent on execution order
+- Resolved conflicts with AI mocking in test fixtures
 
+## [0.1.9] - 2025-09-22
+
+### Bug Fixes
+
+- Fixed issues with changelog generation from git repositories
+- Improved reliability when processing file paths
 
 ## [0.1.8] - 2025-09-22
 
 ### What's New
 
-- New 'unreleased' command to generate changelog from specific tag ranges
-- New --all flag to update all changelog entries at once
+- New command to generate changelog entries from specific tag ranges
+- New option to update all missing or all changelog entries at once
 
 ### Improvements
 
-- Better changelog formatting consistency across all versions
-- Smarter analysis by ignoring changelog files when processing changes
+- Changelog files are now automatically excluded from change analysis for better accuracy
+- Improved formatting and consistency in changelog entries
 
 ### Bug Fixes
 
-- Fixed conflicts between --replace-unreleased and --no-replace-unreleased flags
-- Fixed duplicate sections and formatting issues in changelog
-
+- Fixed duplicate sections and formatting errors in changelog
+- Fixed conflicting options when processing unreleased changes
 
 ## [0.1.7] - 2025-09-21
 
 ### What's New
 
-- Smart changelog generation that adapts to tagged and untagged releases
-- Automatic 'Unreleased' section for changes between official releases
+- Automatically creates 'Unreleased' sections for changelogs
+- AI-powered changelog generation with strict formatting rules
 
 ### Improvements
 
-- Cleaner changelog formatting with automatic duplicate removal
-- Better handling of changelog sections and content organization
+- Better handling of tagged and untagged commits in changelogs
+- Cleaner changelog output by removing duplicates and empty sections
 
 ### Bug Fixes
 
-- Fixed issues with processing tagged commits
-- Resolved content merging problems for smoother changelog updates
-
+- Fixed issues with None values when processing git tags
+- Resolved problems with duplicate headers in changelogs
 
 ## [0.1.6] - 2025-09-21
 
 ### What's New
 
-- Automatic changelog generation for unreleased changes
-- Improved AI-generated changelog formatting with automatic cleanup
+- Changelog generation now works better with tagged releases
+- Improved formatting and structure for automatically generated changelogs
 
 ### Improvements
 
-- Better handling of duplicate content and formatting errors
-- Cleaner spacing and structure in generated changelogs
+- Cleaner changelog content with automatic duplicate removal
+- Better handling of unreleased changes in changelogs
 
 ### Bug Fixes
 
-- Fixed issues with empty sections appearing in changelogs
-- Fixed problems with content merging when processing tags
-
+- Fixed spacing issues around changelog section headers
+- Removed empty sections and extra blank lines from changelogs
 
 ## [0.1.5] - 2025-09-21
 
 ### What's New
 
-- New commands to create and update changelogs
-- Automatically formats and cleans up AI-generated changelog content
+- Create new changelog files with 'clog init-changelog' command
+- Generate changelog entries for specific versions with 'clog update <version>' command
 
 ### Improvements
 
-- Better handling of duplicate sections and empty content
-- More reliable processing of version tags and unreleased changes
+- AI-generated changelogs now have better formatting and fewer errors
+- Changelog entries are automatically cleaned up to remove duplicates and empty sections
 
 ### Bug Fixes
 
-- Fixed crashes when processing git tags
-- Resolved formatting issues with misplaced headers
-
+- Fixed issues with version tag processing
+- Fixed crashes when handling empty or missing changelog content
 
 ## [0.1.4] - 2025-09-21
 
 ### What's New
 
-- Generate changelog entries for specific release tags
-- New command for handling unreleased changes
+- Generate changelog entries for specific tags automatically
+- New command to handle unreleased changes separately
+- Automatically detect and fill in missing changelog entries
 
 ### Improvements
 
-- Better formatting and consistency in changelog entries
-- Improved handling of large content without issues
-
+- Better handling of large content during generation
+- Improved consistency in changelog formatting
 
 ## [0.1.3] - 2025-09-21
 
 ### What's New
 
-- Automatically tracks unreleased changes since last version
-- New option to preserve existing changelog content when updating
-- Better control over how unreleased entries are handled
+- Track unreleased changes automatically
+- Limit changelog sections to 6 items to focus on what's important
 
 ### Improvements
 
-- Changelog entries now limited to 6 items per section for cleaner output
-- Smarter merging prevents duplicate entries in unreleased section
-- Improved formatting removes extra blank lines and empty sections
+- Unreleased content now replaces instead of adding duplicates
+- Better changelog formatting with cleaner spacing
+- More reliable processing of existing changelog content
 
 ### Bug Fixes
 
-- Fixed duplicate entries appearing in unreleased section
-- Fixed formatting issues when inserting new content
-- Resolved crashes when processing commits without tags
-
+- Fixed duplicate entries when updating unreleased section
+- Fixed formatting issues when merging changelog content
 
 ## [0.1.1] - 2025-09-20
 
 ### What's New
 
-- Better support for managing multiple update tags
-- More flexible changelog generation with existing content
+- Automated version management for releases
 
 ### Improvements
 
-- Enhanced test reliability for git operations
-- Improved commit message display formatting
-- Better input validation for logging levels
+- Enhanced changelog generation with better tag handling
+- Improved test stability and coverage for multi-tag processing
 
 ### Bug Fixes
 
-- Fixed issues with directory handling during operations
-- Resolved test failures related to invalid working directories
-
+- Fixed issues with directory handling during git operations
+- Improved error handling and input validation
 
 ## [0.1.0] - 2025-09-20
 
 ### What's New
 
-- AI-powered changelog generation from your git history
-- Support for multiple AI providers (Anthropic, OpenAI, and more)
-- Interactive setup to configure your preferences
+- AI-powered changelog generation that automatically creates release notes from your project history
+- Support for multiple AI providers including OpenAI, Anthropic, and others
+- Interactive setup tool to quickly configure your changelog preferences
 
 ### Improvements
 
-- Automatic detection of new changes since last update
-- Preview mode to see changelog before applying changes
-- Better error messages and automatic retry for failed operations
-
+- Smart detection of new changes since your last update
+- Preview mode to see changelog before finalizing
+- Better error handling with helpful messages when things go wrong

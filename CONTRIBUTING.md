@@ -50,7 +50,7 @@ Run tests with:
 
 ## Project Structure
 
-```
+```text
 src/kittylog/
 ├── cli.py                  # Click-based CLI entry point
 ├── main.py                 # Business logic orchestration

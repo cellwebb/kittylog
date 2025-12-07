@@ -4,7 +4,8 @@
 
 **ALWAYS use `uv run` prefix for ALL Python-related commands. NEVER use vanilla commands.**
 
-### CORRECT (Always use these):
+### CORRECT (Always use these)
+
 ```bash
 ✅ uv run python script.py          # NEVER: python script.py
 ✅ uv run pytest                    # NEVER: pytest
@@ -16,15 +17,17 @@
 ✅ uv run pip install package      # NEVER: pip install package
 ```
 
-### FORBIDDEN (Never use these):
+### FORBIDDEN (Never use these)
+
 ❌ `python` (any form)
-❌ `pytest` (any form) 
+❌ `pytest` (any form)
 ❌ `pip` (any form)
 ❌ `ruff` (any form)
 ❌ `mypy` (any form)
 ❌ `black`, `isort`, `flake8`, or any other Python tools
 
 **Why?** All development tools must go through `uv run` to ensure:
+
 - Proper environment isolation
 - Consistent dependency resolution
 - No interference with global Python installations
@@ -63,7 +66,7 @@
 
 ## Project Structure
 
-```
+```text
 .
 ├── src/kittylog/               # Main source code
 │   ├── __init__.py
@@ -270,6 +273,7 @@ kittylog --include-diff -y
 4. Run tests with `uv run pytest` or `make test`
 
 **🚨 REMINDER FOR AI AGENTS:** ALL Python commands MUST use `uv run` prefix:
+
 - Use `uv run python` instead of `python`
 - Use `uv run pytest` instead of `pytest`
 - Use `uv run python -m pytest` for specific test modules
@@ -503,6 +507,7 @@ uv run python -m pytest tests/test_config.py::TestLoadConfig::test_load_config_f
 ```
 
 **🚨 CRITICAL FOR AI AGENTS:**
+
 - **ALWAYS** use `uv run pytest` instead of `pytest`
 - **ALWAYS** use `uv run python -m pytest` for specific modules
 - **ALWAYS** use full module path format for individual tests
