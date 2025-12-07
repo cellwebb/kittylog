@@ -15,15 +15,24 @@ class TestGenerateChangelogEntry:
     @patch("kittylog.ai.build_changelog_prompt")
     @patch("kittylog.ai.count_tokens")
     @patch("kittylog.ai.generate_with_retries")
+    @patch("kittylog.ai.format_changelog_from_json")
     @patch("kittylog.ai.clean_changelog_content")
     def test_generate_changelog_entry_success(
-        self, mock_clean, mock_generate, mock_count_tokens, mock_build_prompt, sample_commits, mock_config
+        self,
+        mock_clean,
+        mock_format_json,
+        mock_generate,
+        mock_count_tokens,
+        mock_build_prompt,
+        sample_commits,
+        mock_config,
     ):
         """Test successful changelog entry generation."""
         # Setup mocks
         mock_build_prompt.return_value = ("system prompt", "user prompt")
         mock_count_tokens.side_effect = [100, 50, 75]  # system prompt, user prompt, completion tokens
         mock_generate.return_value = "Raw AI content"
+        mock_format_json.return_value = None  # Simulate JSON parsing failure to test fallback
         mock_clean.return_value = "Cleaned AI content"
 
         with patch("kittylog.ai.load_config", return_value=mock_config):
@@ -39,7 +48,8 @@ class TestGenerateChangelogEntry:
         assert "audience" in mock_build_prompt.call_args.kwargs
         assert mock_build_prompt.call_args.kwargs["audience"] is None
         mock_generate.assert_called_once()
-        mock_clean.assert_called_once_with("Raw AI content", False)
+        mock_format_json.assert_called_once_with("Raw AI content", "developers")
+        mock_clean.assert_called_once_with("Raw AI content", False, audience="developers")
 
     @patch("kittylog.ai.build_changelog_prompt")
     @patch("kittylog.ai.count_tokens")

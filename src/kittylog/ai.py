@@ -139,9 +139,8 @@ def generate_changelog_entry(
 
         # Fall back to legacy markdown cleaning if JSON parsing failed
         if cleaned_content is None:
-            log_info(logger, "JSON parsing failed, falling back to markdown cleaning")
             preserve_version_header = tag is None
-            cleaned_content = clean_changelog_content(content, preserve_version_header)
+            cleaned_content = clean_changelog_content(content, preserve_version_header, audience=resolved_audience)
 
         # Count completion tokens
         completion_tokens = count_tokens(cleaned_content, model)
