@@ -96,7 +96,7 @@ def interactive_configuration(grouping_mode, gap_threshold, date_grouping, inclu
                 "name": "Stakeholders - Business impact, features, user-facing changes (Recommended)",
                 "value": "stakeholders",
             },
-            {"name": "End Users - Simple feature descriptions, what's new, improvements", "value": "end_users"},
+            {"name": "End Users - Simple feature descriptions, what's new, improvements", "value": "users"},
         ]
 
         selected_audience = questionary.select(
