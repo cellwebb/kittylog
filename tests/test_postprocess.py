@@ -1,9 +1,11 @@
 """Tests for changelog postprocessing module."""
 
 from kittylog.postprocess import (
+    clean_changelog_content,
     clean_duplicate_sections,
     ensure_newlines_around_section_headers,
     postprocess_changelog_content,
+    remap_headers_for_audience,
     remove_unreleased_sections,
 )
 
@@ -206,3 +208,101 @@ class TestPostprocessChangelogContent:
         # Should preserve Unreleased section
         assert "## [Unreleased]" in result
         assert "Unreleased feature" in result
+
+
+class TestRemapHeadersForAudience:
+    """Test remap_headers_for_audience function."""
+
+    def test_remap_to_users_audience(self):
+        """Test remapping headers for users audience."""
+        content = """### Added
+- New feature
+
+### Changed
+- Improvement
+
+### Fixed
+- Bug fix"""
+
+        result = remap_headers_for_audience(content, "users")
+
+        assert "### What's New" in result
+        assert "### Improvements" in result
+        assert "### Bug Fixes" in result
+        assert "### Added" not in result
+        assert "### Changed" not in result
+        assert "### Fixed" not in result
+
+    def test_remap_to_stakeholders_audience(self):
+        """Test remapping headers for stakeholders audience."""
+        content = """### Added
+- New feature
+
+### Changed
+- Improvement
+
+### Fixed
+- Bug fix"""
+
+        result = remap_headers_for_audience(content, "stakeholders")
+
+        assert "### Highlights" in result
+        assert "### Platform Improvements" in result
+        assert "### Added" not in result
+
+    def test_no_remap_for_developers(self):
+        """Test that developers audience keeps original headers."""
+        content = """### Added
+- New feature
+
+### Changed
+- Improvement"""
+
+        result = remap_headers_for_audience(content, "developers")
+
+        assert result == content
+
+    def test_preserves_content(self):
+        """Test that content is preserved during remapping."""
+        content = """### Added
+- Feature A
+- Feature B
+
+### Fixed
+- Bug fix C"""
+
+        result = remap_headers_for_audience(content, "users")
+
+        assert "- Feature A" in result
+        assert "- Feature B" in result
+        assert "- Bug fix C" in result
+
+
+class TestCleanChangelogContentWithAudience:
+    """Test clean_changelog_content with audience parameter."""
+
+    def test_clean_and_remap_for_users(self):
+        """Test that clean_changelog_content remaps headers for users audience."""
+        content = """### Added
+- New feature
+
+### Fixed
+- Bug fix"""
+
+        result = clean_changelog_content(content, audience="users")
+
+        assert "### What's New" in result
+        assert "### Bug Fixes" in result
+
+    def test_clean_preserves_developer_headers(self):
+        """Test that clean_changelog_content preserves developer headers."""
+        content = """### Added
+- New feature
+
+### Changed
+- Update"""
+
+        result = clean_changelog_content(content, audience="developers")
+
+        assert "### Added" in result
+        assert "### Changed" in result

@@ -6,13 +6,64 @@ but before they're written to the changelog file, ensuring proper spacing and fo
 
 import re
 
+# Mapping from developer headers to audience-specific headers
+HEADER_MAPPING: dict[str, dict[str, str]] = {
+    "users": {
+        "### Added": "### What's New",
+        "### Changed": "### Improvements",
+        "### Fixed": "### Bug Fixes",
+        "### Deprecated": "### Bug Fixes",  # Map deprecated to bug fixes for users
+        "### Removed": "### Improvements",  # Map removed to improvements for users
+        "### Security": "### Bug Fixes",  # Map security to bug fixes for users
+    },
+    "stakeholders": {
+        "### Added": "### Highlights",
+        "### Changed": "### Platform Improvements",
+        "### Fixed": "### Platform Improvements",
+        "### Deprecated": "### Platform Improvements",
+        "### Removed": "### Platform Improvements",
+        "### Security": "### Platform Improvements",
+    },
+}
 
-def clean_changelog_content(content: str, preserve_version_header: bool = False) -> str:
+
+def remap_headers_for_audience(content: str, audience: str) -> str:
+    """Remap developer-style headers to audience-specific headers.
+
+    Args:
+        content: Content with headers
+        audience: Target audience ('developers', 'users', 'stakeholders')
+
+    Returns:
+        Content with remapped headers
+    """
+    if audience not in HEADER_MAPPING:
+        return content
+
+    mapping = HEADER_MAPPING[audience]
+
+    # Use regex for more robust matching (handles whitespace variations)
+    for old_header, new_header in mapping.items():
+        # Extract the section name (e.g., "Added" from "### Added")
+        old_section = old_header.replace("### ", "")
+        new_section = new_header.replace("### ", "")
+
+        # Match variations like "### Added", "###Added", "### added", etc.
+        pattern = rf"^###\s*{re.escape(old_section)}\s*$"
+        content = re.sub(pattern, f"### {new_section}", content, flags=re.MULTILINE | re.IGNORECASE)
+
+    return content
+
+
+def clean_changelog_content(
+    content: str, preserve_version_header: bool = False, audience: str = "developers"
+) -> str:
     """Clean and format AI-generated changelog content.
 
     Args:
         content: Raw AI-generated content
         preserve_version_header: Whether to preserve version headers (for unreleased changes)
+        audience: Target audience for header remapping
 
     Returns:
         Cleaned and formatted changelog content
@@ -131,6 +182,9 @@ def clean_changelog_content(content: str, preserve_version_header: bool = False)
 
     # Normalize bullet points to use consistent format (- instead of *)
     content = re.sub(r"^\*\s+", "- ", content, flags=re.MULTILINE)
+
+    # Remap headers for non-developer audiences
+    content = remap_headers_for_audience(content, audience)
 
     # Apply structural post-processing
     content = postprocess_changelog_content(content)
