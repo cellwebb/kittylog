@@ -1,54 +1,11 @@
 """Unreleased mode handler for kittylog."""
 
-from pathlib import Path
-
 from kittylog.changelog.content import limit_bullets_in_sections
-from kittylog.changelog.io import read_changelog
+from kittylog.changelog.io import ensure_changelog_exists
 from kittylog.changelog.updater import _insert_unreleased_entry
 from kittylog.commit_analyzer import get_commits_between_tags
 from kittylog.errors import AIError, GitError
 from kittylog.tag_operations import get_latest_tag
-
-
-def _find_previous_boundary_id(latest_tag: str | None) -> str | None:
-    """Find the boundary ID from previous changelog section.
-
-    Args:
-        parser: ChangelogParser instance
-        latest_tag: Latest version tag
-
-    Returns:
-        Previous boundary ID or None
-    """
-    if not latest_tag:
-        return None
-
-    # Simplified for now - just return None
-    return None
-
-
-def _ensure_changelog_exists(changelog_file: str, no_unreleased: bool) -> str:
-    """Ensure changelog file exists, create if needed.
-
-    Args:
-        changelog_file: Path to changelog file
-        no_unreleased: Whether to skip unreleased section
-
-    Returns:
-        Changelog file content
-    """
-    try:
-        return read_changelog(changelog_file)
-    except FileNotFoundError:
-        # Create new changelog if it doesn't exist
-        if no_unreleased:
-            content = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n"
-        else:
-            content = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n## [Unreleased]\n\n"
-
-        # Write the new changelog
-        Path(changelog_file).write_text(content, encoding="utf-8")
-        return content
 
 
 def handle_unreleased_mode(
@@ -80,8 +37,8 @@ def handle_unreleased_mode(
 
     output = get_output_manager()
 
-    # Ensure changelog exists
-    existing_content = _ensure_changelog_exists(changelog_file, no_unreleased)
+    # Ensure changelog exists (creates with just "# Changelog" if missing)
+    existing_content = ensure_changelog_exists(changelog_file)
 
     if no_unreleased:
         output.info("Skipping unreleased section creation as requested")
