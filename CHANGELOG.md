@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [3.0.1] - 2025-12-06
+
+### What's New
+
+- AI can now generate changelogs tailored for different audiences (developers, users, or stakeholders)
+- Better detail control with automatic bullet limits to keep your changelogs concise and readable
+
+### Improvements
+
+- Smarter at avoiding duplicate announcements when generating new changelog entries
+- Cleaner internal organization for more reliable and focused changelog generation
+
 ## [3.0.0] - 2025-12-06
 
 ### Changed
