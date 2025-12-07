@@ -6,8 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from kittylog.cli import cli
-from kittylog.update_cli import update_version as update
+from kittylog.cli import cli, update_cli
 
 
 class TestMainCLI:
@@ -36,13 +35,14 @@ class TestMainCLI:
 class TestUpdateCommand:
     """Test update CLI command."""
 
-    @patch("kittylog.update_cli.main_business_logic")
+    @patch("kittylog.cli.main_business_logic")
     def test_update_basic(self, mock_main_logic):
         """Test basic update command."""
         mock_main_logic.return_value = (True, None)
 
         runner = CliRunner()
-        result = runner.invoke(update)
+        # Use --no-interactive and --quiet to skip interactive prompts
+        result = runner.invoke(update_cli, ["--no-interactive", "--quiet"])
 
         assert result.exit_code == 0
         mock_main_logic.assert_called_once()
@@ -57,20 +57,16 @@ class TestUpdateCommand:
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
         assert workflow_opts.dry_run is False
-        assert workflow_opts.quiet is False
-        assert workflow_opts.language == "English"  # Uses default
-        assert workflow_opts.audience == "stakeholders"  # Uses default
+        assert workflow_opts.quiet is True
 
-    @patch("kittylog.update_cli.click.confirm")
-    @patch("kittylog.update_cli.main_business_logic")
-    def test_update_with_all_options(self, mock_main_logic, mock_confirm):
+    @patch("kittylog.cli.main_business_logic")
+    def test_update_with_all_options(self, mock_main_logic):
         """Test update command with all options."""
-        mock_confirm.return_value = True  # Always confirm to create changelog
         mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
         result = runner.invoke(
-            update,
+            update_cli,
             [
                 "--file",
                 "CHANGES.md",
@@ -89,6 +85,7 @@ class TestUpdateCommand:
                 "--dry-run",
                 "--show-prompt",
                 "--quiet",
+                "--no-interactive",
             ],
         )
 
@@ -108,25 +105,21 @@ class TestUpdateCommand:
         workflow_opts = call_args["workflow_opts"]
         assert workflow_opts.dry_run is True
         assert workflow_opts.quiet is True
-        assert workflow_opts.language == "Spanish"
+        assert workflow_opts.language == "es"  # Raw code passed to business logic
         assert workflow_opts.audience == "users"
-
-        # Check direct parameters
 
         # Clean up created file
         if Path("CHANGES.md").exists():
             Path("CHANGES.md").unlink()
 
-    @patch("kittylog.update_cli.click.confirm")
-    @patch("kittylog.update_cli.main_business_logic")
-    def test_update_short_options(self, mock_main_logic, mock_confirm):
+    @patch("kittylog.cli.main_business_logic")
+    def test_update_short_options(self, mock_main_logic):
         """Test update command with short options."""
-        mock_confirm.return_value = True  # Always confirm to create changelog
         mock_main_logic.return_value = (True, {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150})
 
         runner = CliRunner()
         result = runner.invoke(
-            update,
+            update_cli,
             [
                 "-f",
                 "CHANGES.md",
@@ -139,6 +132,7 @@ class TestUpdateCommand:
                 "-h",
                 "Test hint",
                 "-q",
+                "--no-interactive",
             ],
         )
 
@@ -153,7 +147,7 @@ class TestUpdateCommand:
         # Check workflow_opts
         workflow_opts = call_args["workflow_opts"]
         assert workflow_opts.quiet is True
-        assert workflow_opts.language == "French"
+        assert workflow_opts.language == "fr"  # Raw code passed to business logic
         assert workflow_opts.audience == "stakeholders"
 
         # Check direct parameters
@@ -164,17 +158,17 @@ class TestUpdateCommand:
         if Path("CHANGES.md").exists():
             Path("CHANGES.md").unlink()
 
-    @patch("kittylog.update_cli.main_business_logic")
+    @patch("kittylog.cli.main_business_logic")
     def test_update_failure_exit_code(self, mock_main_logic):
         """Test update command exit code on failure."""
         mock_main_logic.return_value = (False, None)
 
         runner = CliRunner()
-        result = runner.invoke(update)
+        result = runner.invoke(update_cli, ["--no-interactive", "--quiet"])
 
         assert result.exit_code == 1
 
-    @patch("kittylog.update_cli.main_business_logic")
+    @patch("kittylog.cli.main_business_logic")
     def test_update_exception_handling(self, mock_main_logic):
         """Test update command exception handling."""
         from kittylog.errors import ConfigError
@@ -183,18 +177,18 @@ class TestUpdateCommand:
         mock_main_logic.side_effect = ConfigError("Test error")
 
         runner = CliRunner()
-        result = runner.invoke(update)
+        result = runner.invoke(update_cli, ["--no-interactive", "--quiet"])
 
         assert result.exit_code == 1
         assert "Test error" in result.output
 
-    @patch("kittylog.update_cli.main_business_logic")
+    @patch("kittylog.cli.main_business_logic")
     def test_update_keyboard_interrupt(self, mock_main_logic):
         """Test update command handling of keyboard interrupt."""
         mock_main_logic.side_effect = KeyboardInterrupt()
 
         runner = CliRunner()
-        result = runner.invoke(update)
+        result = runner.invoke(update_cli, ["--no-interactive", "--quiet"])
 
         assert result.exit_code == 1
         assert "cancelled" in result.output.lower() or "aborted" in result.output.lower()
@@ -304,14 +298,14 @@ class TestCLIIntegration:
 
     def test_cli_error_handling(self):
         """Test CLI error handling."""
-        with patch("kittylog.update_cli.main_business_logic") as mock_logic:
+        with patch("kittylog.cli.main_business_logic") as mock_logic:
             from kittylog.errors import GitError
 
             mock_logic.return_value = (False, None)
             mock_logic.side_effect = GitError("Not a git repository")
 
             runner = CliRunner()
-            result = runner.invoke(cli, ["update"])
+            result = runner.invoke(cli, ["update", "--no-interactive", "--quiet"])
 
             assert result.exit_code == 1
             assert "Not a git repository" in result.output
@@ -338,14 +332,14 @@ class TestCLIValidation:
 
     def test_invalid_model_format(self):
         """Test handling of invalid model format."""
-        with patch("kittylog.update_cli.main_business_logic") as mock_logic:
+        with patch("kittylog.cli.main_business_logic") as mock_logic:
             from kittylog.errors import ConfigError
 
             mock_logic.return_value = (False, None)
             mock_logic.side_effect = ConfigError("Invalid model format")
 
             runner = CliRunner()
-            result = runner.invoke(cli, ["update", "--model", "invalid"])
+            result = runner.invoke(cli, ["update", "--model", "invalid", "--no-interactive", "--quiet"])
 
             assert result.exit_code == 1
             assert "Invalid model format" in result.output

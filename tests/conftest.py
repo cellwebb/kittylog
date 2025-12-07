@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures for kittylog tests."""
 
+import asyncio
 import contextlib
 import os
 import tempfile
@@ -7,6 +8,24 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+
+
+def pytest_configure(config):
+    """Suppress asyncio 'Future exception was never retrieved' warnings.
+
+    This prevents noise from questionary/prompt_toolkit when tests run
+    without a TTY. The dangling futures from terminal input handling
+    raise EOFError when garbage collected.
+    """
+    # Override the default exception handler for all event loops
+    original_factory = asyncio.get_event_loop_policy().new_event_loop
+
+    def quiet_event_loop():
+        loop = original_factory()
+        loop.set_exception_handler(lambda loop, context: None)
+        return loop
+
+    asyncio.get_event_loop_policy().new_event_loop = quiet_event_loop
 
 try:
     from git import Repo

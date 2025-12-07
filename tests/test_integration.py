@@ -122,7 +122,7 @@ All notable changes to this project will be documented in this file.
         assert "## [v0.1.0] - 2024-01-01" in updated_content  # Preserve existing
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
-    @patch("kittylog.update_cli.click.confirm")
+    @patch("kittylog.cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_dry_run_workflow(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test dry run workflow."""
@@ -146,6 +146,7 @@ All notable changes to this project will be documented in this file.
                 "--to-tag",
                 "v0.2.0",
                 "--dry-run",
+                "--no-interactive",  # Skip interactive prompts for testing
             ],
         )
 
@@ -234,7 +235,7 @@ class TestConfigIntegration:
 class TestErrorHandlingIntegration:
     """Integration tests for error handling."""
 
-    @patch("kittylog.update_cli.click.confirm")
+    @patch("kittylog.cli.click.confirm")
     def test_not_git_repository_error(self, mock_confirm, temp_dir):
         """Test error when not in a git repository."""
         mock_confirm.return_value = True  # Always confirm to create changelog
@@ -381,7 +382,7 @@ class TestMultiTagIntegration:
             result = runner.invoke(
                 cli,
                 [
-                    "add-cli",  # Use add-cli command for missing entries
+                    "update",  # Use update command for missing entries
                     "--no-interactive",  # Skip interactive wizard
                 ],
             )
@@ -528,7 +529,7 @@ class TestFilePathIntegration:
     """Integration tests for different file path scenarios."""
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
-    @patch("kittylog.update_cli.click.confirm")
+    @patch("kittylog.cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_custom_changelog_path(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test using custom changelog file path."""
@@ -592,7 +593,7 @@ All notable changes to this project will be documented in this file.
         assert "Test feature" in content or "Test bug fix" in content
 
     # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
-    @patch("kittylog.update_cli.click.confirm")
+    @patch("kittylog.cli.click.confirm")
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_relative_path_handling(self, mock_getenv, mock_confirm, git_repo_with_tags, temp_dir):
         """Test handling of relative paths."""

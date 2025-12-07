@@ -62,6 +62,7 @@ class TestConfirmationFunctionality:
                     "--to-tag",
                     "v0.2.0",
                     "--dry-run",  # Should show preview but not save
+                    "--no-interactive",  # Skip interactive prompts for testing
                 ],
             )
 
@@ -81,7 +82,6 @@ class TestConfirmationFunctionality:
 
         # Check that --yes flag is removed from main commands
         commands_to_check = [
-            ["add-cli", "--help"],
             ["update", "--help"],
             ["release", "--help"],
         ]
@@ -149,6 +149,7 @@ All notable changes will be documented in this file.
                     "v0.1.0",
                     "--to-tag",
                     "v0.2.0",
+                    "--no-interactive",  # Skip interactive prompts for testing
                 ],
             )
 
@@ -316,11 +317,11 @@ All notable changes will be documented in this file.
             clear_git_cache()
             runner = CliRunner()
 
-            # Test add-cli command (auto mode) with confirmation "y"
+            # Test update command (auto mode) with confirmation "y"
             # Use --no-interactive to skip the interactive wizard
             result = runner.invoke(
                 cli,
-                ["add-cli", "--no-interactive"],  # Skip interactive wizard
+                ["update", "--no-interactive"],  # Skip interactive wizard
                 input="y\n",  # Confirm the prompt
             )
 

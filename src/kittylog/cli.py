@@ -23,7 +23,6 @@ from kittylog.output import get_output_manager
 from kittylog.release_cli import release as release_cli
 from kittylog.ui.banner import print_banner
 from kittylog.ui.prompts import interactive_configuration
-from kittylog.update_cli import update_version
 from kittylog.utils.logging import setup_command_logging
 
 # No need for lazy loading - breaking compatibility for cleaner code
@@ -254,21 +253,24 @@ def _validate_cli_options(
 
 @click.command(context_settings={"ignore_unknown_options": True})
 @common_options
-@click.argument("tag", required=False)
-def add_cli(tag: str | None = None, **kwargs) -> None:
-    """Add missing changelog entries or update a specific tag entry.
+@click.argument("version", required=False)
+def update_cli(version: str | None = None, **kwargs) -> None:
+    """Update changelog entries.
 
-    Modern CLI using **kwargs to reduce parameter count from 26 to 2.
-    Click passes all decorated options as keyword arguments.
+    Without arguments: Update missing entries
+    With version: Update specific version
+    With --all: Update all entries
+    With --from/--to: Update specific range
 
     Args:
-        tag: Optional specific tag to update
+        version: Optional specific version to update (e.g., v1.2.0)
         **kwargs: All CLI options from decorators (file, from_tag, model, etc.)
 
     Examples:
         kittylog                           # Update missing entries
-        kittylog v1.2.0                   # Update specific tag
-        kittylog --grouping-mode dates     # Date-based grouping
+        kittylog update v1.2.0            # Update specific version
+        kittylog update --all             # Update all entries
+        kittylog --grouping-mode dates    # Date-based grouping
     """
     # Extract options from kwargs with defaults
     quiet = kwargs.get("quiet", False)
@@ -336,14 +338,14 @@ def add_cli(tag: str | None = None, **kwargs) -> None:
             date_grouping=date_grouping,
         )
 
-        # If a specific tag is provided, process only that tag
-        if tag:
-            # Normalize tag (remove 'v' prefix if present)
-            normalized_tag = tag.lstrip("v")
+        # If a specific version is provided, process only that version
+        if version:
+            # Normalize version (remove 'v' prefix if present)
+            normalized_version = version.lstrip("v")
             # Try to add 'v' prefix if not present (to match git tags)
-            git_tag = f"v{normalized_tag}" if not tag.startswith("v") else tag
+            git_tag = f"v{normalized_version}" if not version.startswith("v") else version
 
-            # Process specific tag with modern API
+            # Process specific version
             changelog_opts.to_tag = git_tag
         # Modern main_business_logic call with parameter objects
         success, _token_usage = main_business_logic(
@@ -380,46 +382,19 @@ def cli(ctx, version):
     if "-q" not in sys.argv and "--quiet" not in sys.argv:
         print_banner(get_output_manager())
 
-    # If no subcommand was invoked, run the add command by default
+    # If no subcommand was invoked, run the update command by default
     if ctx.invoked_subcommand is None:
-        ctx.invoke(
-            add_cli,
-            file="CHANGELOG.md",
-            from_tag=None,
-            to_tag=None,
-            show_prompt=False,
-            quiet=False,
-            yes=False,
-            hint="",
-            language=None,
-            audience=None,
-            model=None,
-            dry_run=False,
-            verbose=False,
-            log_level=None,
-            all=False,
-            incremental_save=True,
-            tag=None,
-            no_unreleased=False,
-            include_diff=False,
-            context_entries=0,
-            interactive=True,
-            grouping_mode=None,
-            gap_threshold=None,
-            date_grouping=None,
-            detail="normal",
-        )
+        ctx.invoke(update_cli)
 
 
 # Add subcommands
-cli.add_command(config_cli)
-cli.add_command(init_cli)
-cli.add_command(language_cli)
-cli.add_command(add_cli)
-cli.add_command(update_version, "update")
+cli.add_command(update_cli, "update")
 cli.add_command(release_cli, "release")
-cli.add_command(auth_cli)
-cli.add_command(model_cli)
+cli.add_command(config_cli, "config")
+cli.add_command(init_cli, "init")
+cli.add_command(language_cli, "language")
+cli.add_command(model_cli, "model")
+cli.add_command(auth_cli, "auth")
 
 
 @click.command(context_settings=language_cli.context_settings)

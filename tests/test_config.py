@@ -29,7 +29,7 @@ class TestLoadConfig:
         assert config.date_grouping == "daily"
         assert config.language is None
         assert config.translate_headings is False
-        assert config.audience == "stakeholders"
+        assert config.audience == "developers"  # Default changed in commit 47cbd75
 
     def test_load_config_from_env_vars(self, isolated_config_test, monkeypatch):
         """Test loading config from environment variables."""
@@ -222,7 +222,7 @@ KITTYLOG_AUDIENCE=stakeholders
         assert config.gap_threshold_hours == 4.0  # default
         assert config.date_grouping == "daily"  # default
         assert config.translate_headings is False
-        assert config.audience == "stakeholders"
+        assert config.audience == "developers"  # Default changed in commit 47cbd75
 
     def test_load_config_with_nonexistent_files(self, isolated_config_test):
         """Test loading config when .env files don't exist."""

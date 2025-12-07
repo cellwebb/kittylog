@@ -238,10 +238,11 @@ class TestPromptWithContextEntries:
             context_entries=context,
         )
 
-        assert "STYLE REFERENCE" in user_prompt
+        # Prompt format changed in commit cf9255c - now uses "CRITICAL CONTEXT" instead of "STYLE REFERENCE"
+        assert "CRITICAL CONTEXT" in user_prompt or "WHAT'S ALREADY IN THE CHANGELOG" in user_prompt
         assert "## [1.0.0]" in user_prompt
         assert "Feature X" in user_prompt
-        assert "Match the format, tone, and level of detail" in user_prompt
+        assert "Maintain consistency with the existing changelog style" in user_prompt
 
     def test_prompt_without_context_entries(self):
         """Test that prompt works without context entries."""
