@@ -80,6 +80,9 @@ omit = [
   "src/kittylog/main.py",
 ]
 
+[tool.coverage.html]
+directory = "htmlcov"
+
 [tool.coverage.paths]
 kittylog = ["src/kittylog", "*/kittylog/src/kittylog"]
 tests = ["tests", "*/kittylog/tests"]
@@ -96,6 +99,7 @@ exclude_lines = [
   "raise ImportError",
   "except ImportError"
 ]
+show_missing = true
 
 [tool.hatch.version]
 path = "src/kittylog/__version__.py"
