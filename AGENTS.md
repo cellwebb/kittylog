@@ -69,48 +69,131 @@
 │   ├── __init__.py
 │   ├── __version__.py          # Version information
 │   ├── ai.py                   # AI generation coordination
-│   ├── cli.py                  # CLI entry point and command definitions
+│   ├── ai_utils.py             # AI utility functions
+│   ├── auth_cli.py             # Authentication CLI commands
+│   ├── cache.py                # Caching functionality
+│   ├── cli.py                  # Main CLI entry point and command definitions
+│   ├── commit_analyzer.py      # Commit analysis and parsing
 │   ├── errors.py               # Custom exception classes with context
-│   ├── git_operations.py       # Git operations for tag-based changelog generation
+│   ├── init_cli.py             # Initialization CLI commands
+│   ├── language_cli.py         # Language management CLI
 │   ├── main.py                 # Business logic orchestration
+│   ├── model_cli.py            # Model management CLI
 │   ├── output.py               # Unified output management
+│   ├── postprocess.py          # Content post-processing
+│   ├── prompt_cleaning.py      # Content cleaning and commit categorization
+│   ├── release_cli.py          # Release management CLI
+│   ├── tag_operations.py       # Tag-based git operations
 │   ├── utils.py                # Utility functions
 │   ├── workflow.py             # Main workflow logic
-│   ├── workflow_validation.py  # Workflow prerequisite validation
 │   ├── workflow_ui.py          # Dry-run and confirmation UI handling
-│   ├── prompt.py               # Prompt building public interface
-│   ├── prompt_templates.py     # System and user prompt templates
-│   ├── prompt_cleaning.py      # Content cleaning and commit categorization
-│   ├── init_changelog.py       # Changelog initialization functionality
+│   ├── workflow_validation.py  # Workflow prerequisite validation
 │   ├── changelog/              # Changelog operations package
 │   │   ├── __init__.py         # Public API exports
+│   │   ├── boundaries.py       # Boundary detection logic
+│   │   ├── content.py          # Changelog content handling
+│   │   ├── insertion.py        # Changelog insertion logic
 │   │   ├── io.py               # Read, write, create header
-│   │   ├── parser.py           # Find boundaries, insertion points, extract entries
 │   │   └── updater.py          # Update logic
-│   ├── constants/              # Configuration constants package
-│   │   ├── __init__.py         # Re-exports for backwards compat
-│   │   ├── languages.py        # Languages class
-│   │   ├── audiences.py        # Audiences class
-│   │   ├── env_defaults.py     # EnvDefaults and Limits classes
-│   │   └── enums.py            # GroupingMode, DateGrouping, FileStatus, etc.
 │   ├── config/                 # Configuration management
-│   │   └── __init__.py         # Config loading with KittylogConfigData dataclass
-│   └── providers/              # AI provider implementations
-│       ├── __init__.py         # Provider registry and auto-discovery
-│       ├── base.py             # BaseConfiguredProvider ABC
-│       ├── openai_compat.py    # OpenAI-compatible providers (OpenAI, Groq, etc.)
-│       ├── anthropic_compat.py # Anthropic-compatible providers
-│       ├── ollama.py           # Ollama local models
-│       └── error_handler.py    # Provider error handling decorator
-├── tests/                      # Test suite
+│   │   ├── __init__.py         # Configuration exports
+│   │   ├── cli.py              # Configuration CLI options
+│   │   ├── data.py             # Configuration data structures
+│   │   ├── loader.py           # Configuration loading logic
+│   │   ├── options.py          # Configuration options
+│   │   └── secure.py           # Secure configuration handling
+│   ├── constants/              # Configuration constants package
+│   │   ├── __init__.py         # Constants re-exports
+│   │   ├── audiences.py        # Audience definitions
+│   │   ├── changelog_sections.py # Changelog section constants
+│   │   ├── commit_keywords.py  # Commit parsing keywords
+│   │   ├── enums.py            # Enum definitions
+│   │   ├── env_defaults.py     # Environment defaults
+│   │   ├── languages.py        # Language definitions (25+ supported)
+│   │   ├── limits.py           # Various limits and constraints
+│   │   ├── logging.py          # Logging configuration
+│   │   └── utility.py          # Utility constants
+│   ├── mode_handlers/          # Processing mode handlers
+│   │   ├── __init__.py         # Mode handler exports
+│   │   ├── boundary.py         # Boundary mode processing
+│   │   ├── missing.py          # Missing entries mode processing
+│   │   └── unreleased.py       # Unreleased section processing
+│   ├── oauth/                  # OAuth and authentication
+│   │   ├── __init__.py         # OAuth exports
+│   │   ├── claude_code.py      # Claude Code OAuth implementation
+│   │   ├── qwen_oauth.py       # Qwen OAuth implementation
+│   │   └── token_store.py      # Token storage and retrieval
+│   ├── prompt/                 # Prompt generation and templates
+│   │   ├── __init__.py         # Prompt module exports
+│   │   ├── detail_limits.py    # Prompt detail limitation
+│   │   ├── system.py           # Base system prompts
+│   │   ├── system_developers.py # Developer-focused system prompts
+│   │   ├── system_stakeholders.py # Stakeholder-focused system prompts
+│   │   ├── system_users.py     # User-focused system prompts
+│   │   └── user.py             # User prompt generation
+│   ├── providers/              # AI provider implementations (25+ providers)
+│   │   ├── README.md           # Provider development documentation
+│   │   ├── __init__.py         # Provider registry and auto-discovery
+│   │   ├── base.py             # Base provider ABC and configuration
+│   │   ├── error_handler.py    # Provider error handling decorator
+│   │   ├── protocol.py         # Provider protocol definitions
+│   │   ├── registry.py         # Provider registry
+│   │   ├── [25+ provider files] # Individual providers (OpenAI, Claude, Groq, etc.)
+│   │   └── [custom providers]   # Custom endpoint implementations
+│   ├── ui/                     # User interface components
+│   │   ├── __init__.py         # UI exports
+│   │   ├── banner.py           # Terminal banner display
+│   │   └── prompts.py          # Interactive prompt handling
+│   └── utils/                  # Utility functions
+│       ├── __init__.py         # Utils exports
+│       ├── commit.py           # Commit utility functions
+│       ├── logging.py          # Logging utilities
+│       ├── system.py           # System utility functions
+│       └── text.py             # Text processing utilities
+├── tests/                      # Comprehensive test suite (200+ tests)
+│   ├── __init__.py
+│   ├── conftest.py             # pytest configuration and fixtures
+│   ├── fixtures.py             # Test fixtures and helpers
+│   ├── oauth/                  # OAuth-related tests
+│   │   ├── __init__.py
+│   │   ├── test_claude_code_oauth.py
+│   │   ├── test_qwen_oauth.py
+│   │   ├── test_reauth.py
+│   │   └── test_token_store.py
+│   ├── providers/              # Provider-specific tests
+│   │   ├── __init__.py
+│   │   ├── conftest.py         # Provider test configuration
+│   │   └── [test files for each provider] # Individual provider test files
+│   ├── test_ai.py              # AI generation tests
+│   ├── test_boundary_filtering_integration.py
+│   ├── test_boundary_insertion_order.py
+│   ├── test_bullet_limiting.py
+│   ├── test_changelog.py       # Changelog operation tests
+│   ├── test_changelog_discovery.py
+│   ├── test_cli.py             # CLI tests
+│   ├── test_config.py          # Configuration tests
+│   ├── test_confirmation_functionality.py
+│   ├── test_context_entries.py
+│   ├── test_edge_cases.py
+│   ├── test_error_paths.py
+│   ├── test_errors.py
+│   ├── test_git.py             # Git operation tests
+│   ├── test_integration.py     # Integration tests
+│   ├── test_language_cli.py
+│   ├── test_language_codes.py
+│   ├── test_main.py            # Main workflow tests
+│   ├── test_missing_entries_mode.py
+│   ├── test_postprocess.py
+│   └── test_utils.py           # Utility function tests
 ├── assets/                     # Documentation assets
-├── .github/workflows/          # CI/CD workflows
+│   └── kittylog-usage.png      # Usage demonstration image
 ├── README.md                   # Project overview
 ├── USAGE.md                    # Detailed usage documentation
 ├── CONTRIBUTING.md             # Development guidelines
 ├── AGENTS.md                   # AI agent documentation (this file)
 ├── pyproject.toml              # Project configuration and dependencies
-├── Makefile                    # Development commands
+├── uv.lock                     # UV package manager lockfile
+├── mypy.ini                    # MyPy type checking configuration
 └── CHANGELOG.md                # Project changelog (maintained by kittylog itself)
 ```
 
