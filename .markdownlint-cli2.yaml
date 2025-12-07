@@ -1,0 +1,34 @@
+---
+# Extend the base configuration
+config:
+  # Default state for all rules
+  default: true
+
+  # Line length
+  MD013: false
+
+  MD024: false
+
+  # Ordered list item prefix (allow any style)
+  MD029: false
+
+  # First line in file should be top level heading
+  MD041: false
+
+  # Multiple consecutive blank lines
+  MD012:
+    maximum: 1
+
+  # Surrounding whitespace for headers
+  MD022: true
+
+  # Blank lines around lists
+  MD032: true
+
+  # Fenced code blocks should have a language
+  MD040: true
+
+# Define glob patterns for ignoring specific files
+ignores:
+  - ".venv/**/*.md"
+  - "node_modules/**/*.md"
