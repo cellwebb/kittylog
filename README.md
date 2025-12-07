@@ -10,7 +10,7 @@
 [![mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](https://mypy-lang.org/)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-**LLM-powered changelog generation from git tags and commits.** Automatically analyzes your repository history to create well-structured changelog entries following the [Keep a Changelog](https://keepachangelog.com/) format.
+**LLM-powered changelog generation from git tags and commits.** Automatically analyzes your repository history to create well-structured changelog entries with audience-appropriate formatting.
 
 ---
 
@@ -62,12 +62,13 @@ uv tool upgrade kittylog
 - Works with Anthropic, Cerebras, Chutes.ai, DeepSeek, Fireworks, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, Streamlake, Synthetic.new, Together AI, Z.AI (standard + coding), and custom Anthropic/OpenAI-compatible endpoints
 - Retry logic, token budgeting, and provider-specific integrations are built in
 
-### 🗂️ **Keep a Changelog Formatting**
+### 🗂️ **Audience-Aware Formatting**
 
-- Produces sections for Added, Changed, Deprecated, Removed, Fixed, and Security
+- **Developers**: Keep a Changelog sections (Added, Changed, Deprecated, Removed, Fixed, Security)
+- **End Users**: Friendly release notes (What's New, Improvements, Bug Fixes)
+- **Stakeholders**: Business-focused summaries (Highlights, Customer Impact, Platform Improvements)
 - Enforces bullet limits, removes duplicates, and trims AI chatter automatically
 - Supports multilingual changelog content with optional translated section headings
-- Tailors tone for developers, end users, or stakeholders with audience presets
 
 ### 🧑‍💻 **Interactive Workflow**
 

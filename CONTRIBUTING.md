@@ -58,9 +58,9 @@ src/kittylog/
 ├── workflow.py             # Main workflow logic
 ├── workflow_validation.py  # Workflow prerequisite validation
 ├── workflow_ui.py          # Dry-run and confirmation UI
+├── postprocess.py          # Postprocessing public interface
 ├── prompt.py               # Prompt building public interface
 ├── prompt_templates.py     # System and user prompt templates
-├── prompt_cleaning.py      # Content cleaning and commit categorization
 ├── changelog/              # Changelog operations package
 │   ├── __init__.py         # Public API exports
 │   ├── io.py               # Read, write, create header

@@ -36,14 +36,14 @@
 
 ## Project Overview
 
-**kittylog** is an AI-powered changelog generator that automatically analyzes git tags and commits to create well-structured changelog entries following the [Keep a Changelog](https://keepachangelog.com/) format. The tool uses multiple AI providers to categorize changes into sections like Added, Changed, Fixed, etc.
+**kittylog** is an AI-powered changelog generator that automatically analyzes git tags and commits to create well-structured changelog entries. The tool uses multiple AI providers to generate audience-appropriate release notes with different section formats for developers, end users, and stakeholders.
 
 ### Key Features
 
 - **LLM-powered analysis** of commits, file changes, and code patterns to categorize changes
 - **Multi-provider support** for 18+ AI providers (Anthropic, OpenAI, Groq, Cerebras, Ollama, and more)
 - **Flexible boundary detection** - tags, dates, or time gaps for changelog grouping
-- **Keep a Changelog format** with proper Added/Changed/Fixed categorization
+- **Audience-specific formats** - developers (Added/Changed/Fixed), users (What's New/Improvements), stakeholders (Highlights/Impact)
 - **Unreleased section** tracking for commits since last tag
 - **Interactive workflow** - review and approve content before saving
 - **Intelligent version detection** - avoids duplicates by comparing with existing changelog
@@ -80,8 +80,7 @@
 │   ├── main.py                 # Business logic orchestration
 │   ├── model_cli.py            # Model management CLI
 │   ├── output.py               # Unified output management
-│   ├── postprocess.py          # Content post-processing
-│   ├── prompt_cleaning.py      # Content cleaning and commit categorization
+│   ├── postprocess.py          # Content cleaning and post-processing for AI output
 │   ├── release_cli.py          # Release management CLI
 │   ├── tag_operations.py       # Tag-based git operations
 │   ├── utils.py                # Utility functions
