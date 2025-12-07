@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.5] - 2025-12-06
+
+### Improvements
+
+- Better changelog generation with clearer instructions
+- Stronger rules to prevent repeating features from previous versions
+- Updated release notes with comprehensive feature history
+
+### Bug Fixes
+
+- Fixed test cases to match updated changelog rules
+
 ## [3.0.4] - 2025-12-06
 
 ### What's New
