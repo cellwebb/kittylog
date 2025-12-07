@@ -4,7 +4,7 @@ These tests verify the functionality for extracting preceding changelog entries
 and including them in AI prompts for style reference.
 """
 
-from kittylog.changelog.parser import extract_preceding_entries
+from kittylog.changelog.content import extract_preceding_entries
 from kittylog.prompt import build_changelog_prompt
 
 

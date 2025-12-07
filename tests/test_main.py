@@ -20,7 +20,7 @@ class TestMainBusinessLogic:
     @patch("kittylog.changelog.updater.update_changelog")
     @patch("kittylog.mode_handlers.missing.get_all_boundaries")
     @patch("kittylog.tag_operations.get_all_boundaries")
-    @patch("kittylog.changelog.parser.find_existing_boundaries")
+    @patch("kittylog.changelog.boundaries.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -198,7 +198,7 @@ class TestMainBusinessLogic:
     @patch("kittylog.mode_handlers.missing.get_all_boundaries")
     @patch("kittylog.tag_operations.get_all_boundaries")
     @patch("kittylog.workflow_validation.get_all_boundaries")
-    @patch("kittylog.changelog.parser.find_existing_boundaries")
+    @patch("kittylog.changelog.boundaries.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -349,7 +349,7 @@ class TestMainBusinessLogic:
     @patch("kittylog.changelog.updater.update_changelog")
     @patch("kittylog.mode_handlers.missing.get_all_boundaries")
     @patch("kittylog.tag_operations.get_all_boundaries")
-    @patch("kittylog.changelog.parser.find_existing_boundaries")
+    @patch("kittylog.changelog.boundaries.find_existing_boundaries")
     @patch("kittylog.tag_operations.get_latest_boundary")
     @patch("kittylog.tag_operations.is_current_commit_tagged")
     @patch("kittylog.tag_operations.generate_boundary_identifier")
@@ -458,7 +458,7 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
     from datetime import datetime, timezone
 
     from kittylog import mode_handlers
-    from kittylog.changelog import parser as changelog_parser
+    from kittylog.changelog import boundaries as changelog_boundaries
 
     boundary = {
         "hash": "abc123",
@@ -496,7 +496,7 @@ def test_handle_auto_mode_propagates_grouping_params(monkeypatch):
 
     monkeypatch.setattr(mode_handlers, "handle_single_boundary_mode", fake_single_boundary_handler)
     monkeypatch.setattr("kittylog.changelog.io.read_changelog", lambda _: "# Changelog\n")
-    monkeypatch.setattr(changelog_parser, "find_existing_boundaries", lambda _: set())
+    monkeypatch.setattr(changelog_boundaries, "find_existing_boundaries", lambda _: set())
     monkeypatch.setattr(
         "kittylog.tag_operations.get_all_boundaries",
         lambda mode, gap_threshold_hours, date_grouping: [boundary],
