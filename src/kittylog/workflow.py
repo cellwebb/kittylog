@@ -37,23 +37,26 @@ def _create_entry_generator(
 
     Returns a function that can be passed to mode handlers as generate_entry_func.
     """
-    # Pre-extract context entries if requested and changelog file exists
-    context_entries = ""
-    if context_entries_count > 0 and changelog_file:
-        try:
-            changelog_content = read_changelog(changelog_file)
-            context_entries = extract_preceding_entries(changelog_content, context_entries_count)
-            if context_entries and not quiet:
-                log_debug(
-                    logger,
-                    "Extracted context entries",
-                    count=context_entries_count,
-                )
-        except (FileNotFoundError, OSError):
-            # No existing changelog, so no context to extract
-            pass
 
     def generator(commits: list[dict], tag: str, from_boundary: str | None = None, **kwargs) -> str:
+        # Extract context entries fresh each time to include recently generated entries
+        # This prevents duplicate content when processing multiple versions sequentially
+        context_entries = ""
+        if context_entries_count > 0 and changelog_file:
+            try:
+                changelog_content = read_changelog(changelog_file)
+                context_entries = extract_preceding_entries(changelog_content, context_entries_count)
+                if context_entries and not quiet:
+                    log_debug(
+                        logger,
+                        "Extracted fresh context entries",
+                        count=context_entries_count,
+                        tag=tag,
+                    )
+            except (FileNotFoundError, OSError):
+                # No existing changelog, so no context to extract
+                pass
+
         entry, _usage = generate_changelog_entry(
             commits=commits,
             tag=tag,
