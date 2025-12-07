@@ -27,6 +27,7 @@ def pytest_configure(config):
 
     asyncio.get_event_loop_policy().new_event_loop = quiet_event_loop
 
+
 try:
     from git import Repo
 except ImportError:
