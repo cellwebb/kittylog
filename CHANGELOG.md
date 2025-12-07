@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
+## [3.0.2] - 2025-12-06
+
+### Improvements
+
+- Better bullet point control to keep changelogs concise and readable
+- Cleaner internal organization for more reliable changelog generation
+
 ## [3.0.1] - 2025-12-06
 
 ### What's New
