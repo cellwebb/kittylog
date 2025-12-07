@@ -4,6 +4,7 @@ This module builds the user prompt with commit data and context.
 """
 
 from kittylog.constants import Audiences
+from kittylog.prompt.json_schema import AUDIENCE_SCHEMAS, SECTION_ORDER
 
 
 def _get_section_names_for_audience(audience: str) -> str:
@@ -15,112 +16,82 @@ def _get_section_names_for_audience(audience: str) -> str:
     Returns:
         Comma-separated string of section names
     """
-    if audience == "users":
-        return "What's New, Improvements, Bug Fixes"
-    elif audience == "stakeholders":
-        return "Highlights, Customer Impact, Platform Improvements"
-    else:  # developers
-        return "Added, Changed, Deprecated, Removed, Fixed, Security"
+    schema = AUDIENCE_SCHEMAS.get(audience, AUDIENCE_SCHEMAS["developers"])
+    return ", ".join(schema.values())
+
+
+def _get_json_keys_for_audience(audience: str) -> list[str]:
+    """Get the JSON keys for a specific audience."""
+    return SECTION_ORDER.get(audience, SECTION_ORDER["developers"])
 
 
 def _build_instructions(audience: str) -> str:
     """Build audience-specific instructions for the user prompt."""
+    keys = _get_json_keys_for_audience(audience)
+
+    # Build the JSON structure example
+    json_keys_str = ", ".join(f'"{k}"' for k in keys)
+
     if audience == "users":
-        return """## Instructions:
-
-Generate ONLY the release notes sections for the above commits.
-
-Focus on:
-1. New features users can try
+        focus_items = """1. New features users can try
 2. Improvements to existing functionality
-3. Bug fixes that affected users
-
-CRITICAL: OMIT SECTIONS WITHOUT CONTENT
-- Only include sections where you have actual changes to report
-- Skip empty sections entirely
-
-USE ONLY THESE SECTIONS (in this order):
-1. ### What's New
-2. ### Improvements
-3. ### Bug Fixes
-
-DO NOT use "Added", "Changed", "Fixed", or any other section names.
-
-ANTI-DUPLICATION RULES:
-- Each change goes in EXACTLY ONE section
-- If something is both new and improved, pick the most important aspect
-- Never mention the same feature in multiple sections
-
-REMEMBER: Respond with ONLY release notes sections. No explanations or commentary.
-REMEMBER: Use ONLY "What's New", "Improvements", "Bug Fixes" as section headers."""
+3. Bug fixes that affected users"""
+        classification_rules = """- New capabilities or features go in "whats_new"
+- Enhancements to existing features go in "improvements"
+- Resolved issues go in "bug_fixes\""""
 
     elif audience == "stakeholders":
-        return """## Instructions:
-
-Generate ONLY the release notes sections for the above commits.
-
-Focus on:
-1. Key business outcomes and customer value
+        focus_items = """1. Key business outcomes and customer value
 2. Impact on users and customers
-3. Platform stability and improvements
+3. Platform stability and improvements"""
+        classification_rules = """- Major achievements and wins go in "highlights"
+- Changes affecting customers go in "customer_impact"
+- Infrastructure and reliability go in "platform_improvements\""""
 
-CRITICAL: OMIT SECTIONS WITHOUT CONTENT
-- Only include sections where you have actual changes to report
-- Skip empty sections entirely
-
-USE ONLY THESE SECTIONS (in this order):
-1. ### Highlights
-2. ### Customer Impact
-3. ### Platform Improvements
-
-DO NOT use "Added", "Changed", "Fixed", or any other section names.
-
-ANTI-DUPLICATION RULES:
-- Each change goes in EXACTLY ONE section
-- Lead with business impact, not technical details
-- Never mention the same outcome in multiple sections
-
-REMEMBER: Respond with ONLY release notes sections. No explanations or commentary.
-REMEMBER: Use ONLY "Highlights", "Customer Impact", "Platform Improvements" as section headers."""
-
-    else:  # developers (default)
-        return """## Instructions:
-
-Generate ONLY the changelog sections for the above commits.
-
-Focus on:
-1. User-facing changes and their impact
+    else:  # developers
+        focus_items = """1. User-facing changes and their impact
 2. Important technical improvements
 3. Bug fixes and their effects
-4. Breaking changes
+4. Breaking changes"""
+        classification_rules = """- New features/capabilities go in "added"
+- Modifications to existing features go in "changed"
+- Soon-to-be-removed features go in "deprecated"
+- Removed features go in "removed"
+- Bug fixes go in "fixed"
+- Security patches go in "security"
+- "Refactor X" = Always "changed" (never split across sections)
+- "Replace X with Y" = Always "changed\""""
 
-CRITICAL: OMIT SECTIONS WITHOUT CONTENT
-- If there are no bug fixes, DO NOT include the "### Fixed" section at all
-- If there are no security updates, DO NOT include the "### Security" section at all
-- DO NOT write placeholder text like "No bug fixes implemented"
-- ONLY include sections where you have actual changes to report
+    return f"""## Instructions:
 
-CRITICAL ANTI-DUPLICATION RULES:
-- Each change goes in EXACTLY ONE section - never duplicate across sections
-- Choose the PRIMARY impact of each change and ignore secondary effects
-- CROSS-VERSION DEDUPLICATION: If a feature already exists in context entries, put updates in Changed, not Added
+Analyze the commits above and respond with a JSON object.
 
-MANDATORY SECTION ORDER (use only these, in this order):
-1. ### Added (first)
-2. ### Changed (second)
-3. ### Deprecated (third)
-4. ### Removed (fourth)
-5. ### Fixed (fifth)
-6. ### Security (sixth)
+Focus on:
+{focus_items}
 
-CLASSIFICATION RULES:
-- "Refactor X" = Always Changed (never Added + Removed + Fixed)
-- "Replace X with Y" = Always Changed (never Added + Removed)
-- "Update/Upgrade X" = Always Changed
-- Only use "Fixed" for actual bugs/broken behavior
+RESPOND WITH ONLY THIS JSON STRUCTURE:
+```json
+{{
+  {", ".join(f'"{k}": ["item 1", "item 2"]' for k in keys)}
+}}
+```
 
-REMEMBER: Respond with ONLY changelog sections. No explanations, introductions, or commentary.
-REMEMBER: Each concept can only appear ONCE in the entire changelog entry."""
+RULES:
+- Use ONLY these keys: {json_keys_str}
+- Each value is an array of strings (the changelog items)
+- OMIT keys with no items (empty arrays)
+- Each item should be a concise description of the change
+- Do NOT include bullet points or markdown in the items
+
+CLASSIFICATION:
+{classification_rules}
+
+ANTI-DUPLICATION:
+- Each change goes in EXACTLY ONE section
+- Never mention the same feature in multiple sections
+- If a feature fits multiple categories, pick the most important one
+
+RESPOND WITH ONLY THE JSON OBJECT. No explanations, no markdown formatting outside the JSON."""
 
 
 def build_user_prompt(

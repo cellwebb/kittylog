@@ -9,9 +9,10 @@ from rich.panel import Panel
 
 from kittylog.ai_utils import generate_with_retries
 from kittylog.config import load_config
-from kittylog.constants import Limits
+from kittylog.constants import Audiences, Limits
 from kittylog.errors import AIError
 from kittylog.prompt import build_changelog_prompt, clean_changelog_content
+from kittylog.prompt.json_schema import format_changelog_from_json
 from kittylog.providers import PROVIDER_REGISTRY
 from kittylog.utils import count_tokens
 from kittylog.utils.logging import get_logger, log_error, log_info
@@ -132,9 +133,15 @@ def generate_changelog_entry(
         )
 
         # Clean and format the content
-        # Preserve version header for unreleased changes (when tag is None)
-        preserve_version_header = tag is None
-        cleaned_content = clean_changelog_content(content, preserve_version_header)
+        # First, try to parse as JSON and format with correct audience headers
+        resolved_audience = Audiences.resolve(audience)
+        cleaned_content = format_changelog_from_json(content, resolved_audience)
+
+        # Fall back to legacy markdown cleaning if JSON parsing failed
+        if cleaned_content is None:
+            log_info(logger, "JSON parsing failed, falling back to markdown cleaning")
+            preserve_version_header = tag is None
+            cleaned_content = clean_changelog_content(content, preserve_version_header)
 
         # Count completion tokens
         completion_tokens = count_tokens(cleaned_content, model)
