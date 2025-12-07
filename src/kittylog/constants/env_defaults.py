@@ -15,7 +15,7 @@ class EnvDefaults:
     GAP_THRESHOLD_HOURS: float = 4.0
     DATE_GROUPING: str = DateGrouping.DAILY.value
     TRANSLATE_HEADINGS: bool = False
-    AUDIENCE: str = "stakeholders"
+    AUDIENCE: str = "developers"
     LOG_LEVEL: str = "WARNING"
     LANGUAGE: str = "English"
     CONTEXT_ENTRIES: int = 5  # Number of preceding entries for AI context (0 = disabled)
