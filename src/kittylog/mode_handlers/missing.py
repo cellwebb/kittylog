@@ -206,8 +206,8 @@ def handle_missing_entries_mode(
                     version_date = datetime.now().strftime("%Y-%m-%d")
                 version_name = boundary_id
 
-            # Create version section with two leading newlines for spacing between entries
-            version_section = f"\n\n## [{version_name}] - {version_date}\n\n{entry}"
+            # Create version section without leading newlines - spacing is handled by write_changelog
+            version_section = f"## [{version_name}] - {version_date}\n\n{entry}"
 
             # Insert and save immediately
             if mode == "tags":

@@ -34,23 +34,33 @@ def read_changelog(file_path: str) -> str:
 
 
 def _ensure_spacing_between_entries(content: str) -> str:
-    """Ensure exactly 2 blank lines between version entries.
+    """Ensure proper spacing in changelog content.
+
+    - Exactly 1 blank line after # Changelog header
+    - Exactly 1 blank line between version entries
 
     Args:
         content: Changelog content
 
     Returns:
-        Content with proper spacing between ## [version] entries
+        Content with proper spacing
     """
     import re
 
-    # Find version headers preceded by bullet points and ensure 2 blank lines before them
-    # This adds spacing between actual changelog content and the next version header
+    # Normalize spacing after # Changelog header (exactly 1 blank line before first ## [)
+    content = re.sub(
+        r"(^# Changelog)\n+(?=## \[)",  # Header followed by newlines before ## [
+        r"\1\n\n",  # Replace with exactly 1 blank line
+        content,
+        flags=re.MULTILINE,
+    )
+
+    # Find version headers preceded by bullet points and ensure 1 blank line before them
     # Pattern matches: bullet point line (starts with -) followed by newlines, then ## [version]
-    # We want: bullet line + \n\n\n + ## [version] (3 newlines = 2 blank lines)
+    # We want: bullet line + \n\n + ## [version] (2 newlines = 1 blank line)
     content = re.sub(
         r"(^- [^\n]*)\n+(?=## \[)",  # Bullet point line followed by newlines before ## [
-        r"\1\n\n\n",  # Replace with 2 blank lines
+        r"\1\n\n",  # Replace with 1 blank line
         content,
         flags=re.MULTILINE,
     )
