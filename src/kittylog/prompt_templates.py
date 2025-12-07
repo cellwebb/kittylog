@@ -97,6 +97,7 @@ def _build_system_prompt_developers(detail_level: str = "normal") -> str:
 - **NO CONCEPT REPETITION**: If you mention "modular architecture" in Added, you cannot mention "refactor into modules" in Changed
 - **NO SYNONYM SPLITTING**: Don't split the same change using different words (e.g., "modular" vs "separate modules" vs "granular structure")
 - **ONE PRIMARY CLASSIFICATION**: Pick the MOST IMPORTANT aspect and only put it there
+- **CROSS-VERSION DEDUPLICATION**: Never announce a feature as "brand new" in Added if it has already appeared in ANY previous changelog entry (provided as context above). If the feature exists but is being updated, put it in Changed instead
 
 ## Section Decision Tree:
 1. **Is this a brand new feature/capability that didn't exist?** → Added
@@ -168,6 +169,11 @@ def _build_system_prompt_users(detail_level: str = "normal") -> str:
     detail_limits = _build_detail_limit_section(detail_level)
     return f"""You are writing release notes for END USERS who are NOT technical. They don't know programming, APIs, or software architecture. Write like you're explaining to a friend.
 {detail_limits}
+## CRITICAL: ZERO REDUNDANCY ENFORCEMENT
+- **NEVER RE-ANNOUNCE FEATURES**: If a feature has already appeared in previous versions (provided as context above), do NOT announce it again as if it's brand new
+- **IF EXISTING FEATURE IS IMPROVED**: Use simpler language to explain the improvement (e.g., "Improved sign-in reliability" not "New sign-in feature")
+- **FOCUS ON WHAT'S NEW TO USERS**: Only include features/improvements users haven't heard about before
+
 ## STRICT RULES - NO TECHNICAL LANGUAGE
 
 FORBIDDEN WORDS (NEVER use these - this is critical):
@@ -237,6 +243,11 @@ def _build_system_prompt_stakeholders(detail_level: str = "normal") -> str:
     detail_limits = _build_detail_limit_section(detail_level)
     return f"""You are writing release notes for BUSINESS STAKEHOLDERS (product managers, executives, investors). Focus on business impact, customer value, and strategic outcomes.
 {detail_limits}
+## CRITICAL: ZERO REDUNDANCY ENFORCEMENT
+- **NEVER RE-ANNOUNCE FEATURES**: If a feature has already appeared in previous versions (provided as context above), do NOT announce it again as if it's brand new
+- **IF EXISTING FEATURE IS IMPROVED**: Describe the NEW business impact/improvement (e.g., "Extended deployment regions by 40% more coverage" not "New deployment feature")
+- **FOCUS ON INCREMENTAL VALUE**: Only highlight features/improvements that represent NEW value to stakeholders
+
 ## LANGUAGE STYLE:
 - Professional and executive-summary style
 - Quantify impact where possible (percentages, metrics)
@@ -393,11 +404,19 @@ def _build_user_prompt(
     context_section = ""
     if context_entries.strip():
         context_section = (
-            "STYLE REFERENCE - Match the format, tone, and level of detail of these previous entries:\n\n"
+            "CRITICAL CONTEXT - WHAT'S ALREADY IN THE CHANGELOG:\n"
+            "These are the most recent changelog entries from previous versions. "
+            "They represent features and changes that have ALREADY BEEN ANNOUNCED:\n\n"
             f"{context_entries}\n\n"
             "---\n\n"
-            "Use the above entries as a reference for formatting, bullet style, and level of detail. "
-            "Maintain consistency with the existing changelog style.\n\n"
+            "⚠️ MANDATORY DEDUPLICATION RULE:\n"
+            "- If ANY feature, improvement, or fix in the above entries is related to the commits you're analyzing, "
+            "DO NOT announce it as a brand new feature in the 'Added' section\n"
+            "- If a feature from the context appears in current commits, it's an UPDATE/IMPROVEMENT to that feature, "
+            "so put it in 'Changed' instead\n"
+            "- NEVER re-announce something already documented above as if it's new\n"
+            "- Use the above entries as a reference for formatting, tone, and level of detail\n"
+            "- Maintain consistency with the existing changelog style\n\n"
         )
 
     # Format commits
@@ -439,6 +458,7 @@ CRITICAL ANTI-DUPLICATION RULES:
 - NO DEPENDENCY SPLITS: Don't put version updates in multiple sections
 - NO FILE OPERATION SPLITS: "Remove file X" and "Add modular X" for the same refactor = ONE change in Changed
 - Choose the PRIMARY impact of each change and ignore secondary effects
+- CROSS-VERSION DEDUPLICATION: Check the context entries above (if provided). If a feature already exists there, do NOT announce it as brand new/Added in this version. If the feature is being improved or modified, use Changed instead.
 - MANDATORY SECTION ORDER: You MUST output sections in this exact order when present:
   1. ### Added (first)
   2. ### Changed (second)
@@ -451,7 +471,7 @@ CRITICAL ANTI-DUPLICATION RULES:
 - "Update/Upgrade X" = Always Changed
 - Only use "Fixed" for actual bugs/broken behavior
 
-ZERO TOLERANCE FOR REDUNDANCY: If you mention ANY concept once, you cannot mention it again using different words.
+ZERO TOLERANCE FOR REDUNDANCY: If you mention ANY concept once, you cannot mention it again using different words. Also check context entries - never re-announce features that already exist.
 
 ABSOLUTE FORBIDDEN PATTERNS FOR THIS SPECIFIC PROJECT:
 ❌ NEVER mention "modular", "modules", "separate", "granular", "architecture" in multiple sections
