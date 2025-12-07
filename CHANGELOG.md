@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.4] - 2025-12-06
+
+### What's New
+
+- AI now tracks your current session to avoid duplicate entries
+- Increased AI context to include your last 10 log entries for better analysis
+
+### Improvements
+
+- More consistent spacing between version sections in changelogs
+- Better rules to prevent announcing features that already exist
+
+### Bug Fixes
+
+- Fixed inconsistent spacing in changelog formatting
+
 ## [3.0.3] - 2025-12-06
 
 ### What's New
