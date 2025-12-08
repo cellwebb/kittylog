@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.6] - 2025-12-07
+
+### Improvements
+
+- Enhanced authentication with Qwen OAuth provider support
+- Added robust tag operations with improved performance and caching
+- Expanded test coverage for better reliability
+- Improved code formatting and readability
+
 ## [3.0.5] - 2025-12-06
 
 ### Improvements
