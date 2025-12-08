@@ -95,8 +95,12 @@ def get_latest_tag() -> str | None:
     Returns:
         The latest tag name or None if no tags exist
     """
-    tags = get_all_tags()
-    return tags[-1] if tags else None
+    try:
+        tags = get_all_tags()
+        return tags[-1] if tags else None
+    except Exception as e:
+        logger.error(f"Failed to get latest tag: {e}")
+        return None
 
 
 @cached
