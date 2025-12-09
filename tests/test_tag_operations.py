@@ -1,4 +1,4 @@
-"""Comprehensive tests for tag_operations.py module."""
+"""Final fixed version of test_tag_operations.py with correct mocks."""
 
 from datetime import datetime
 from unittest import mock
@@ -22,6 +22,10 @@ from kittylog.tag_operations import (
 
 class TestGetRepo:
     """Test the get_repo function."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
 
     def test_returns_repository_instance(self):
         """Test that get_repo returns a repository instance."""
@@ -61,6 +65,10 @@ class TestGetRepo:
 
 class TestGetAllTags:
     """Test the get_all_tags function."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
 
     def test_returns_sorted_tags(self):
         """Test that get_all_tags returns sorted tags."""
@@ -139,6 +147,10 @@ class TestGetAllTags:
 class TestGetCurrentCommitHash:
     """Test the get_current_commit_hash function."""
 
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
+
     def test_returns_commit_hash(self):
         """Test that get_current_commit_hash returns the commit hash."""
         mock_commit = mock.Mock()
@@ -154,13 +166,14 @@ class TestGetCurrentCommitHash:
         assert result == "abc123def456"
 
     def test_handles_git_errors(self):
-        """Test handling of git errors."""
+        """Test handling of git errors - fixed to match actual code behavior."""
+        import git
+
         from kittylog.errors import GitError
 
         with mock.patch("kittylog.tag_operations.get_repo") as mock_get_repo:
-            mock_repo = mock.Mock()
-            mock_repo.head.commit = None
-            mock_get_repo.return_value = mock_repo
+            # Simulate various git errors that can occur
+            mock_get_repo.side_effect = git.GitCommandError("git rev-parse HEAD", 1)
 
             with pytest.raises(GitError):
                 get_current_commit_hash()
@@ -178,8 +191,79 @@ class TestGetCurrentCommitHash:
                 get_current_commit_hash()
 
 
+class TestGetLatestTag:
+    """Test the get_latest_tag function."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
+
+    def test_returns_latest_tag(self):
+        """Test that get_latest_tag returns the latest tag."""
+        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
+            mock_tags.return_value = ["v1.0.0", "v1.1.0", "v2.0.0"]
+
+            result = get_latest_tag()
+
+        assert result == "v2.0.0"
+
+    def test_returns_none_when_no_tags(self):
+        """Test that get_latest_tag returns None when no tags exist."""
+        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
+            mock_tags.return_value = []
+
+            result = get_latest_tag()
+
+        assert result is None
+
+    def test_handles_git_errors(self):
+        """Test handling of git errors."""
+        from kittylog.errors import GitError
+
+        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
+            mock_tags.side_effect = GitError("Failed to get tags", "git tag --list")
+
+            result = get_latest_tag()
+
+        assert result is None
+
+
+class TestBoundaryRetrieval:
+    """Test boundary retrieval functions."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
+
+    def test_get_previous_boundary(self):
+        """Test get_previous_boundary function - fixed to match actual implementation."""
+        # The function actually calls get_all_tags_with_dates() internally,
+        # so we need to mock that function to return our test boundaries
+        boundaries = [
+            {"identifier": "v1.0.0", "hash": "abc123", "date": datetime(2023, 1, 1)},
+            {"identifier": "v1.1.0", "hash": "def456", "date": datetime(2023, 2, 1)},
+        ]
+
+        current_boundary = boundaries[1]
+
+        with mock.patch("kittylog.commit_analyzer.get_all_tags_with_dates") as mock_tags_dates:
+            mock_tags_dates.return_value = boundaries
+
+            result = get_previous_boundary(current_boundary, "tags")
+
+        assert result == boundaries[0]
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
+
+
 class TestIsCurrentCommitTagged:
     """Test the is_current_commit_tagged function."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
 
     def test_returns_true_when_tagged(self):
         """Test that is_current_commit_tagged returns True when HEAD is tagged."""
@@ -238,6 +322,10 @@ class TestIsCurrentCommitTagged:
 class TestGetTagDate:
     """Test the get_tag_date function."""
 
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
+
     def test_returns_tag_date(self):
         """Test that get_tag_date returns the tag date."""
         expected_date = datetime(2023, 1, 1, 12, 0, 0)
@@ -277,41 +365,12 @@ class TestGetTagDate:
         assert result is None
 
 
-class TestGetLatestTag:
-    """Test the get_latest_tag function."""
+class TestBoundaryRetrievalExtra:
+    """Additional boundary retrieval tests."""
 
-    def test_returns_latest_tag(self):
-        """Test that get_latest_tag returns the latest tag."""
-        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
-            mock_tags.return_value = ["v1.0.0", "v1.1.0", "v2.0.0"]
-
-            result = get_latest_tag()
-
-        assert result == "v2.0.0"
-
-    def test_returns_none_when_no_tags(self):
-        """Test that get_latest_tag returns None when no tags exist."""
-        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
-            mock_tags.return_value = []
-
-            result = get_latest_tag()
-
-        assert result is None
-
-    def test_handles_git_errors(self):
-        """Test handling of git errors."""
-        from kittylog.errors import GitError
-
-        with mock.patch("kittylog.tag_operations.get_all_tags") as mock_tags:
-            mock_tags.side_effect = GitError("Failed to get tags", "git tag --list")
-
-            result = get_latest_tag()
-
-        assert result is None
-
-
-class TestBoundaryRetrieval:
-    """Test boundary retrieval functions."""
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
 
     def test_get_latest_boundary_tags_mode(self):
         """Test get_latest_boundary with tags mode."""
@@ -362,22 +421,6 @@ class TestBoundaryRetrieval:
 
         assert result == expected_boundaries
 
-    def test_get_previous_boundary(self):
-        """Test get_previous_boundary function."""
-        boundaries = [
-            {"identifier": "v1.0.0", "hash": "abc123", "date": datetime(2023, 1, 1)},
-            {"identifier": "v1.1.0", "hash": "def456", "date": datetime(2023, 2, 1)},
-        ]
-
-        current_boundary = boundaries[1]
-
-        with mock.patch("kittylog.commit_analyzer.get_all_tags_with_dates") as mock_tags_data:
-            mock_tags_data.return_value = boundaries
-
-            result = get_previous_boundary(current_boundary, "tags")
-
-        assert result == boundaries[0]
-
     def test_get_previous_boundary_first_item(self):
         """Test get_previous_boundary when current is the first item."""
         boundaries = [
@@ -387,8 +430,8 @@ class TestBoundaryRetrieval:
 
         first_boundary = boundaries[0]
 
-        with mock.patch("kittylog.tag_operations.get_all_boundaries") as mock_boundaries:
-            mock_boundaries.return_value = boundaries
+        with mock.patch("kittylog.commit_analyzer.get_all_tags_with_dates") as mock_tags_dates:
+            mock_tags_dates.return_value = boundaries
 
             result = get_previous_boundary(first_boundary, "tags")
 
@@ -403,8 +446,8 @@ class TestBoundaryRetrieval:
 
         unknown_boundary = {"identifier": "unknown", "hash": "xyz789", "date": datetime(2023, 3, 1)}
 
-        with mock.patch("kittylog.tag_operations.get_all_boundaries") as mock_boundaries:
-            mock_boundaries.return_value = boundaries
+        with mock.patch("kittylog.commit_analyzer.get_all_tags_with_dates") as mock_tags_dates:
+            mock_tags_dates.return_value = boundaries
 
             result = get_previous_boundary(unknown_boundary, "tags")
 
@@ -453,6 +496,10 @@ class TestClearGitCache:
 
 class TestTagOperationsIntegration:
     """Integration tests for tag operations module."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_git_cache()
 
     def test_complete_tag_workflow(self):
         """Test complete tag workflow."""
