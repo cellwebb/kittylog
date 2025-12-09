@@ -43,6 +43,11 @@ logger = logging.getLogger(__name__)
     type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help="Set log level",
 )
+@click.option(
+    "--include-diff",
+    is_flag=True,
+    help="Include git diff in AI context (warning: can dramatically increase token usage)",
+)
 def release(
     version,
     file,
@@ -55,6 +60,7 @@ def release(
     quiet,
     verbose,
     log_level,
+    include_diff,
 ):
     """Prepare changelog for a release.
 
@@ -70,6 +76,8 @@ def release(
         kittylog release 2.3.0 --skip-generate  # Only finalize existing Unreleased
 
         kittylog release v2.3.0 --dry-run   # Preview what would happen
+
+        kittylog release 2.3.0 --include-diff  # Include git diff context in AI analysis
     """
     try:
         # Set up logging using shared utility
@@ -99,6 +107,8 @@ def release(
                 audience=audience or EnvDefaults.AUDIENCE,
                 no_unreleased=False,
                 interactive=False,
+                include_diff=include_diff,
+                hint=hint,
             )
 
             success, _token_usage = main_business_logic(

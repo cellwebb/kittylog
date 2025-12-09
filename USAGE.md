@@ -58,6 +58,34 @@ Update changelog for a specific version or all missing tags
 - `--date-grouping {daily,weekly,monthly}`: Period length when grouping by dates
 - `version`: Specific version to update (optional argument)
 
+### `kittylog release`
+
+Prepare changelog for a release. Generates changelog entries (unless --skip-generate) and converts the [Unreleased] section to a versioned release with today's date.
+
+**Options:**
+
+- `--file, -f`: Path to changelog file (default: CHANGELOG.md)
+- `--dry-run, -d`: Show what would be done without making changes
+- `--skip-generate`: Skip changelog generation, only finalize release
+- `--model, -m`: Override default model for generation
+- `--hint, -h`: Additional context for the prompt
+- `--language, -l`: Override the language for changelog entries (name or locale code)
+- `--audience, -u`: Target audience for changelog tone (developers, users, stakeholders)
+- `--quiet, -q`: Suppress non-error output
+- `--verbose, -v`: Increase output verbosity
+- `--log-level`: Set log level (DEBUG, INFO, WARNING, ERROR)
+- `--include-diff`: Include git diff in AI context (warning: can dramatically increase token usage)
+- `version`: Version to release (e.g., 2.3.0 or v2.3.0) [required]
+
+**Examples:**
+
+```bash
+kittylog release 2.3.0              # Generate changelog & prepare release
+kittylog release 2.3.0 --skip-generate  # Only finalize existing Unreleased
+kittylog release v2.3.0 --dry-run   # Preview what would happen
+kittylog release 2.3.0 --include-diff  # Include git diff context in AI analysis
+```
+
 ## Configuration Commands
 
 ### `kittylog config`
@@ -129,4 +157,8 @@ kittylog -f CHANGES.md
 
 # Use different AI model
 kittylog -m "openai:gpt-4"
+
+# Release commands
+kittylog release 2.3.0 --include-diff  # Release with git diff context
+kittylog release v2.3.0 --dry-run     # Preview release preparation
 ```
