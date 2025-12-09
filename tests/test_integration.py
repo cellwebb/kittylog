@@ -21,17 +21,17 @@ class TestEndToEndWorkflow:
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
-        config_file = temp_dir / ".kittylog.env"
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         runner = CliRunner()
 
         # Change to the git repo directory
-        os.chdir(temp_dir)
+        os.chdir(Path(git_repo_with_tags.working_dir))
 
         # Run the CLI with update command to process tags
         # First, create a changelog with version sections (using v prefix to match git tags)
-        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
         initial_content = """# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -76,11 +76,11 @@ All notable changes to this project will be documented in this file.
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
-        config_file = temp_dir / ".kittylog.env"
+        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create existing changelog with matching v-prefixed versions
-        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
         existing_content = """# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -99,7 +99,7 @@ All notable changes to this project will be documented in this file.
         changelog_file.write_text(existing_content)
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        os.chdir(Path(git_repo_with_tags.working_dir))
 
         # Run update with --all to process all entries
         result = runner.invoke(
@@ -130,11 +130,11 @@ All notable changes to this project will be documented in this file.
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         runner = CliRunner()
-        os.chdir(temp_dir)
+        os.chdir(Path(git_repo_with_tags.working_dir))
 
         # Run dry run
         result = runner.invoke(
@@ -153,7 +153,7 @@ All notable changes to this project will be documented in this file.
         assert result.exit_code == 0
 
         # Changelog should not be created/modified in dry run
-        changelog_file = temp_dir / "CHANGELOG.md"
+        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
         if changelog_file.exists():
             # If it exists, it should be unchanged
             # original_stat = changelog_file.stat()\n
@@ -260,7 +260,7 @@ class TestErrorHandlingIntegration:
         mock_getenv.return_value = None
 
         # Create config without API key in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
@@ -269,7 +269,7 @@ class TestErrorHandlingIntegration:
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -292,7 +292,7 @@ class TestErrorHandlingIntegration:
     def test_invalid_tag_error(self, git_repo_with_tags, temp_dir):
         """Test error with invalid git tags."""
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
@@ -301,7 +301,7 @@ class TestErrorHandlingIntegration:
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -328,12 +328,13 @@ class TestErrorHandlingIntegration:
 class TestMultiTagIntegration:
     """Integration tests for multiple tag processing."""
 
-    # TEMP: @patch("kittylog.workflow.load_config", return_value=KittylogConfigData(model="cerebras:zai-glm-4.6"))
-    @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
-    def test_multiple_tags_auto_detection(self, mock_getenv, temp_dir):
+    def test_multiple_tags_auto_detection(self, temp_dir, monkeypatch):
         """Test auto-detection and processing of multiple new tags."""
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
         from pathlib import Path
+
+        # Set up API key via environment (monkeypatch ensures test isolation)
+        monkeypatch.setenv("CEREBRAS_API_KEY", "test-api-key")
 
         try:
             original_cwd = str(Path.cwd())
@@ -363,7 +364,7 @@ class TestMultiTagIntegration:
                     repo.create_tag(f"v0.{i}.0", commit)
 
             # Create existing changelog with first tag (v-prefixed to match git tags)
-            changelog_file = temp_dir / "CHANGELOG.md"
+            changelog_file = Path(repo.working_dir) / "CHANGELOG.md"
             changelog_file.write_text("""# Changelog
 
 ## [v0.1.0] - 2024-01-01
@@ -373,11 +374,11 @@ class TestMultiTagIntegration:
 """)
 
             # Create config
-            config_file = temp_dir / ".kittylog.env"
+            config_file = Path(repo.working_dir) / ".kittylog.env"
             config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
             runner = CliRunner()
-            os.chdir(temp_dir)
+            os.chdir(Path(repo.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -411,14 +412,14 @@ class TestCLIOptionsIntegration:
     @patch("kittylog.providers.base.os.getenv", return_value="anthropic:claude-3-haiku-20240307")
     def test_hint_option_integration(self, mock_getenv, git_repo_with_tags, temp_dir, mock_api_calls):
         """Test that hint option is properly passed through."""
-        # Note: mock_api_calls is the autouse fixture from conftest.py
+        # Note: mock_api_calls is the autouse fixture from conftest.py that tracks httpx.post calls
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create changelog with matching v-prefixed versions
-        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file = Path(Path(git_repo_with_tags.working_dir)) / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -438,7 +439,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -476,11 +477,11 @@ All notable changes to this project will be documented in this file.
         # Note: mock_api_calls is the autouse fixture from conftest.py
 
         # Create config in git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create changelog with matching v-prefixed versions
-        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file = Path(Path(git_repo_with_tags.working_dir)) / "CHANGELOG.md"
         changelog_file.write_text("""# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -500,7 +501,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             # But CLI specifies different model
             result = runner.invoke(
@@ -537,11 +538,11 @@ class TestFilePathIntegration:
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nANTHROPIC_API_KEY=sk-ant-test123\n")
 
         # Create docs directory and custom changelog with matching v-prefixed versions
-        docs_dir = Path(git_repo_with_tags.working_dir) / "docs"
+        docs_dir = Path(Path(git_repo_with_tags.working_dir)) / "docs"
         docs_dir.mkdir()
 
         custom_changelog = docs_dir / "CHANGES.md"
@@ -564,7 +565,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -600,11 +601,11 @@ All notable changes to this project will be documented in this file.
         mock_confirm.return_value = True  # Always confirm to create changelog
         # Note: httpx.post is mocked by the autouse fixture in conftest.py
 
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\nCEREBRAS_API_KEY=test-api-key\n")
 
         # Create subdirectory
-        subdir = Path(git_repo_with_tags.working_dir) / "project"
+        subdir = Path(Path(git_repo_with_tags.working_dir)) / "project"
         subdir.mkdir()
 
         runner = CliRunner()
@@ -613,7 +614,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             result = runner.invoke(
                 cli,
@@ -632,7 +633,7 @@ All notable changes to this project will be documented in this file.
             # Always restore original directory
             with contextlib.suppress(Exception):
                 os.chdir(original_cwd)
-            assert result is not None
+        assert result is not None
 
         assert result.exit_code == 0
 
@@ -680,11 +681,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial project setup
 """
-        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file = Path(Path(git_repo_with_tags.working_dir)) / "CHANGELOG.md"
         changelog_file.write_text(changelog_content)
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
@@ -693,7 +694,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             # Run add command - intelligent behavior now automatically handles unreleased content
             result = runner.invoke(
@@ -753,7 +754,7 @@ All notable changes to this project will be documented in this file.
         mock_getenv.return_value = "sk-ant-test123"
 
         # Add some unreleased commits after the last tag
-        test_file = Path(git_repo_with_tags.working_dir) / "unreleased_feature.py"
+        test_file = Path(Path(git_repo_with_tags.working_dir)) / "unreleased_feature.py"
         test_file.write_text("# New unreleased feature\nprint('hello')\n")
         git_repo_with_tags.index.add([str(test_file)])
         git_repo_with_tags.index.commit("Add unreleased feature")
@@ -795,11 +796,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial project setup
 """
-        changelog_file = Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"
+        changelog_file = Path(Path(git_repo_with_tags.working_dir)) / "CHANGELOG.md"
         changelog_file.write_text(changelog_content)
 
         # Create config in the git repo directory
-        config_file = Path(git_repo_with_tags.working_dir) / ".kittylog.env"
+        config_file = Path(Path(git_repo_with_tags.working_dir)) / ".kittylog.env"
         config_file.write_text("KITTYLOG_MODEL=cerebras:zai-glm-4.6\n")
 
         runner = CliRunner()
@@ -808,7 +809,7 @@ All notable changes to this project will be documented in this file.
         result = None
         try:
             # Change to the git repo directory, not temp_dir
-            os.chdir(git_repo_with_tags.working_dir)
+            os.chdir(Path(git_repo_with_tags.working_dir))
 
             # Run add command - will automatically handle unreleased content
             result = runner.invoke(
