@@ -280,13 +280,19 @@ class TestCLIIntegration:
 
     def test_cli_workflow_dry_run(self, temp_dir, git_repo_with_tags):
         """Test complete CLI workflow with dry run."""
+        # Change to the git repository directory
+        import os
+
+        original_dir = str(Path.cwd())
+        os.chdir(git_repo_with_tags.working_dir)
+
         runner = CliRunner()
         result = runner.invoke(
             cli,
             [
                 "update",
                 "--file",
-                str(temp_dir / "CHANGELOG.md"),
+                str(Path(git_repo_with_tags.working_dir) / "CHANGELOG.md"),
                 "--dry-run",
                 "--quiet",
             ],
@@ -295,6 +301,9 @@ class TestCLIIntegration:
         # This test just verifies the CLI command can be invoked without crashing
         # The actual business logic is tested elsewhere
         assert result.exit_code in [0, 1]  # Allow both success and failure exit codes
+
+        # Restore original directory
+        os.chdir(original_dir)
 
     def test_cli_error_handling(self):
         """Test CLI error handling."""
