@@ -48,7 +48,7 @@ def _configure_model(existing_env: dict[str, str]) -> bool:
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("LM Studio", "gpt-oss-20b"),
         ("MiniMax", "MiniMax-M2"),
-        ("Mistral", "mistral-small-latest"),
+        ("Mistral", "devstral-2512"),
         ("Ollama", "gpt-oss-20b"),
         ("OpenAI", "gpt-5-mini"),
         ("OpenRouter", "openrouter/auto"),
