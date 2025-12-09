@@ -89,24 +89,23 @@ class TestGroqProvider:
         assert "Groq" in str(exc_info.value)
 
     @pytest.mark.integration
-    @pytest.mark.skipif(not os.getenv("GROQ_API_KEY"), reason="GROQ_API_KEY not set")
-    def test_groq_provider_integration(self):
-        """Test Groq provider integration with real API."""
-        messages = [
-            {
-                "role": "user",
-                "content": "Reply with exactly: 'groq test success'",
-            }
-        ]
+    @patch("kittylog.providers.base.httpx.post")
+    @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})
+    def test_groq_provider_integration(self, mock_post, dummy_messages, mock_http_response_factory):
+        """Test Groq provider integration with mocked API call."""
+        # Mock successful response
+        response_data = {"choices": [{"message": {"content": "groq test success"}}]}
+        mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         result = PROVIDER_REGISTRY["groq"](
-            model="llama3-8b-8192",
-            messages=messages,
+            model="llama3-70b-8192",  # Updated to use a current model
+            messages=dummy_messages,
             temperature=0.7,
             max_tokens=100,
         )
 
-        assert len(result) > 0  # Any response is considered success
+        assert result == "groq test success"
+        mock_post.assert_called_once()
 
     @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"GROQ_API_KEY": API_KEY})

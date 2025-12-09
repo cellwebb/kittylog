@@ -45,19 +45,30 @@ class TestLmstudioProvider:
         assert data["temperature"] == 0.7
         assert data["max_tokens"] == 100
 
-    def test_call_lmstudio_api_missing_api_key(self, monkeypatch, dummy_messages):
-        """Test Lmstudio provider works without API key (optional)."""
+    @patch("kittylog.providers.base.httpx.post")
+    def test_call_lmstudio_api_missing_api_key(self, mock_post, monkeypatch, dummy_messages):
+        """Test Lmstudio provider works without API key (optional) but fails on connection error.
+
+        LM Studio doesn't require an API key since it runs locally. This test verifies that:
+        1. No authentication error is raised when API key is missing
+        2. A connection error is properly wrapped in AIError when the server isn't available
+        """
+        import httpx
+
         monkeypatch.delenv("LMSTUDIO_API_KEY", raising=False)
 
-        # This should not raise an error since API key is optional for LM Studio
-        try:
-            # We expect this to fail due to connection error (no running server), not auth
+        # Simulate a connection error (no LM Studio server running)
+        mock_post.side_effect = httpx.ConnectError("Connection refused")
+
+        # This should raise AIError with connection-related message, not auth error
+        with pytest.raises(AIError) as exc_info:
             PROVIDER_REGISTRY["lm-studio"]("test-model", dummy_messages, 0.7, 32)
-        except AIError as exc_info:
-            # Should be connection error, not auth error
-            assert (
-                "connection failed" in str(exc_info.value).lower() or "connection error" in str(exc_info.value).lower()
-            )
+
+        # Verify it's a connection/network error, not an authentication error
+        error_message = str(exc_info.value).lower()
+        assert "lm studio" in error_message, f"Expected 'LM Studio' in error, got: {exc_info.value}"
+        # Should NOT be an authentication error
+        assert "api key" not in error_message and "authentication" not in error_message
 
     @patch("kittylog.providers.base.httpx.post")
     @patch.dict(os.environ, {"LMSTUDIO_API_KEY": API_KEY})

@@ -138,21 +138,20 @@ class TestCerebrasProvider:
         assert len(data["messages"]) == 3
 
     @pytest.mark.integration
-    @pytest.mark.skipif(not os.getenv("CEREBRAS_API_KEY"), reason="CEREBRAS_API_KEY not set")
-    def test_cerebras_provider_integration(self):
-        """Test Cerebras provider integration with real API."""
-        messages = [
-            {
-                "role": "user",
-                "content": "Reply with exactly: 'cerebras test success'",
-            }
-        ]
+    @patch("kittylog.providers.base.httpx.post")
+    @patch.dict(os.environ, {"CEREBRAS_API_KEY": API_KEY})
+    def test_cerebras_provider_integration(self, mock_post, dummy_messages, mock_http_response_factory):
+        """Test Cerebras provider integration with mocked API call."""
+        # Mock successful response
+        response_data = {"choices": [{"message": {"content": "cerebras test success"}}]}
+        mock_post.return_value = mock_http_response_factory.create_success_response(response_data)
 
         result = PROVIDER_REGISTRY["cerebras"](
             model="llama3.1-8b",
-            messages=messages,
+            messages=dummy_messages,
             temperature=0.7,
             max_tokens=100,
         )
 
-        assert len(result) > 0  # Any response is considered success
+        assert result == "cerebras test success"
+        mock_post.assert_called_once()
