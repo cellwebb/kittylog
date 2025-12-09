@@ -181,3 +181,54 @@ def provider_mock():
 def ai_response():
     """Fixture providing a MockAIResponse builder."""
     return MockAIResponse()
+
+
+@pytest.fixture
+def sample_commits():
+    """Fixture providing sample commit data for testing."""
+    from datetime import datetime
+
+    return [
+        {
+            "short_hash": "abc123d",
+            "message": "feat: add new authentication feature",
+            "author": "John Doe <john@example.com>",
+            "date": datetime(2024, 1, 15, 10, 30),
+            "files": ["src/auth.py", "tests/test_auth.py"],
+        },
+        {
+            "short_hash": "def456g",
+            "message": "fix: resolve memory leak in cache",
+            "author": "Jane Smith <jane@example.com>",
+            "date": datetime(2024, 1, 16, 14, 22),
+            "files": ["src/cache.py"],
+        },
+        {
+            "short_hash": "ghi789h",
+            "message": "docs: update API documentation",
+            "author": "Bob Wilson <bob@example.com>",
+            "date": datetime(2024, 1, 17, 9, 15),
+            "files": ["docs/api.md"],
+        },
+    ]
+
+
+@pytest.fixture
+def mock_config():
+    """Fixture providing a mock configuration object for testing."""
+    from kittylog.config.data import KittylogConfigData
+
+    return KittylogConfigData(
+        model="openai:gpt-4",
+        temperature=0.7,
+        max_output_tokens=1024,
+        max_retries=3,
+        log_level="WARNING",
+        warning_limit_tokens=16384,
+        grouping_mode="tags",
+        gap_threshold_hours=4.0,
+        date_grouping="daily",
+        language=None,
+        translate_headings=False,
+        audience="developers",
+    )

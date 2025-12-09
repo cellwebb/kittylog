@@ -147,9 +147,6 @@ def git_repo(temp_dir):
                 os.chdir(str(Path.home()))
 
 
-# Import simplified fixtures
-
-
 @pytest.fixture
 def git_repo_with_tags(git_repo):
     """Create a git repository with sample tags and commits."""
@@ -300,8 +297,17 @@ def mock_questionary():
 
 
 @pytest.fixture(autouse=True)
-def mock_api_calls():
-    """Automatically mock API calls in all tests."""
+def mock_api_calls(request):
+    """Automatically mock API calls in all tests.
+
+    NOTE: This fixture is skipped for tests marked with @pytest.mark.integration
+    to allow real API calls for integration testing.
+    """
+    # Skip mocking for integration tests - they should hit real APIs
+    if request.node.get_closest_marker("integration"):
+        yield None
+        return
+
     # Mock httpx.post for all providers
     with patch("httpx.post") as mock_post:
         # Create mock response for HTTP calls
@@ -437,4 +443,47 @@ def isolated_config_test(temp_dir, monkeypatch):
                 os.chdir(str(Path.home()))
 
 
-# Import simplified fixtures
+@pytest.fixture
+def clean_git_repo(temp_dir):
+    """Create a clean git repository with no tags for testing."""
+    import contextlib
+    import os
+    from pathlib import Path
+
+    from git import Repo
+
+    from kittylog.commit_analyzer import clear_commit_analyzer_cache
+    from kittylog.tag_operations import clear_git_cache
+
+    clear_git_cache()
+    clear_commit_analyzer_cache()
+
+    try:
+        original_cwd = str(Path.cwd())
+    except (OSError, PermissionError, RuntimeError):
+        original_cwd = str(Path.home())
+
+    repo = Repo.init(temp_dir)
+    repo.config_writer().set_value("user", "name", "Test User").release()
+    repo.config_writer().set_value("user", "email", "test@example.com").release()
+
+    os.chdir(str(temp_dir))
+
+    test_file = Path("README.md")
+    test_file.write_text("# Clean Test Project\n")
+    repo.index.add(["README.md"])
+    repo.index.commit("Initial commit")
+
+    try:
+        yield repo
+    finally:
+        with contextlib.suppress(Exception):
+            clear_git_cache()
+            clear_commit_analyzer_cache()
+
+        with contextlib.suppress(Exception):
+            os.chdir(original_cwd)
+
+        with contextlib.suppress(Exception):
+            if not Path(original_cwd).exists():
+                os.chdir(str(Path.home()))
