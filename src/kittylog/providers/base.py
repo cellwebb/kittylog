@@ -366,7 +366,11 @@ class BaseConfiguredProvider(ABC, ProviderProtocol):
         # Final yield with token usage
         if usage_dict is None:
             # Estimate usage if not provided
-            usage_dict = {"prompt_tokens": 0, "completion_tokens": len("".join(accumulated_content)) // 4, "total_tokens": 0}
+            usage_dict = {
+                "prompt_tokens": 0,
+                "completion_tokens": len("".join(accumulated_content)) // 4,
+                "total_tokens": 0,
+            }
 
         yield ("", usage_dict)
 
