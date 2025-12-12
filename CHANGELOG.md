@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.1.0] - 2025-12-11
+
+### What's New
+
+- Watch changelogs appear live as they're being written
+
+### Improvements
+
+- Release notes now include more details about what changed between versions
+- Updated release history with comprehensive improvements
+
 ## [3.0.7] - 2025-12-09
 
 ### What's New
