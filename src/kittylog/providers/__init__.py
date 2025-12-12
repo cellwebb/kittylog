@@ -34,6 +34,7 @@ from .openrouter import OpenRouterProvider
 from .qwen import QwenProvider
 from .registry import (
     PROVIDER_REGISTRY,
+    STREAMING_PROVIDER_REGISTRY,
     register_provider,
 )
 from .replicate import ReplicateProvider
@@ -75,6 +76,7 @@ SUPPORTED_PROVIDERS = sorted(PROVIDER_REGISTRY.keys())
 
 __all__ = [
     "PROVIDER_REGISTRY",
+    "STREAMING_PROVIDER_REGISTRY",
     "SUPPORTED_PROVIDERS",
     "register_provider",
 ]

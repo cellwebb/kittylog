@@ -1,7 +1,9 @@
 """Base configured provider class to eliminate code duplication."""
 
+import json
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any
 
@@ -240,6 +242,134 @@ class BaseConfiguredProvider(ABC, ProviderProtocol):
         # Parse response
         return self._parse_response(response_data)
 
+    @abstractmethod
+    def _parse_stream_chunk(self, line: str) -> tuple[str | None, dict | None]:
+        """Parse a single SSE chunk from the streaming response.
+
+        Args:
+            line: A single line from the SSE stream
+
+        Returns:
+            Tuple of (content_chunk, usage_dict):
+            - content_chunk: Text content if present, None otherwise
+            - usage_dict: Token usage if present, None otherwise
+        """
+        pass
+
+    def generate_stream(
+        self, model: str, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1024, **kwargs
+    ) -> Generator[tuple[str, dict | None], None, None]:
+        """Generate text with streaming support.
+
+        Args:
+            model: Model name to use
+            messages: List of message dictionaries
+            temperature: Temperature parameter (0.0-2.0)
+            max_tokens: Maximum tokens in response
+            **kwargs: Additional provider-specific parameters
+
+        Yields:
+            Tuple[str, dict | None]:
+            - (chunk_text, None) for content chunks
+            - ("", usage_dict) for final yield with token usage
+
+        Raises:
+            AIError: For any API-related errors
+        """
+        # Build request components
+        try:
+            url = self._get_api_url(model)
+        except AIError:
+            raise
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        try:
+            headers = self._build_headers()
+        except AIError:
+            raise
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        try:
+            body = self._build_request_body(messages, temperature, max_tokens, model, **kwargs)
+        except AIError:
+            raise
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        # Add model to body if not already present
+        if "model" not in body:
+            body["model"] = model
+
+        # Enable streaming in request body
+        body["stream"] = True
+
+        # Make streaming HTTP request
+        accumulated_content = []
+        usage_dict: dict | None = None
+
+        try:
+            with (
+                httpx.Client(timeout=self.config.timeout) as client,
+                client.stream("POST", url, json=body, headers=headers) as response,
+            ):
+                response.raise_for_status()
+
+                # Parse SSE stream
+                for line in response.iter_lines():
+                    if not line or line.startswith(":"):
+                        continue
+
+                    # Remove "data: " prefix from SSE
+                    if line.startswith("data: "):
+                        line = line[6:]
+
+                    # Check for stream end marker
+                    if line == "[DONE]":
+                        break
+
+                    # Parse the chunk
+                    content_chunk, chunk_usage = self._parse_stream_chunk(line)
+
+                    # Yield content chunks as they arrive
+                    if content_chunk:
+                        accumulated_content.append(content_chunk)
+                        yield (content_chunk, None)
+
+                    # Capture usage data if present
+                    if chunk_usage:
+                        usage_dict = chunk_usage
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                raise AIError.authentication_error(
+                    f"{self.config.name} API: Invalid API key or authentication failed"
+                ) from e
+            elif e.response.status_code == 429:
+                raise AIError.rate_limit_error(f"{self.config.name} API: Rate limit exceeded") from e
+            elif e.response.status_code >= 500:
+                raise AIError.connection_error(
+                    f"{self.config.name} API: Server error (HTTP {e.response.status_code})"
+                ) from e
+            else:
+                raise AIError.model_error(
+                    f"{self.config.name} API error: HTTP {e.response.status_code} - {e.response.text}"
+                ) from e
+        except httpx.TimeoutException as e:
+            raise AIError.timeout_error(f"{self.config.name} API request timed out") from e
+        except httpx.RequestError as e:
+            raise AIError.connection_error(f"{self.config.name} API network error: {e}") from e
+        except Exception as e:
+            raise AIError.model_error(f"Error calling {self.config.name} AI API: {e!s}") from e
+
+        # Final yield with token usage
+        if usage_dict is None:
+            # Estimate usage if not provided
+            usage_dict = {"prompt_tokens": 0, "completion_tokens": len("".join(accumulated_content)) // 4, "total_tokens": 0}
+
+        yield ("", usage_dict)
+
 
 class OpenAICompatibleProvider(BaseConfiguredProvider):
     """Base class for OpenAI-compatible providers.
@@ -273,6 +403,33 @@ class OpenAICompatibleProvider(BaseConfiguredProvider):
         if content == "":
             raise AIError.model_error("Invalid response: empty content")
         return content
+
+    def _parse_stream_chunk(self, line: str) -> tuple[str | None, dict | None]:
+        """Parse OpenAI-style SSE chunk.
+
+        Expected format:
+        {"choices": [{"delta": {"content": "chunk"}}], "usage": {...}}
+        """
+        try:
+            data = json.loads(line)
+
+            # Extract content from delta
+            choices = data.get("choices", [])
+            if choices:
+                delta = choices[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    return (content, None)
+
+            # Extract usage data if present
+            usage = data.get("usage")
+            if usage:
+                return (None, usage)
+
+            return (None, None)
+
+        except json.JSONDecodeError:
+            return (None, None)
 
 
 class AnthropicCompatibleProvider(BaseConfiguredProvider):
@@ -322,6 +479,34 @@ class AnthropicCompatibleProvider(BaseConfiguredProvider):
             raise AIError.model_error("Invalid response: empty content")
         return text_content
 
+    def _parse_stream_chunk(self, line: str) -> tuple[str | None, dict | None]:
+        """Parse Anthropic-style SSE chunk.
+
+        Anthropic uses event-based streaming with different event types:
+        - content_block_delta: Contains text chunks
+        - message_delta: Contains usage information
+        """
+        try:
+            data = json.loads(line)
+
+            # Extract text from content_block_delta
+            if data.get("type") == "content_block_delta":
+                delta = data.get("delta", {})
+                text = delta.get("text")
+                if text:
+                    return (text, None)
+
+            # Extract usage from message_delta
+            if data.get("type") == "message_delta":
+                usage = data.get("usage")
+                if usage:
+                    return (None, usage)
+
+            return (None, None)
+
+        except json.JSONDecodeError:
+            return (None, None)
+
 
 class GenericHTTPProvider(BaseConfiguredProvider):
     """Base class for completely custom providers."""
@@ -357,6 +542,36 @@ class GenericHTTPProvider(BaseConfiguredProvider):
                 return value
 
         raise AIError.model_error("Could not extract content from response")
+
+    def _parse_stream_chunk(self, line: str) -> tuple[str | None, dict | None]:
+        """Generic stream chunk parser - tries multiple formats."""
+        try:
+            data = json.loads(line)
+
+            # Try OpenAI format first
+            choices = data.get("choices", [])
+            if choices:
+                delta = choices[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    return (content, None)
+
+            # Try Anthropic format
+            if data.get("type") == "content_block_delta":
+                delta = data.get("delta", {})
+                text = delta.get("text")
+                if text:
+                    return (text, None)
+
+            # Try to extract usage
+            usage = data.get("usage")
+            if usage:
+                return (None, usage)
+
+            return (None, None)
+
+        except json.JSONDecodeError:
+            return (None, None)
 
 
 __all__ = [
